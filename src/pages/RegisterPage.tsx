@@ -80,6 +80,7 @@ export function RegisterPage() {
       title="Tạo tài khoản NutriMom"
       subtitle="Bắt đầu hồ sơ chăm sóc thai kỳ của bạn chỉ trong vài phút."
       footer={<p>Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>}
+      panelVariant="register"
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {error && <StatusMessage tone="error">{error}</StatusMessage>}

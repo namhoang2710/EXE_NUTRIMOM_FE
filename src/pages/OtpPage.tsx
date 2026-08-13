@@ -114,6 +114,7 @@ export function OtpPage() {
         ? 'Mã gồm 6 chữ số và chỉ sử dụng được một lần.'
         : 'Nhận mã xác minh động từ backend NutriMom.'}
       footer={<p>Muốn dùng mật khẩu? <Link to="/login">Về trang đăng nhập</Link></p>}
+      panelVariant={isRegister ? 'register' : 'login'}
     >
       {!challenge ? (
         <form className="auth-form" onSubmit={handleRequest} noValidate>
