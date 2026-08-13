@@ -7,12 +7,42 @@ interface AuthLayoutProps extends PropsWithChildren {
   title: string
   subtitle: string
   footer?: ReactNode
+  panelVariant?: 'login' | 'register'
 }
 
-export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
+const panelContent = {
+  login: {
+    eyebrow: 'Đồng hành cùng thai kỳ',
+    heading: 'Chăm sóc mẹ và bé từ những điều nhỏ nhất.',
+    description: 'Một nơi an toàn để lưu hồ sơ sức khỏe, nhận lời khuyên và kết nối chuyên gia.',
+    image: '/nutrimom-baby.png',
+    imageAlt: 'Minh họa em bé đang ngủ yên trên đám mây',
+    imageWidth: 1024,
+    imageHeight: 924,
+  },
+  register: {
+    eyebrow: 'Bắt đầu từ yêu thương',
+    heading: 'Khởi đầu an tâm cho hành trình mẹ và bé.',
+    description: 'Tạo hồ sơ riêng để lưu giữ từng cột mốc, theo dõi sức khỏe và nhận hỗ trợ phù hợp trong suốt thai kỳ.',
+    image: '/register-panel.jpg',
+    imageAlt: 'Minh họa mẹ ôm em bé ngủ yên trên đám mây',
+    imageWidth: 1254,
+    imageHeight: 1254,
+  },
+} as const
+
+export function AuthLayout({
+  title,
+  subtitle,
+  children,
+  footer,
+  panelVariant = 'login',
+}: AuthLayoutProps) {
+  const panel = panelContent[panelVariant]
+
   return (
     <main className="auth-page">
-      <section className="brand-panel" aria-label="Giới thiệu NutriMom">
+      <section className={`brand-panel brand-panel--${panelVariant}`} aria-label="Giới thiệu NutriMom">
         <Link className="brand-lockup" to="/login" aria-label="NutriMom, về trang đăng nhập">
           <img src="/nutrimom-logo.png" width="46" height="46" alt="" />
           <span>NutriMom</span>
@@ -21,18 +51,18 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
         <div className="brand-copy">
           <div className="brand-eyebrow">
             <Heart size={17} weight="fill" aria-hidden="true" />
-            Đồng hành cùng thai kỳ
+            {panel.eyebrow}
           </div>
-          <h1>Chăm sóc mẹ và bé từ những điều nhỏ nhất.</h1>
-          <p>Một nơi an toàn để lưu hồ sơ sức khỏe, nhận lời khuyên và kết nối chuyên gia.</p>
+          <h1>{panel.heading}</h1>
+          <p>{panel.description}</p>
         </div>
 
         <figure className="brand-visual">
           <img
-            src="/nutrimom-baby.png"
-            alt="Minh họa em bé đang ngủ yên trên đám mây"
-            width="1024"
-            height="924"
+            src={panel.image}
+            alt={panel.imageAlt}
+            width={panel.imageWidth}
+            height={panel.imageHeight}
           />
         </figure>
 
