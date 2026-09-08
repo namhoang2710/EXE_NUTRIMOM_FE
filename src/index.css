@@ -1,4 +1,7 @@
-@import "./style/animations.css";
+@import "./shared/styles/animations.css";
+@import "./shared/styles/landing.css";
+@import "./shared/styles/app.css";
+@import "./shared/styles/scroll-progress.css";
 
 :root {
   font-family: "Segoe UI Variable", "Aptos", "Segoe UI", system-ui, sans-serif;
@@ -253,6 +256,34 @@ input:focus-visible {
   justify-content: flex-end;
   margin: 0 auto;
   padding: 28px 36px 0;
+}
+
+.form-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-return-link {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 9px 13px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.home-return-link:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background: var(--accent-soft);
 }
 
 .mobile-brand {
