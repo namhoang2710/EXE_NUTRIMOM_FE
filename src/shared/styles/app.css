@@ -1,0 +1,42 @@
+.feature-placeholder {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: var(--page);
+}
+
+.feature-placeholder section {
+  width: min(100%, 680px);
+  padding: clamp(32px, 6vw, 64px);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.feature-placeholder section > p:first-child {
+  margin: 0 0 12px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.feature-placeholder h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 4rem);
+  letter-spacing: -0.04em;
+}
+
+.feature-placeholder h1 + p {
+  margin: 18px 0 28px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.feature-placeholder a {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
