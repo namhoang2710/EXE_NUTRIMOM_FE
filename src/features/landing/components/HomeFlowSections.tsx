@@ -47,6 +47,58 @@ const ctaPromises = [
   'Dễ dàng sử dụng',
 ] as const
 
+const impactMetrics = [
+  {
+    value: '500k+',
+    label: 'Mẹ bầu tin tưởng',
+    detail: 'Cộng đồng đồng hành mỗi ngày',
+  },
+  {
+    value: '99.9%',
+    label: 'Trải nghiệm ổn định',
+    detail: 'Nền tảng vận hành tin cậy',
+  },
+  {
+    value: '24/7',
+    label: 'Tư vấn dinh dưỡng',
+    detail: 'Sẵn sàng khi mẹ cần',
+  },
+  {
+    value: '10M+',
+    label: 'Phút chăm sóc',
+    detail: 'Thời gian được sẻ chia',
+  },
+] as const
+
+export function HomeTrustImpactBar() {
+  const { elementRef, visible } = useRevealOnView()
+
+  return (
+    <section
+      className={`homeImpact${visible ? ' homeImpact--visible' : ''}`}
+      ref={elementRef}
+      aria-labelledby="homeImpact-title"
+    >
+      <h2 className="sr-only" id="homeImpact-title">
+        Những con số tạo nên niềm tin với NutriMom
+      </h2>
+      <div className="homeImpact__inner">
+        <dl className="homeImpact__grid">
+          {impactMetrics.map((metric) => (
+            <div className="homeImpact__item" key={metric.value}>
+              <dt className="homeImpact__value">{metric.value}</dt>
+              <dd className="homeImpact__copy">
+                <strong>{metric.label}</strong>
+                <span>{metric.detail}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )
+}
+
 export function HomeBrandStory() {
   const { elementRef, visible } = useRevealOnView()
 

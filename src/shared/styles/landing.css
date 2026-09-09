@@ -1272,6 +1272,20 @@
 }
 
 .landing-shell {
+  /*
+   * Keep the landing pages comfortable on laptops while letting them use the
+   * extra space available on Full HD/projector displays.  The previous fixed
+   * 1180-1320px caps made every section look like a small canvas in the middle
+   * of a large screen.
+   */
+  --landing-container-inset: clamp(32px, 5vw, 96px);
+  --landing-content-max: clamp(1180px, 82vw, 1680px);
+  --landing-wide-max: clamp(1320px, 88vw, 1800px);
+  --landing-section-space: clamp(56px, 5vw, 72px);
+  --landing-section-half: clamp(28px, 2.5vw, 36px);
+  --landing-card-gap: clamp(24px, 2vw, 32px);
+  --landing-soft-divider: color-mix(in srgb, var(--accent) 14%, transparent);
+  --landing-soft-shadow: 0 14px 38px rgba(65, 49, 97, 0.055);
   min-height: 100dvh;
   background:
     radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 24rem),
@@ -1466,7 +1480,7 @@
 .landing-header-main {
   display: grid;
   grid-template-columns: minmax(190px, 1fr) minmax(500px, 720px) minmax(190px, 1fr);
-  width: min(100% - 48px, 1240px);
+  width: min(calc(100% - var(--landing-container-inset)), var(--landing-content-max));
   min-height: 76px;
   align-items: center;
   gap: 24px;
@@ -1707,12 +1721,12 @@
 }
 
 .landing-section {
-  width: min(100% - 48px, 1180px);
+  width: min(calc(100% - var(--landing-container-inset)), var(--landing-content-max));
   margin-inline: auto;
 }
 
 .landing-section--compact {
-  padding-block: 92px;
+  padding-block: var(--landing-section-space);
 }
 
 .home-hero {
@@ -2026,7 +2040,7 @@
 .services-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--landing-card-gap);
 }
 
 .service-preview-card,
@@ -2035,7 +2049,7 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--surface);
-  box-shadow: 0 16px 44px rgba(65, 49, 97, 0.07);
+  box-shadow: var(--landing-soft-shadow);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -2043,8 +2057,8 @@
 .service-card:hover,
 .values-grid article:hover {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
-  box-shadow: 0 22px 55px rgba(65, 49, 97, 0.12);
-  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(65, 49, 97, 0.09);
+  transform: translateY(-3px);
 }
 
 .service-preview-card {
@@ -2203,7 +2217,7 @@
 .values-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--landing-card-gap);
 }
 
 .values-grid article {
@@ -2273,7 +2287,7 @@
 .about-perspective-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--landing-card-gap);
 }
 
 .about-perspective-grid article {
@@ -2421,7 +2435,7 @@
 .about-verification-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--landing-card-gap);
 }
 
 .about-verification-grid article {
@@ -2569,7 +2583,9 @@
 }
 
 .service-result-group + .service-result-group {
-  margin-top: 82px;
+  margin-top: clamp(28px, 2.5vw, 36px);
+  padding-top: clamp(28px, 2.5vw, 36px);
+  border-top: 1px solid var(--landing-soft-divider);
 }
 
 .service-group-heading {
@@ -2614,7 +2630,7 @@
 .blog-card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--landing-card-gap);
 }
 
 .blog-card-grid--two {
@@ -2631,15 +2647,15 @@
   padding: 26px;
   color: inherit;
   background: var(--surface);
-  box-shadow: 0 16px 44px rgba(65, 49, 97, 0.07);
+  box-shadow: var(--landing-soft-shadow);
   text-decoration: none;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .blog-card:hover {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
-  box-shadow: 0 22px 55px rgba(65, 49, 97, 0.12);
-  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(65, 49, 97, 0.09);
+  transform: translateY(-3px);
 }
 
 .blog-card-icon {
@@ -2746,7 +2762,7 @@ html:has(.testimonial-marquee-section) {
 }
 
 .testimonial-marquee-heading {
-  width: min(100% - 48px, 1180px);
+  width: min(calc(100% - var(--landing-container-inset)), var(--landing-content-max));
   margin: 0 auto;
 }
 
@@ -2804,7 +2820,7 @@ html:has(.testimonial-marquee-section) {
 }
 
 .testimonial-marquee-divider {
-  width: min(100% - 48px, 1180px);
+  width: min(calc(100% - var(--landing-container-inset)), var(--landing-content-max));
   height: 1px;
   margin: clamp(18px, 2.6svh, 30px) auto clamp(14px, 2.2svh, 24px);
   background: linear-gradient(90deg, rgba(230, 201, 138, 0.7), rgba(230, 201, 138, 0.12));
@@ -3102,7 +3118,7 @@ html:has(.testimonial-marquee-section) {
 .service-step-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--landing-card-gap);
 }
 
 .service-step-grid article {
@@ -3165,7 +3181,7 @@ html:has(.testimonial-marquee-section) {
 .blog-feature-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--landing-card-gap);
   margin-top: 26px;
 }
 
@@ -3178,15 +3194,15 @@ html:has(.testimonial-marquee-section) {
   border-radius: 22px;
   color: inherit;
   background: var(--surface);
-  box-shadow: 0 16px 44px rgba(65, 49, 97, 0.07);
+  box-shadow: var(--landing-soft-shadow);
   text-decoration: none;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .blog-feature-card:hover {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
-  box-shadow: 0 22px 55px rgba(65, 49, 97, 0.12);
-  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(65, 49, 97, 0.09);
+  transform: translateY(-3px);
 }
 
 .blog-feature-card.is-featured {
@@ -3539,7 +3555,7 @@ html:has(.testimonial-marquee-section) {
 .landing-footer-inner {
   display: grid;
   grid-template-columns: minmax(280px, 1.5fr) minmax(150px, 0.55fr) minmax(230px, 0.8fr);
-  width: min(100% - 48px, 1180px);
+  width: min(calc(100% - var(--landing-container-inset)), var(--landing-content-max));
   gap: 60px;
   margin: 0 auto;
   padding-block: 58px 44px;
@@ -3580,7 +3596,7 @@ html:has(.testimonial-marquee-section) {
 
 .landing-footer-bottom {
   display: flex;
-  width: min(100% - 48px, 1180px);
+  width: min(calc(100% - var(--landing-container-inset)), var(--landing-content-max));
   min-height: 58px;
   align-items: center;
   justify-content: space-between;
