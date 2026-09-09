@@ -2,17 +2,19 @@
   position: relative;
   z-index: 2;
   isolation: isolate;
-  width: min(100% - 48px, 1320px);
+  width: 100%;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 38px;
-  margin: 36px auto 0;
+  border-right: 0;
+  border-left: 0;
+  border-radius: 0;
+  margin: 0;
   padding: clamp(82px, 7vw, 102px) clamp(28px, 5vw, 72px) clamp(84px, 7vw, 104px);
   background:
     radial-gradient(circle at 10% 20%, rgba(232, 167, 176, 0.2), transparent 28%),
     radial-gradient(circle at 90% 75%, rgba(126, 103, 178, 0.2), transparent 30%),
     linear-gradient(135deg, #fffaf7 0%, #f5f0ff 50%, #fff8f4 100%);
-  box-shadow: 0 24px 68px rgba(81, 62, 119, 0.12);
+  box-shadow: 0 22px 58px rgba(81, 62, 119, 0.09);
 }
 
 .careJourney__decorations {
@@ -131,7 +133,8 @@
 .careJourney__stage {
   position: relative;
   z-index: 1;
-  max-width: 1180px;
+  width: 100%;
+  max-width: 1540px;
   margin: clamp(48px, 4.6vw, 58px) auto 0;
 }
 
@@ -203,7 +206,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  gap: clamp(20px, 2vw, 28px);
+  gap: var(--landing-card-gap, clamp(24px, 2vw, 32px));
 }
 
 .careJourney__cardReveal {
@@ -224,7 +227,7 @@
   border-radius: 27px;
   padding: 30px;
   background: rgba(255, 251, 247, 0.86);
-  box-shadow: 0 17px 44px rgba(75, 56, 109, 0.085);
+  box-shadow: 0 14px 38px rgba(75, 56, 109, 0.065);
   backdrop-filter: blur(14px);
   transform: translateY(0) scale(1);
   transition:
@@ -367,8 +370,8 @@
 .careJourney__card:hover,
 .careJourney__card:focus-within {
   border-color: rgba(var(--careJourney-accent-rgb), 0.78);
-  box-shadow: 0 28px 68px rgba(75, 56, 109, 0.17);
-  transform: translateY(-8px) scale(1.012);
+  box-shadow: 0 21px 50px rgba(75, 56, 109, 0.12);
+  transform: translateY(-4px);
 }
 
 .careJourney__card:hover .careJourney__icon,
@@ -428,12 +431,12 @@
 
 .careJourney--visible .careJourney__card:hover,
 .careJourney--visible .careJourney__card:focus-within {
-  transform: translateY(-8px) scale(1.012);
+  transform: translateY(-4px);
 }
 
 @media (max-width: 1040px) {
   .careJourney {
-    margin-top: 28px;
+    margin-top: 0;
     padding-inline: clamp(26px, 5vw, 54px);
   }
 
@@ -455,9 +458,9 @@
 
 @media (max-width: 700px) {
   .careJourney {
-    width: min(100% - 24px, 1320px);
-    border-radius: 28px;
-    margin: 18px auto 0;
+    width: 100%;
+    border-radius: 0;
+    margin: 0;
     padding: 64px 20px 68px;
   }
 
@@ -503,7 +506,7 @@
 
   .careJourney__grid {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 24px;
   }
 
   .careJourney__cardReveal,
@@ -523,6 +526,32 @@
 
   .careJourney__cardDescription {
     min-height: auto;
+  }
+}
+
+@media (min-width: 1441px) {
+  .careJourney__title {
+    max-width: 990px;
+    font-size: clamp(56px, 3.4vw, 68px);
+  }
+
+  .careJourney__description {
+    max-width: 860px;
+    font-size: 16px;
+  }
+
+  .careJourney__card {
+    min-height: 400px;
+    padding: clamp(30px, 1.8vw, 38px);
+  }
+
+  .careJourney__cardTitle {
+    max-width: 16ch;
+    font-size: 23px;
+  }
+
+  .careJourney__cardDescription {
+    font-size: 14px;
   }
 }
 

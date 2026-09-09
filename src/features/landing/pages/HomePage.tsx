@@ -7,7 +7,12 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CareJourney } from '../components/CareJourney'
 import { FloatingContactActions } from '../components/FloatingContactActions'
-import { HomeBrandStory, HomeCommunityCta, HomeKnowledge } from '../components/HomeFlowSections'
+import {
+  HomeBrandStory,
+  HomeCommunityCta,
+  HomeKnowledge,
+  HomeTrustImpactBar,
+} from '../components/HomeFlowSections'
 import { TestimonialMarquee } from '../components/TestimonialMarquee'
 
 const heroSlides = [
@@ -121,6 +126,8 @@ export function HomePage() {
           })}
         </div>
       </section>
+
+      <HomeTrustImpactBar />
 
       <FloatingContactActions visible={showContactActions} />
 
