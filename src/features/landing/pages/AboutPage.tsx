@@ -10,7 +10,7 @@ import {
   Sparkle,
   Stethoscope,
 } from '@phosphor-icons/react'
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 
 const journeyStages = [
@@ -62,7 +62,7 @@ const verificationStandards = [
   {
     icon: Certificate,
     title: 'Xác minh hồ sơ',
-    text: 'Đối chiếu thông tin định danh và giấy phép hành nghề trước khi chuyên gia xuất hiện trên nền tảng.',
+    text: 'Đối chiếu thông tin định danh và giấy phép hành nghề trước khi chuyên gia đồng hành cùng gia đình.',
   },
   {
     icon: Stethoscope,
@@ -71,13 +71,50 @@ const verificationStandards = [
   },
   {
     icon: ShieldCheck,
+    title: 'Minh bạch thông tin',
+    text: 'Công khai thông tin cần thiết, nguyên tắc hỗ trợ và phạm vi trách nhiệm trong từng dịch vụ.',
+  },
+  {
+    icon: Heart,
     title: 'Theo dõi chất lượng',
-    text: 'Rà soát tiêu chuẩn chuyên môn, tính minh bạch và trải nghiệm hỗ trợ trong suốt quá trình hoạt động.',
+    text: 'Lắng nghe phản hồi và rà soát trải nghiệm để duy trì sự an toàn, tận tâm và đáng tin cậy.',
+  },
+]
+
+const informationItems = [
+  {
+    title: 'Điều khoản sử dụng',
+    paragraphs: [
+      'NutriMom có thể cập nhật điều khoản để phù hợp với dịch vụ và quy định hiện hành. Việc tiếp tục sử dụng Trang Web sau khi điều khoản thay đổi đồng nghĩa với việc bạn chấp thuận phiên bản mới.',
+      'Bạn nên kiểm tra điều khoản trước mỗi lần sử dụng. Các quy định này giúp bảo vệ quyền lợi, làm rõ cách sử dụng dịch vụ và trách nhiệm hợp lý của mỗi bên.',
+    ],
+  },
+  {
+    title: 'Chính sách quyền riêng tư',
+    paragraphs: [
+      'NutriMom chỉ thu thập và xử lý thông tin cá nhân cần thiết để cung cấp dịch vụ, cải thiện trải nghiệm và hỗ trợ người dùng.',
+      'Dữ liệu được bảo mật và không chia sẻ ngoài phạm vi đã thông báo. Bạn có thể yêu cầu kiểm tra, cập nhật hoặc xóa thông tin theo chính sách hiện hành. Chính sách có thể được điều chỉnh khi hoạt động hoặc yêu cầu pháp lý thay đổi.',
+    ],
+  },
+  {
+    title: 'Việc sử dụng thông tin và nội dung',
+    paragraphs: [
+      'Nội dung trên Trang Web có thể đến từ NutriMom, đối tác hoặc người dùng. Chúng tôi nỗ lực duy trì tính cập nhật và tin cậy nhưng không bảo đảm tuyệt đối độ chính xác của mọi thông tin.',
+      'Thông tin chỉ nhằm mục đích tham khảo, giáo dục và không thay thế chẩn đoán hay tư vấn y khoa. Hãy tham khảo bác sĩ hoặc chuyên gia y tế trước khi áp dụng bất kỳ lời khuyên chăm sóc nào.',
+    ],
+  },
+  {
+    title: 'Tiêu chuẩn cộng đồng',
+    paragraphs: [
+      'NutriMom hướng đến một cộng đồng an toàn, tôn trọng và thân thiện với gia đình. Hãy chia sẻ thông tin rõ ràng, trung thực và có trách nhiệm.',
+      'Nội dung xúc phạm, quấy rối, phân biệt đối xử, spam, quảng cáo không phù hợp hoặc vi phạm quyền sở hữu có thể bị gỡ bỏ. NutriMom có quyền cảnh báo, khóa tài khoản và ngăn chặn hành vi không phù hợp.',
+    ],
   },
 ]
 
 export function AboutPage() {
   const pageRef = useRef<HTMLElement>(null)
+  const [openInformationIndex, setOpenInformationIndex] = useState<number | null>(null)
 
   useLayoutEffect(() => {
     const page = pageRef.current
@@ -121,7 +158,7 @@ export function AboutPage() {
   return (
     <main ref={pageRef} className="landing-main aboutEditorial">
       <section className="aboutEditorialHero landing-section" aria-labelledby="about-editorial-title">
-        <figure className="aboutEditorialHero__visual landing-reveal">
+        <figure className="aboutEditorialHero__visual">
           <img
             src="/register-panel.jpg"
             width="1254"
@@ -139,7 +176,7 @@ export function AboutPage() {
           </figcaption>
         </figure>
 
-        <div className="aboutEditorialHero__copy landing-reveal landing-reveal-delay">
+        <div className="aboutEditorialHero__copy">
           <div className="aboutEditorialEyebrow">
             <Heart size={17} weight="fill" aria-hidden="true" /> Về NutriMom
           </div>
@@ -227,8 +264,12 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section className="aboutEditorialCommitment landing-section" aria-labelledby="about-commitment-title">
-        <header className="aboutEditorialCommitment__intro landing-reveal">
+      <section
+        className="aboutEditorialCommitment landing-section"
+        aria-labelledby="about-commitment-title"
+        data-about-scroll-reveal="commitment"
+      >
+        <header className="aboutEditorialCommitment__intro aboutScrollRevealLead">
           <span>CAM KẾT CHUYÊN MÔN</span>
           <h2 id="about-commitment-title">Niềm tin được xây bằng một quy trình rõ ràng.</h2>
           <p>NutriMom hướng tới kết nối gia đình với bác sĩ và chuyên gia có hồ sơ minh bạch, đúng chuyên khoa và phù hợp với từng nhu cầu hỗ trợ.</p>
@@ -240,7 +281,10 @@ export function AboutPage() {
 
         <ol className="aboutEditorialCommitment__steps">
           {verificationStandards.map(({ icon: Icon, title, text }, index) => (
-            <li className="landing-reveal" style={{ animationDelay: `${index * 110}ms` }} key={title}>
+            <li
+              style={{ '--commitment-delay': `${index * 260}ms` } as CSSProperties}
+              key={title}
+            >
               <span className="aboutEditorialCommitment__stepNumber">0{index + 1}</span>
               <span className="aboutEditorialCommitment__stepIcon" aria-hidden="true">
                 <Icon size={27} weight="duotone" />
@@ -254,11 +298,65 @@ export function AboutPage() {
         </ol>
       </section>
 
-      <section className="aboutEditorialStatement" aria-label="Tuyên ngôn thương hiệu NutriMom">
-        <div className="aboutEditorialStatement__inner landing-section landing-reveal">
-          <Sparkle size={34} weight="fill" aria-hidden="true" />
-          <p>“Không để mẹ phải tự mình hiểu mọi thứ.”</p>
-          <span>Bởi sự an tâm bắt đầu khi mẹ biết mình luôn có người đồng hành.</span>
+      <section
+        className="aboutEditorialInformation"
+        aria-labelledby="about-information-title"
+        data-about-scroll-reveal="information"
+      >
+        <div className="aboutEditorialInformation__inner landing-section">
+          <header className="aboutEditorialInformation__heading aboutScrollRevealLead">
+            <span>THÔNG TIN &amp; ĐIỀU KHOẢN</span>
+            <h2 id="about-information-title">Thông tin</h2>
+            <p>Những nguyên tắc giúp trải nghiệm tại NutriMom luôn rõ ràng, an toàn và đáng tin cậy.</p>
+          </header>
+
+          <div className="aboutEditorialInformation__list">
+            {informationItems.map(({ title, paragraphs }, index) => {
+              const isOpen = openInformationIndex === index
+              const panelId = `about-information-panel-${index}`
+              const buttonId = `about-information-button-${index}`
+
+              return (
+                <article
+                  className={`aboutEditorialInformation__item${isOpen ? ' is-open' : ''}`}
+                  style={{ '--information-delay': `${index * 175}ms` } as CSSProperties}
+                  key={title}
+                >
+                  <button
+                    id={buttonId}
+                    className="aboutEditorialInformation__trigger"
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    onClick={() => setOpenInformationIndex(isOpen ? null : index)}
+                  >
+                    <span className="aboutEditorialInformation__number" aria-hidden="true">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="aboutEditorialInformation__title">{title}</span>
+                    <span className="aboutEditorialInformation__toggle" aria-hidden="true">
+                      <span />
+                      <span />
+                    </span>
+                  </button>
+
+                  <div
+                    id={panelId}
+                    className="aboutEditorialInformation__panel"
+                    role="region"
+                    aria-labelledby={buttonId}
+                    aria-hidden={!isOpen}
+                  >
+                    <div className="aboutEditorialInformation__panelInner">
+                      <div className="aboutEditorialInformation__copy">
+                        {paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
         </div>
       </section>
 
