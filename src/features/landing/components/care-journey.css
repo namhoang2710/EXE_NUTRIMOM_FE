@@ -1,570 +1,249 @@
 .careJourney {
+  --care-ink: #292531;
+  --care-muted: #716a75;
   position: relative;
-  z-index: 2;
   isolation: isolate;
-  width: 100%;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-right: 0;
-  border-left: 0;
-  border-radius: 0;
-  margin: 0;
-  padding: clamp(82px, 7vw, 102px) clamp(28px, 5vw, 72px) clamp(84px, 7vw, 104px);
+  padding: clamp(88px, 9vw, 140px) max(var(--landing-container-inset), calc((100% - var(--landing-content-max)) / 2));
   background:
-    radial-gradient(circle at 10% 20%, rgba(232, 167, 176, 0.2), transparent 28%),
-    radial-gradient(circle at 90% 75%, rgba(126, 103, 178, 0.2), transparent 30%),
-    linear-gradient(135deg, #fffaf7 0%, #f5f0ff 50%, #fff8f4 100%);
-  box-shadow: 0 22px 58px rgba(81, 62, 119, 0.09);
+    radial-gradient(circle at 6% 4%, rgba(202, 129, 125, 0.14), transparent 28rem),
+    radial-gradient(circle at 96% 82%, rgba(102, 83, 145, 0.12), transparent 28rem),
+    #fcfaf7;
 }
 
-.careJourney__decorations {
+.careJourney::before {
   position: absolute;
   z-index: -1;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  user-select: none;
-}
-
-.careJourney__cloud,
-.careJourney__star,
-.careJourney__glow {
-  position: absolute;
-  pointer-events: none;
-}
-
-.careJourney__cloud {
-  top: 34px;
-  left: 42px;
-  color: #a897cf;
-  opacity: 0.16;
-  transform: rotate(-5deg);
-}
-
-.careJourney__star {
-  color: #c99a62;
-  opacity: 0.26;
-  filter: drop-shadow(0 0 8px rgba(230, 201, 138, 0.32));
-}
-
-.careJourney__star--one {
-  top: 80px;
-  right: 10%;
-  transform: rotate(12deg);
-}
-
-.careJourney__star--two {
-  top: 152px;
-  right: 6%;
-  color: #8d74bd;
-  transform: rotate(-8deg);
-}
-
-.careJourney__glow {
-  top: 46%;
-  left: 50%;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
-  opacity: 0.24;
-  background: radial-gradient(circle, rgba(177, 157, 221, 0.6), rgba(177, 157, 221, 0));
-  transform: translate(-50%, -50%);
+  inset: 46px 6% auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(117, 89, 104, 0.2), transparent);
+  content: '';
 }
 
 .careJourney__heading {
-  position: relative;
-  z-index: 2;
-  max-width: 850px;
-  margin: 0 auto;
-  text-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.6fr);
+  align-items: end;
+  gap: clamp(32px, 7vw, 110px);
+}
+
+.careJourney__eyebrow,
+.careJourney__tag {
+  color: #9a514f;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
 }
 
 .careJourney__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: #6755a5;
-  font-size: 12px;
-  font-weight: 780;
-  letter-spacing: 0.16em;
-  line-height: 1.4;
+  gap: 8px;
 }
 
-.careJourney__eyebrow::before,
-.careJourney__eyebrow::after {
-  width: 25px;
-  height: 1px;
-  background: rgba(103, 85, 165, 0.42);
-  content: '';
-}
-
-.careJourney__title {
-  max-width: 830px;
-  margin: 17px auto 0;
-  color: #292633;
-  font-size: clamp(48px, 4.2vw, 56px);
-  font-weight: 760;
-  letter-spacing: -0.054em;
-  line-height: 1.04;
-}
-
-.careJourney__titleMain,
-.careJourney__titleAccent {
-  display: block;
-}
-
-.careJourney__titleAccent {
-  margin-top: 5px;
-  color: #816bad;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.9em;
+.careJourney__heading h2 {
+  max-width: 850px;
+  margin: 18px 0 0;
+  color: var(--care-ink);
+  font-family: Cambria, Georgia, 'Times New Roman', serif;
+  font-size: clamp(46px, 5.4vw, 76px);
   font-weight: 500;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.045em;
+  line-height: 0.99;
 }
 
-.careJourney__description {
-  max-width: 740px;
-  margin: 24px auto 0;
-  color: #6f697a;
-  font-size: 15px;
+.careJourney__heading h2 em {
+  color: #725c91;
+  font-weight: 500;
+}
+
+.careJourney__heading > p {
+  margin: 0 0 5px;
+  color: var(--care-muted);
+  font-size: 16px;
   line-height: 1.75;
 }
 
-.careJourney__stage {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 1540px;
-  margin: clamp(48px, 4.6vw, 58px) auto 0;
-}
-
-.careJourney__path {
-  position: absolute;
-  z-index: 0;
-  top: -20px;
-  right: 4%;
-  left: 4%;
-  height: 150px;
-  pointer-events: none;
-}
-
-.careJourney__pathSvg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.careJourney__pathShadow,
-.careJourney__pathLine {
-  fill: none;
-  vector-effect: non-scaling-stroke;
-}
-
-.careJourney__pathShadow {
-  stroke: rgba(255, 255, 255, 0.72);
-  stroke-width: 7;
-}
-
-.careJourney__pathLine {
-  stroke: rgba(137, 113, 187, 0.32);
-  stroke-width: 2;
-  stroke-dasharray: 7 10;
-  stroke-linecap: round;
-}
-
-.careJourney__milestone {
-  position: absolute;
-  top: 68px;
-  width: 13px;
-  height: 13px;
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  background: #b69fdc;
-  box-shadow: 0 0 0 5px rgba(182, 159, 220, 0.14);
-}
-
-.careJourney__milestone--one {
-  left: 4.5%;
-}
-
-.careJourney__milestone--two {
-  top: 55px;
-  left: calc(50% - 6px);
-  background: #e4a9a5;
-}
-
-.careJourney__milestone--three {
-  top: 62px;
-  right: 4.4%;
-  background: #d7b974;
-}
-
 .careJourney__grid {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: stretch;
-  gap: var(--landing-card-gap, clamp(24px, 2vw, 32px));
-}
-
-.careJourney__cardReveal {
-  display: flex;
-  min-width: 0;
+  gap: clamp(18px, 2vw, 28px);
+  margin-top: clamp(54px, 6vw, 86px);
 }
 
 .careJourney__card {
-  --careJourney-accent: #e8a7b0;
-  --careJourney-accent-rgb: 232, 167, 176;
+  --card-accent: #ad6763;
+  --card-wash: #f6dedb;
   position: relative;
   display: flex;
-  width: 100%;
-  min-height: 376px;
+  min-height: 390px;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(var(--careJourney-accent-rgb), 0.38);
-  border-radius: 27px;
-  padding: 30px;
-  background: rgba(255, 251, 247, 0.86);
-  box-shadow: 0 14px 38px rgba(75, 56, 109, 0.065);
-  backdrop-filter: blur(14px);
-  transform: translateY(0) scale(1);
-  transition:
-    border-color 360ms ease,
-    box-shadow 360ms ease,
-    transform 360ms ease;
+  border: 1px solid rgba(76, 61, 70, 0.1);
+  border-radius: 30px;
+  padding: clamp(25px, 2.3vw, 34px);
+  background: rgba(255, 255, 255, 0.77);
+  box-shadow: 0 22px 60px rgba(73, 55, 72, 0.07);
+  opacity: 0;
+  transform: translateY(18px);
+  transition: transform 380ms ease, box-shadow 380ms ease, border-color 380ms ease, opacity 550ms ease;
 }
 
-.careJourney__card--lavender {
-  --careJourney-accent: #856db5;
-  --careJourney-accent-rgb: 133, 109, 181;
+.careJourney--visible .careJourney__card {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.careJourney__card--champagne {
-  --careJourney-accent: #bd9650;
-  --careJourney-accent-rgb: 189, 150, 80;
+.careJourney--visible .careJourney__card:nth-child(2) { transition-delay: 70ms; }
+.careJourney--visible .careJourney__card:nth-child(3) { transition-delay: 140ms; }
+.careJourney--visible .careJourney__card:nth-child(4) { transition-delay: 210ms; }
+.careJourney--visible .careJourney__card:nth-child(5) { transition-delay: 280ms; }
+.careJourney--visible .careJourney__card:nth-child(6) { transition-delay: 350ms; }
+
+.careJourney__card:hover,
+.careJourney__card:focus-within {
+  border-color: color-mix(in srgb, var(--card-accent) 36%, transparent);
+  box-shadow: 0 28px 70px rgba(73, 55, 72, 0.12);
+  transform: translateY(-6px);
 }
+
+.careJourney__card--sage { --card-accent: #567160; --card-wash: #e1ece2; }
+.careJourney__card--lilac { --card-accent: #735e9b; --card-wash: #e9e3f3; }
+.careJourney__card--honey { --card-accent: #9a7637; --card-wash: #f3e8c8; }
+.careJourney__card--plum { --card-accent: #695184; --card-wash: #e4daf0; }
+.careJourney__card--pearl { --card-accent: #95615f; --card-wash: #f0e3df; }
 
 .careJourney__card::after {
   position: absolute;
-  right: -46px;
-  bottom: -54px;
-  width: 150px;
-  height: 150px;
+  top: -72px;
+  right: -58px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
-  background: rgba(var(--careJourney-accent-rgb), 0.08);
+  background: var(--card-wash);
   content: '';
-  pointer-events: none;
+  opacity: 0.54;
 }
 
-.careJourney__number {
-  position: absolute;
-  top: 18px;
-  right: 24px;
-  color: rgba(var(--careJourney-accent-rgb), 0.16);
-  font-size: 66px;
-  font-weight: 820;
-  letter-spacing: -0.07em;
-  line-height: 1;
-  pointer-events: none;
+.careJourney__cardTop {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .careJourney__icon {
-  position: relative;
-  z-index: 1;
   display: grid;
-  width: 60px;
-  height: 60px;
+  width: 58px;
+  height: 58px;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.82);
   border-radius: 19px;
-  color: var(--careJourney-accent);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(var(--careJourney-accent-rgb), 0.2));
-  box-shadow: 0 12px 25px rgba(var(--careJourney-accent-rgb), 0.18);
-  transform: rotate(0) scale(1);
-  transition: transform 360ms ease;
+  color: var(--card-accent);
+  background: var(--card-wash);
 }
 
-.careJourney__cardTitle {
-  position: relative;
-  z-index: 1;
-  max-width: 13ch;
-  margin: 24px 0 0;
-  color: #302b39;
-  font-size: 21px;
-  font-weight: 760;
-  letter-spacing: -0.035em;
-  line-height: 1.25;
+.careJourney__number {
+  color: color-mix(in srgb, var(--card-accent) 40%, transparent);
+  font-family: Cambria, Georgia, serif;
+  font-size: 20px;
+  font-style: italic;
 }
 
-.careJourney__cardDescription {
-  position: relative;
-  z-index: 1;
-  min-height: 67px;
-  margin: 12px 0 0;
-  color: #726c7d;
-  font-size: 13px;
-  line-height: 1.68;
+.careJourney__tag {
+  display: block;
+  margin-top: 31px;
+  color: var(--card-accent);
+  font-size: 11px;
 }
 
-.careJourney__benefits {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 9px;
-  margin: 20px 0 0;
-  padding: 18px 0 0;
-  border-top: 1px solid rgba(var(--careJourney-accent-rgb), 0.18);
-  list-style: none;
+.careJourney__card h3 {
+  max-width: 15ch;
+  margin: 9px 0 0;
+  color: var(--care-ink);
+  font-size: clamp(23px, 1.8vw, 28px);
+  letter-spacing: -0.04em;
+  line-height: 1.14;
+}
+
+.careJourney__card > p {
+  margin: 14px 0 0;
+  color: var(--care-muted);
+  font-size: 14px;
+  line-height: 1.66;
 }
 
 .careJourney__benefit {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  color: #625c6e;
-  font-size: 12px;
+  margin-top: 20px;
+  color: var(--card-accent);
+  font-size: 13px;
   font-weight: 650;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
-.careJourney__benefitIcon {
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: var(--careJourney-accent);
-}
-
-.careJourney__benefitText {
-  display: block;
-}
+.careJourney__benefit svg { flex: 0 0 auto; margin-top: 1px; }
 
 .careJourney__link {
-  position: relative;
-  z-index: 1;
   display: inline-flex;
-  width: fit-content;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
+  width: fit-content;
   margin-top: auto;
-  padding-top: 22px;
-  color: #514074;
-  font-size: 13px;
+  padding-top: 23px;
+  color: var(--card-accent);
+  font-size: 14px;
   font-weight: 780;
   text-decoration: none;
 }
 
-.careJourney__linkIcon {
-  display: grid;
-  width: 29px;
-  height: 29px;
-  place-items: center;
-  border-radius: 50%;
-  color: #fff;
-  background: var(--careJourney-accent);
-  box-shadow: 0 7px 16px rgba(var(--careJourney-accent-rgb), 0.24);
-  transition: transform 340ms ease;
+.careJourney__link svg { transition: transform 220ms ease; }
+.careJourney__link:hover svg { transform: translateX(4px); }
+
+.careJourney__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  border-top: 1px solid rgba(67, 55, 64, 0.13);
+  margin-top: 36px;
+  padding-top: 28px;
 }
 
-.careJourney__card:hover,
-.careJourney__card:focus-within {
-  border-color: rgba(var(--careJourney-accent-rgb), 0.78);
-  box-shadow: 0 21px 50px rgba(75, 56, 109, 0.12);
-  transform: translateY(-4px);
+.careJourney__footer p {
+  max-width: 650px;
+  margin: 0;
+  color: var(--care-muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-.careJourney__card:hover .careJourney__icon,
-.careJourney__card:focus-within .careJourney__icon {
-  transform: rotate(3deg) scale(1.06);
-}
-
-.careJourney__card:hover .careJourney__linkIcon,
-.careJourney__card:focus-within .careJourney__linkIcon {
-  transform: translateX(4px);
-}
-
-.careJourney__link:focus-visible {
-  border-radius: 10px;
-  outline: 3px solid rgba(var(--careJourney-accent-rgb), 0.3);
-  outline-offset: 5px;
-}
-
-.careJourney__eyebrow,
-.careJourney__title,
-.careJourney__description,
-.careJourney__cardReveal {
-  opacity: 0;
-  transform: translateY(22px);
-  transition-duration: 620ms;
-  transition-property: opacity, transform;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.careJourney--visible .careJourney__eyebrow,
-.careJourney--visible .careJourney__title,
-.careJourney--visible .careJourney__description,
-.careJourney--visible .careJourney__cardReveal {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.careJourney--visible .careJourney__title {
-  transition-delay: 80ms;
-}
-
-.careJourney--visible .careJourney__description {
-  transition-delay: 170ms;
-}
-
-.careJourney--visible .careJourney__cardReveal:nth-child(1) {
-  transition-delay: 290ms;
-}
-
-.careJourney--visible .careJourney__cardReveal:nth-child(2) {
-  transition-delay: 420ms;
-}
-
-.careJourney--visible .careJourney__cardReveal:nth-child(3) {
-  transition-delay: 550ms;
-}
-
-.careJourney--visible .careJourney__card:hover,
-.careJourney--visible .careJourney__card:focus-within {
-  transform: translateY(-4px);
+.careJourney__footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #624b80;
+  font-size: 14px;
+  font-weight: 780;
+  text-decoration: none;
 }
 
 @media (max-width: 1040px) {
-  .careJourney {
-    margin-top: 0;
-    padding-inline: clamp(26px, 5vw, 54px);
-  }
-
-  .careJourney__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .careJourney__cardReveal:last-child {
-    grid-column: 1 / -1;
-    width: calc(50% - 12px);
-    justify-self: center;
-  }
-
-  .careJourney__path,
-  .careJourney__milestone {
-    display: none;
-  }
+  .careJourney__heading { grid-template-columns: 1fr; gap: 20px; }
+  .careJourney__heading > p { max-width: 700px; }
+  .careJourney__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 700px) {
-  .careJourney {
-    width: 100%;
-    border-radius: 0;
-    margin: 0;
-    padding: 64px 20px 68px;
-  }
-
-  .careJourney__cloud {
-    top: 18px;
-    left: 12px;
-    width: 78px;
-    height: 78px;
-  }
-
-  .careJourney__star--one {
-    top: 35px;
-    right: 8%;
-  }
-
-  .careJourney__star--two {
-    display: none;
-  }
-
-  .careJourney__eyebrow {
-    font-size: 10px;
-    letter-spacing: 0.13em;
-  }
-
-  .careJourney__eyebrow::before,
-  .careJourney__eyebrow::after {
-    width: 16px;
-  }
-
-  .careJourney__title {
-    margin-top: 14px;
-    font-size: clamp(36px, 10vw, 45px);
-  }
-
-  .careJourney__description {
-    margin-top: 19px;
-    font-size: 14px;
-  }
-
-  .careJourney__stage {
-    margin-top: 42px;
-  }
-
-  .careJourney__grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  .careJourney__cardReveal,
-  .careJourney__cardReveal:last-child {
-    grid-column: auto;
-    width: 100%;
-  }
-
-  .careJourney__card {
-    min-height: 360px;
-    padding: 26px;
-  }
-
-  .careJourney__number {
-    font-size: 58px;
-  }
-
-  .careJourney__cardDescription {
-    min-height: auto;
-  }
-}
-
-@media (min-width: 1441px) {
-  .careJourney__title {
-    max-width: 990px;
-    font-size: clamp(56px, 3.4vw, 68px);
-  }
-
-  .careJourney__description {
-    max-width: 860px;
-    font-size: 16px;
-  }
-
-  .careJourney__card {
-    min-height: 400px;
-    padding: clamp(30px, 1.8vw, 38px);
-  }
-
-  .careJourney__cardTitle {
-    max-width: 16ch;
-    font-size: 23px;
-  }
-
-  .careJourney__cardDescription {
-    font-size: 14px;
-  }
+@media (max-width: 660px) {
+  .careJourney { padding: 72px 20px; }
+  .careJourney__heading h2 { font-size: clamp(41px, 12vw, 55px); }
+  .careJourney__grid { grid-template-columns: 1fr; margin-top: 42px; }
+  .careJourney__card { min-height: 350px; }
+  .careJourney__footer { align-items: flex-start; flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .careJourney__eyebrow,
-  .careJourney__title,
-  .careJourney__description,
-  .careJourney__cardReveal,
-  .careJourney__card,
-  .careJourney__icon,
-  .careJourney__linkIcon {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
+  .careJourney__card { opacity: 1; transform: none; transition: none; }
 }

@@ -1,9 +1,9 @@
 import {
   CalendarCheck,
+  Camera,
   ChatCircleText,
   Heartbeat,
   Notebook,
-  ShieldCheck,
   Sparkle,
 } from '@phosphor-icons/react'
 import type { ServiceIconName } from '../model/service-content'
@@ -21,7 +21,7 @@ export function ServiceIcon({ name, size = 29 }: ServiceIconProps) {
     case 'notebook': return <Notebook {...props} />
     case 'chat': return <ChatCircleText {...props} />
     case 'heartbeat': return <Heartbeat {...props} />
-    case 'shield': return <ShieldCheck {...props} />
     case 'sparkle': return <Sparkle {...props} />
+    case 'scan': return <Camera {...props} />
   }
 }

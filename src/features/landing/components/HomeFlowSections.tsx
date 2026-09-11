@@ -1,9 +1,12 @@
 import {
   ArrowRight,
   BookOpenText,
+  Camera,
   CheckCircle,
+  ForkKnife,
   Sparkle,
   StarFour,
+  UsersThree,
 } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -49,24 +52,24 @@ const ctaPromises = [
 
 const impactMetrics = [
   {
-    value: '500k+',
-    label: 'Mẹ bầu tin tưởng',
-    detail: 'Cộng đồng đồng hành mỗi ngày',
+    value: '40',
+    label: 'Tuần thai rõ ràng',
+    detail: 'Theo dõi theo từng giai đoạn',
   },
   {
-    value: '99.9%',
-    label: 'Trải nghiệm ổn định',
-    detail: 'Nền tảng vận hành tin cậy',
+    value: '06',
+    label: 'Dịch vụ trọng tâm',
+    detail: 'Ít hơn nhưng hữu ích hơn',
   },
   {
-    value: '24/7',
-    label: 'Tư vấn dinh dưỡng',
-    detail: 'Sẵn sàng khi mẹ cần',
+    value: 'AI',
+    label: 'Hiểu từng bữa ăn',
+    detail: 'Nhận diện và gợi ý bổ sung',
   },
   {
-    value: '10M+',
-    label: 'Phút chăm sóc',
-    detail: 'Thời gian được sẻ chia',
+    value: '02',
+    label: 'Người cùng đồng hành',
+    detail: 'Gợi ý cho mẹ và người chồng',
   },
 ] as const
 
@@ -134,7 +137,7 @@ export function HomeBrandStory() {
             Hiểu điều mẹ cần, <em className="homeStory__titleAccent">trân trọng điều mẹ cảm nhận.</em>
           </h2>
           <p className="homeStory__description">
-            NutriMom hướng đến một không gian nơi kiến thức sức khỏe trở nên gần gũi, thông tin được trình bày rõ ràng và mỗi người mẹ đều được lắng nghe.
+            NutriMom không gom thật nhiều nội dung. Nền tảng kết nối đúng dữ liệu, đúng công cụ và đúng gợi ý để mẹ luôn hiểu điều quan trọng nhất ở mỗi giai đoạn.
           </p>
           <ul className="homeStory__values">
             {storyValues.map((value) => (
@@ -152,6 +155,55 @@ export function HomeBrandStory() {
       </div>
     </section>
   )
+}
+
+export function HomeIntelligence() {
+  const { elementRef, visible } = useRevealOnView()
+
+  return (
+    <section
+      className={`homeIntelligence${visible ? ' homeIntelligence--visible' : ''}`}
+      ref={elementRef}
+      aria-labelledby="homeIntelligence-title"
+    >
+      <div className="homeIntelligence__inner">
+        <div className="homeIntelligence__copy">
+          <span className="homeIntelligence__eyebrow"><Sparkle size={14} weight="fill" /> AI DINH DƯỠNG CÓ BỐI CẢNH</span>
+          <h2 id="homeIntelligence-title">Không chỉ nhận diện món ăn.<br /><em>AI hiểu mẹ đang cần gì.</em></h2>
+          <p>NutriMom đặt kết quả phân tích bữa ăn bên cạnh tuần thai và hồ sơ cá nhân để gợi ý gần với nhu cầu thực tế hơn.</p>
+          <ol>
+            <li><span>01</span><div><strong>Chụp hoặc tải ảnh</strong><small>Ghi nhận bữa ăn trong vài giây.</small></div></li>
+            <li><span>02</span><div><strong>Hiểu chất và lượng</strong><small>Nhìn rõ nhóm chất, phần thiếu và xu hướng dư.</small></div></li>
+            <li><span>03</span><div><strong>Nhận gợi ý tiếp theo</strong><small>Điều chỉnh bữa sau nhẹ nhàng, không áp đặt.</small></div></li>
+          </ol>
+          <Link className="homeIntelligence__link" to="/services/food-scan-ai">Khám phá AI scan món ăn <ArrowRight size={17} weight="bold" /></Link>
+        </div>
+
+        <div className="homeIntelligence__visual" aria-label="Minh họa luồng phân tích món ăn bằng AI">
+          <div className="homeIntelligence__visualTop"><span><HeartMark /> NutriMom AI</span><small>Thai tuần 24</small></div>
+          <div className="homeIntelligence__meal">
+            <span className="homeIntelligence__camera"><Camera size={31} weight="duotone" /></span>
+            <div><small>BỮA TRƯA HÔM NAY</small><strong>Cơm gạo lứt · Cá hồi · Rau xanh</strong></div>
+            <span className="homeIntelligence__score">8.6</span>
+          </div>
+          <div className="homeIntelligence__nutrients">
+            <div><span>Protein</span><i><b style={{ width: '82%' }} /></i><strong>Tốt</strong></div>
+            <div><span>Chất xơ</span><i><b style={{ width: '56%' }} /></i><strong>Cần thêm</strong></div>
+            <div><span>Sắt</span><i><b style={{ width: '48%' }} /></i><strong>Cần thêm</strong></div>
+          </div>
+          <div className="homeIntelligence__suggestion">
+            <ForkKnife size={21} weight="duotone" />
+            <div><small>GỢI Ý BỔ SUNG</small><strong>Thêm một phần rau lá xanh hoặc đậu lăng</strong></div>
+          </div>
+          <div className="homeIntelligence__family"><UsersThree size={18} weight="fill" /> Đã thêm gợi ý bữa tối cho người đồng hành</div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function HeartMark() {
+  return <span aria-hidden="true">♥</span>
 }
 
 export function HomeKnowledge() {

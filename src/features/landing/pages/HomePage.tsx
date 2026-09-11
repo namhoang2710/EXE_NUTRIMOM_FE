@@ -10,7 +10,7 @@ import { FloatingContactActions } from '../components/FloatingContactActions'
 import {
   HomeBrandStory,
   HomeCommunityCta,
-  HomeKnowledge,
+  HomeIntelligence,
   HomeTrustImpactBar,
 } from '../components/HomeFlowSections'
 import { TestimonialMarquee } from '../components/TestimonialMarquee'
@@ -19,30 +19,30 @@ const heroSlides = [
   {
     imageClassName: 'is-banner-1',
     imageDescription: 'Người mẹ dịu dàng ôm em bé đang ngủ.',
-    eyebrow: 'Yêu thương bắt đầu từ sự thấu hiểu',
-    title: 'Chăm sóc mẹ dịu dàng, nâng niu từng khởi đầu.',
-    description: 'NutriMom giúp mẹ theo dõi hành trình thai kỳ, lưu giữ hồ sơ sức khỏe và kết nối với nguồn hỗ trợ đáng tin cậy trong một không gian an toàn.',
+    eyebrow: 'Một hành trình được thiết kế quanh mẹ',
+    title: 'Mỗi tuần thai rõ ràng. Mỗi lựa chọn thêm an tâm.',
+    description: 'NutriMom kết nối theo dõi thai kỳ, hồ sơ sức khỏe, dinh dưỡng AI và sự đồng hành của gia đình trong một trải nghiệm ấm áp, dễ dùng.',
   },
   {
     imageClassName: 'is-banner-2',
     imageDescription: 'Bàn tay bé nhỏ được nâng niu trong vòng tay người thân.',
-    eyebrow: 'Bình yên lớn lên từ những điều nhỏ bé',
-    title: 'Đồng hành từ thuở con còn non, nâng niu từng ngày khôn lớn.',
-    description: 'Mỗi cột mốc đầu đời đều đáng được lắng nghe và gìn giữ, để con lớn lên trong vòng tay yêu thương, an toàn và đầy thấu hiểu.',
+    eyebrow: 'Theo dõi thai kỳ không còn rời rạc',
+    title: 'Biết mình đang ở đâu, hiểu điều gì sắp đến.',
+    description: 'Tuần thai, lịch khám, triệu chứng, ghi chú và nhắc việc được sắp xếp theo một tiến trình dễ xem lại và dễ chuẩn bị.',
   },
   {
     imageClassName: 'is-banner-3',
     imageDescription: 'Người chồng dịu dàng ở bên và chăm sóc vợ trong thai kỳ.',
-    eyebrow: 'Cẩm nang dành cho người chồng yêu thương',
-    title: 'Hiểu để thương vợ nhiều hơn, sẻ chia để mỗi ngày dịu dàng.',
-    description: 'Những gợi ý gần gũi giúp chồng lắng nghe, chăm sóc và cùng vợ đi qua hành trình làm cha mẹ bằng sự hiện diện chân thành mỗi ngày.',
+    eyebrow: 'Cả gia đình cùng biết cách đồng hành',
+    title: 'Chăm sóc mẹ không còn là hành trình của một người.',
+    description: 'Người chồng nhận được gợi ý cụ thể để nấu ăn, sẻ chia, hỗ trợ tinh thần và cùng mẹ chuẩn bị cho từng giai đoạn.',
   },
   {
     imageClassName: 'is-banner-4',
     imageDescription: 'Người mẹ nâng niu mầm sống, hướng đến một tương lai khỏe mạnh.',
-    eyebrow: 'Ươm mầm tương lai bằng hiểu biết',
-    title: 'Nuôi dưỡng chồi non bằng yêu thương và nền tảng khoa học.',
-    description: 'Khi tình thương đi cùng kiến thức đáng tin cậy, mỗi lựa chọn hôm nay sẽ trở thành nền móng vững vàng cho tương lai khỏe mạnh của con.',
+    eyebrow: 'AI dinh dưỡng gần gũi và hữu ích',
+    title: 'Một bức ảnh bữa ăn, thêm một lựa chọn phù hợp.',
+    description: 'AI scan món ăn giúp mẹ hiểu chất, lượng, điểm thiếu hoặc thừa và nhận gợi ý bổ sung theo đúng giai đoạn thai kỳ.',
   },
 ] as const
 
@@ -134,7 +134,7 @@ export function HomePage() {
       <CareJourney />
 
       <HomeBrandStory />
-      <HomeKnowledge />
+      <HomeIntelligence />
 
       <div className="homeCommunity">
         <TestimonialMarquee />
