@@ -3,7 +3,6 @@ import {
   adminConsultations,
   adminDashboardData,
   adminHealthAlerts,
-  adminKnowledgeArticles,
   adminNutritionPlans,
   adminReports,
   adminUsers,
@@ -25,5 +24,4 @@ export const adminApi = {
   getReports: () => fromMock(adminReports),
   getHealthAlerts: () => fromMock(adminHealthAlerts),
   getNutritionPlans: () => fromMock(adminNutritionPlans),
-  getKnowledgeArticles: () => fromMock(adminKnowledgeArticles),
 }

@@ -84,16 +84,6 @@ export interface AdminNutritionPlan {
   status: 'ON_TRACK' | 'NEEDS_ATTENTION' | 'NEW'
 }
 
-export interface AdminKnowledgeArticle {
-  id: string
-  title: string
-  category: string
-  author: string
-  views: number
-  updatedAt: string
-  status: 'PUBLISHED' | 'DRAFT' | 'REVIEW'
-}
-
 export interface AdminDashboardData {
   metrics: AdminMetric[]
   activities: AdminActivity[]

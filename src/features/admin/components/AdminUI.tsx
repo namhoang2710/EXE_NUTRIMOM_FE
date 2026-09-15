@@ -13,11 +13,12 @@ import type { ReactNode } from 'react'
 import type { AdminMetric } from '../model/admin-types'
 
 export function StatusBadge({ value }: { value: string }) {
-  const tone = ['ACTIVE', 'CONFIRMED', 'COMPLETED', 'READY', 'PUBLISHED', 'ON_TRACK'].includes(value)
+  const normalized = value.toUpperCase()
+  const tone = ['ACTIVE', 'CONFIRMED', 'COMPLETED', 'READY', 'PUBLISHED', 'ON_TRACK'].includes(normalized)
     ? 'positive'
-    : ['SUSPENDED', 'CANCELLED', 'HIGH', 'REVIEW_REQUIRED', 'NEEDS_ATTENTION'].includes(value)
+    : ['SUSPENDED', 'CANCELLED', 'HIGH', 'REVIEW_REQUIRED', 'NEEDS_ATTENTION', 'ARCHIVED'].includes(normalized)
       ? 'negative'
-      : ['PENDING', 'SCHEDULED', 'PROCESSING', 'REVIEW', 'MEDIUM', 'IN_PROGRESS'].includes(value)
+      : ['PENDING', 'SCHEDULED', 'PROCESSING', 'REVIEW', 'MEDIUM', 'IN_PROGRESS', 'DRAFT'].includes(normalized)
         ? 'warning'
         : 'neutral'
   return <span className={`admin-badge ${tone}`}>{value.replaceAll('_', ' ')}</span>

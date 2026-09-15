@@ -4,7 +4,6 @@ import type {
   AdminConsultation,
   AdminDashboardData,
   AdminHealthAlert,
-  AdminKnowledgeArticle,
   AdminMetric,
   AdminNutritionPlan,
   AdminReport,
@@ -68,13 +67,6 @@ export const adminNutritionPlans: AdminNutritionPlan[] = [
   { id: 'NPL-1827', patientName: 'Nguyen Minh Anh', planName: 'Third trimester balance', specialistName: 'Pham Thu Ha', adherence: 88, updatedAt: '2026-09-11T08:20:00+07:00', status: 'ON_TRACK' },
   { id: 'NPL-1824', patientName: 'Bui Kim Ngan', planName: 'Gestational glucose care', specialistName: 'Tran Ngoc Mai', adherence: 62, updatedAt: '2026-09-10T16:45:00+07:00', status: 'NEEDS_ATTENTION' },
   { id: 'NPL-1821', patientName: 'Do My Linh', planName: 'Iron-rich meal plan', specialistName: 'Pham Thu Ha', adherence: 0, updatedAt: '2026-09-10T10:05:00+07:00', status: 'NEW' },
-]
-
-export const adminKnowledgeArticles: AdminKnowledgeArticle[] = [
-  { id: 'ART-402', title: 'Nutrition essentials for the third trimester', category: 'Nutrition', author: 'Pham Thu Ha', views: 8421, updatedAt: '2026-09-10T14:00:00+07:00', status: 'PUBLISHED' },
-  { id: 'ART-401', title: 'Understanding common prenatal screening tests', category: 'Health', author: 'Dr. Vu Hai Nam', views: 5190, updatedAt: '2026-09-09T09:30:00+07:00', status: 'PUBLISHED' },
-  { id: 'ART-399', title: 'Building a calmer sleep routine', category: 'Wellness', author: 'Dr. Nguyen Yen', views: 0, updatedAt: '2026-09-11T08:15:00+07:00', status: 'REVIEW' },
-  { id: 'ART-398', title: 'Postpartum recovery checklist', category: 'Postpartum', author: 'Editorial team', views: 0, updatedAt: '2026-09-08T16:20:00+07:00', status: 'DRAFT' },
 ]
 
 export const adminDashboardData: AdminDashboardData = {

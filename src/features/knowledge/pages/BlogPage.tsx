@@ -1,21 +1,39 @@
 import { ArrowRight, BookOpenText, ChatsCircle, HandHeart, ShieldCheck } from '@phosphor-icons/react'
 import { useCallback, useEffect, useState } from 'react'
+import { knowledgeApi } from '../api/knowledge-api'
 import { ArticleCard } from '../components/ArticleCard'
 import { KnowledgeLibrary } from '../components/KnowledgeLibrary'
-import { communityPreview, editorialStandards, publishedBlogPosts } from '../model/article-content'
+import { mapArticleSummaryToCard } from '../model/article-adapters'
+import type { ArticleCardViewModel } from '../model/article-types'
+import { communityPreview, editorialStandards } from '../model/knowledge-static-content'
 import { useArticleBookmarks } from '../model/use-article-bookmarks'
 import './blog.css'
 
 export function BlogPage({ library = false }: { library?: boolean }) {
   const [notice, setNotice] = useState('')
+  const [featuredPost, setFeaturedPost] = useState<ArticleCardViewModel | null>(null)
+  const [articleCount, setArticleCount] = useState<number | null>(null)
   useEffect(() => {
     if (!notice) return
     const timeout = window.setTimeout(() => setNotice(''), 5000)
     return () => window.clearTimeout(timeout)
   }, [notice])
-  const { savedSlugs, toggleBookmark } = useArticleBookmarks()
-  const featuredPost = publishedBlogPosts.find((post) => post.editorial.selected)
-  const toggle = useCallback((slug: string) => setNotice(toggleBookmark(slug)), [toggleBookmark])
+  const { savedSlugs, toggleBookmark, loading: bookmarksLoading, busySlugs, authenticated } = useArticleBookmarks()
+  const toggle = useCallback(async (slug: string) => setNotice(await toggleBookmark(slug)), [toggleBookmark])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    knowledgeApi.listArticles({ page: 1, pageSize: 1, sort: 'publishedAt:desc' }, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return
+        setArticleCount(result.totalItems)
+        setFeaturedPost(result.items[0] ? mapArticleSummaryToCard(result.items[0]) : null)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setFeaturedPost(null)
+      })
+    return () => controller.abort()
+  }, [])
 
   return (
     <main className={`nm-blog${library ? ' nm-blog--library' : ''}`}>
@@ -29,7 +47,7 @@ export function BlogPage({ library = false }: { library?: boolean }) {
               <a className="nm-button nm-button--primary" href="#bai-viet-moi">Khám phá thư viện <ArrowRight size={18} /></a>
               <a className="nm-text-link" href="#tieu-chuan-bien-tap">Tiêu chuẩn biên tập <ShieldCheck size={18} /></a>
             </div>
-            <div className="nm-blog-trust-row"><span><ShieldCheck size={18} /> Do ban biên tập quản lý</span><span><BookOpenText size={18} /> {publishedBlogPosts.length} bài chọn lọc</span></div>
+            <div className="nm-blog-trust-row"><span><ShieldCheck size={18} /> Do ban biên tập quản lý</span>{articleCount !== null && <span><BookOpenText size={18} /> {articleCount} bài đã xuất bản</span>}</div>
           </div>
           <div className="nm-blog-hero-visual" aria-hidden="true">
             <img src="/benner_blog1.png" alt="" />
@@ -38,14 +56,12 @@ export function BlogPage({ library = false }: { library?: boolean }) {
         </div>
       </section>
 
-      <div className="nm-demo-note landing-section"><span>Dữ liệu minh họa</span> Thông tin biên tập và reviewer trong bản xem trước là minh họa. Bài đã lưu chỉ được lưu trên thiết bị này.</div>
-
       {featuredPost && <section className="nm-blog-section landing-section" aria-labelledby="featured-heading">
-        <div className="nm-section-heading"><div><span>Biên tập chọn</span><h2 id="featured-heading">Một bài đọc để bắt đầu</h2></div><p>Những điều gần gũi, dễ hiểu cho hành trình chăm sóc mẹ và bé.</p></div>
-        <ArticleCard post={featuredPost} featured saved={savedSlugs.includes(featuredPost.slug)} onToggle={() => toggle(featuredPost.slug)} />
+        <div className="nm-section-heading"><div><span>Mới cập nhật</span><h2 id="featured-heading">Bài viết mới nhất từ NutriMom</h2></div><p>Những điều gần gũi, dễ hiểu cho hành trình chăm sóc mẹ và bé.</p></div>
+        <ArticleCard post={featuredPost} featured saved={savedSlugs.includes(featuredPost.slug)} bookmarkBusy={bookmarksLoading || busySlugs.includes(featuredPost.slug)} onToggle={() => { void toggle(featuredPost.slug) }} />
       </section>}
 
-      <KnowledgeLibrary savedSlugs={savedSlugs} onBookmark={toggle} />
+      <KnowledgeLibrary savedSlugs={savedSlugs} busySlugs={busySlugs} bookmarksLoading={bookmarksLoading} authenticated={authenticated} onBookmark={(slug) => { void toggle(slug) }} />
 
       <section className="nm-blog-section landing-section" id="cong-dong" aria-labelledby="community-heading">
         <div className="nm-community-preview">

@@ -5,7 +5,7 @@ import type { KeyboardEvent } from 'react'
 interface LibrarySelectProps {
   label: string
   placeholder: string
-  options: readonly string[]
+  options: readonly { value: string; label: string }[]
   value: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -16,8 +16,10 @@ export function LibrarySelect({ label, placeholder, options, value, open, onOpen
   const id = useId()
   const root = useRef<HTMLDivElement>(null)
   const menu = useRef<HTMLDivElement>(null)
-  const values = ['', ...options]
+  const optionsWithEmpty = [{ value: '', label: placeholder }, ...options]
+  const values = optionsWithEmpty.map((option) => option.value)
   const [active, setActive] = useState(Math.max(0, values.indexOf(value)))
+  const selectedLabel = optionsWithEmpty.find((option) => option.value === value)?.label ?? value
 
   useEffect(() => {
     if (!open) return
@@ -58,10 +60,10 @@ export function LibrarySelect({ label, placeholder, options, value, open, onOpen
   }}>
     <span id={`${id}-label`}>{label}</span>
     <button type="button" role="combobox" aria-autocomplete="none" className="nm-library-select-trigger" aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-menu`} aria-activedescendant={open ? `${id}-option-${active}` : undefined} onKeyDown={keyDown} onClick={() => { setActive(Math.max(0, values.indexOf(value))); onOpenChange(!open) }}>
-      <span id={`${id}-value`}>{value || placeholder}</span><CaretDown size={16} />
+      <span id={`${id}-value`}>{selectedLabel || placeholder}</span><CaretDown size={16} />
     </button>
     <div ref={menu} id={`${id}-menu`} className="nm-library-select-menu" data-open={open} role="listbox" aria-labelledby={`${id}-label`} aria-hidden={!open} inert={!open}>
-      {values.map((option, index) => <button key={option} id={`${id}-option-${index}`} type="button" role="option" aria-selected={value === option} data-active={active === index} tabIndex={-1} onPointerDown={(event) => event.preventDefault()} onPointerMove={() => setActive(index)} onClick={() => { onChange(option); onOpenChange(false) }}><span>{option || placeholder}</span><Check size={16} /></button>)}
+      {optionsWithEmpty.map((option, index) => <button key={option.value} id={`${id}-option-${index}`} type="button" role="option" aria-selected={value === option.value} data-active={active === index} tabIndex={-1} onPointerDown={(event) => event.preventDefault()} onPointerMove={() => setActive(index)} onClick={() => { onChange(option.value); onOpenChange(false) }}><span>{option.label}</span><Check size={16} /></button>)}
     </div>
   </div>
 }

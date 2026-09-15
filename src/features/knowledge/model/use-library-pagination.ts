@@ -1,48 +1,73 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { BlogFilters } from './article-content'
-import { getLibraryPage, libraryQueryKey, loadLibraryPage, readLibraryQuery, updateLibraryFilter } from './library-pagination'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { knowledgeApi } from '../api/knowledge-api'
+import { mapArticleSummaryToCard } from './article-adapters'
+import type { ArticleCardViewModel } from './article-types'
+import type { ArticlePageDto } from './knowledge-dto'
+import { LIBRARY_PAGE_SIZE, readLibraryQuery, toPublicListQuery, updateLibrarySearch } from './library-pagination'
+import type { BlogFilters } from './library-pagination'
 
-export function useLibraryPagination(initialSearch: string, savedSlugs: readonly string[]) {
-  const [query, setQuery] = useState(() => {
-    const initial = readLibraryQuery(initialSearch)
-    return { ...initial, page: getLibraryPage(initial, savedSlugs).currentPage }
-  })
-  const key = libraryQueryKey(query, savedSlugs)
-  const [response, setResponse] = useState(() => ({ key, data: getLibraryPage(query, savedSlugs) }))
-  const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
-  const error = failure?.key === key ? failure.message : ''
+const emptyPage: ArticlePageDto<ArticleCardViewModel> = {
+  items: [], totalItems: 0, totalPages: 0, currentPage: 1, pageSize: LIBRARY_PAGE_SIZE,
+}
+
+export function useLibraryPagination() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const query = useMemo(() => readLibraryQuery(searchParams.toString()), [searchParams])
+  const requestKey = JSON.stringify(query)
+  const [response, setResponse] = useState<ArticlePageDto<ArticleCardViewModel>>(emptyPage)
+  const [loadedKey, setLoadedKey] = useState('')
+  const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
-  const loading = key !== response.key && !error
+  const loading = loadedKey !== requestKey && !error
 
   useEffect(() => {
-    if (key === response.key) return
     const controller = new AbortController()
-    loadLibraryPage(query, savedSlugs, controller.signal).then((data) => {
+    setError('')
+    knowledgeApi.listArticles(toPublicListQuery(query), controller.signal).then((data) => {
       if (controller.signal.aborted) return
-      const normalized = { ...query, page: data.currentPage }
-      setQuery(normalized)
-      setResponse({ key: libraryQueryKey(normalized, savedSlugs), data })
+      setResponse({ ...data, items: data.items.map(mapArticleSummaryToCard) })
+      setLoadedKey(requestKey)
+      if (data.currentPage !== query.page) {
+        const next = new URLSearchParams(searchParams)
+        if (data.currentPage > 1) next.set('page', String(data.currentPage))
+        else next.delete('page')
+        setSearchParams(next, { replace: true })
+      }
     }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setFailure({ key, message: reason instanceof Error ? reason.message : 'Không thể tải bài viết.' })
+      if (controller.signal.aborted) return
+      setError(reason instanceof Error ? reason.message : 'Không thể tải bài viết.')
+      setLoadedKey(requestKey)
     })
     return () => controller.abort()
-  }, [key, query, savedSlugs, response.key, retry])
+  }, [query, requestKey, retry, searchParams, setSearchParams])
 
   const updateFilter = useCallback(<K extends keyof BlogFilters>(name: K, value: BlogFilters[K]) => {
-    setFailure(null)
-    setQuery((previous) => updateLibraryFilter(previous, name, value))
-  }, [])
+    setSearchParams((current) => updateLibrarySearch(current, name, value), { replace: true })
+  }, [setSearchParams])
 
   const resetFilters = useCallback(() => {
-    setFailure(null)
-    setQuery((previous) => ({ ...previous, filters: { category: '', stage: '', topic: '', savedOnly: false }, page: 1 }))
-  }, [])
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      for (const name of ['category', 'stage', 'topic', 'saved', 'page']) next.delete(name)
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
 
   const changePage = useCallback((page: number) => {
-    setFailure(null)
-    setQuery((previous) => previous.page === page ? previous : { ...previous, page })
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (page > 1) next.set('page', String(page))
+      else next.delete('page')
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
+
+  const retryLoad = useCallback(() => {
+    setError('')
+    setLoadedKey('')
+    setRetry((value) => value + 1)
   }, [])
 
-  const retryLoad = () => { setFailure(null); setRetry((previous) => previous + 1) }
-  return { query, pagination: response.data, loading, error, updateFilter, resetFilters, changePage, retryLoad }
+  return { query, pagination: response, loading, error, updateFilter, resetFilters, changePage, retryLoad }
 }
