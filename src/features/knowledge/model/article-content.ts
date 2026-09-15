@@ -11,12 +11,21 @@ export interface BlogPost {
   category: string
   readTime: string
   publishedAt: string
+  stage: 'Chuẩn bị mang thai' | 'Trong thai kỳ' | 'Sau sinh'
+  topics: string[]
+  editorial: {
+    author: string
+    selected: boolean
+    moderation: 'approved' | 'pending'
+    reviewer: { name: string; confirmedAt: string } | null
+  }
   lead: string
   sections: BlogSection[]
   source: { label: string; href: string }
 }
 
-// Mock content is kept separate from the UI so it can be replaced by CMS data later.
+// UI fixtures only: review metadata does not represent actual clinical verification.
+// These are view-model fields, not an assumed backend DTO. Map the CMS API at integration.
 export const blogPosts: BlogPost[] = [
   {
     slug: 'dinh-duong-can-bang-trong-thai-ky',
@@ -25,6 +34,9 @@ export const blogPosts: BlogPost[] = [
     category: 'Dinh dưỡng',
     readTime: '5 phút đọc',
     publishedAt: '08.09.2026',
+    stage: 'Trong thai kỳ',
+    topics: ['Bữa ăn', 'Chăm sóc hằng ngày'],
+    editorial: { author: 'Ban biên tập NutriMom', selected: true, moderation: 'approved', reviewer: { name: 'Reviewer dinh dưỡng (minh họa)', confirmedAt: '07.09.2026' } },
     lead: 'Ăn uống lành mạnh trong thai kỳ không có nghĩa là phải ăn gấp đôi. Điều quan trọng hơn là lựa chọn đa dạng, cân bằng và phù hợp với tình trạng sức khỏe riêng.',
     sections: [
       {
@@ -50,6 +62,9 @@ export const blogPosts: BlogPost[] = [
     category: 'Sống khỏe',
     readTime: '6 phút đọc',
     publishedAt: '05.09.2026',
+    stage: 'Trong thai kỳ',
+    topics: ['Giấc ngủ', 'Chăm sóc hằng ngày'],
+    editorial: { author: 'Ban biên tập NutriMom', selected: false, moderation: 'approved', reviewer: null },
     lead: 'Thay đổi hormone, cảm giác khó chịu và nhiều suy nghĩ có thể làm giấc ngủ trong thai kỳ trở nên chập chờn. Một nhịp tối đều đặn là điểm khởi đầu nhẹ nhàng để cơ thể được nghỉ ngơi.',
     sections: [
       {
@@ -75,6 +90,9 @@ export const blogPosts: BlogPost[] = [
     category: 'Vận động',
     readTime: '4 phút đọc',
     publishedAt: '02.09.2026',
+    stage: 'Trong thai kỳ',
+    topics: ['Chăm sóc hằng ngày'],
+    editorial: { author: 'Ban biên tập NutriMom', selected: false, moderation: 'approved', reviewer: { name: 'Reviewer sức khỏe (minh họa)', confirmedAt: '01.09.2026' } },
     lead: 'Đối với thai kỳ khỏe mạnh, vận động mức độ vừa thường được xem là an toàn và có lợi. Tuy nhiên, tình trạng của mỗi người khác nhau nên kế hoạch cần được trao đổi với người theo dõi thai kỳ.',
     sections: [
       {
@@ -99,6 +117,9 @@ export const blogPosts: BlogPost[] = [
     category: 'Thai kỳ',
     readTime: '4 phút đọc',
     publishedAt: '29.08.2026',
+    stage: 'Trong thai kỳ',
+    topics: ['Khám & tư vấn'],
+    editorial: { author: 'Ban biên tập NutriMom', selected: false, moderation: 'approved', reviewer: null },
     lead: 'Chăm sóc trước sinh không chỉ là kiểm tra sức khỏe mà còn là cơ hội để mẹ đặt câu hỏi, chia sẻ điều đang lo lắng và chuẩn bị cho những giai đoạn tiếp theo.',
     sections: [
       {
@@ -124,6 +145,9 @@ export const blogPosts: BlogPost[] = [
     category: 'Sau sinh',
     readTime: '7 phút đọc',
     publishedAt: '25.08.2026',
+    stage: 'Sau sinh',
+    topics: ['Sức khỏe tinh thần'],
+    editorial: { author: 'Ban biên tập NutriMom', selected: false, moderation: 'approved', reviewer: { name: 'Reviewer sức khỏe (minh họa)', confirmedAt: '24.08.2026' } },
     lead: 'Sau sinh là một giai đoạn chuyển tiếp lớn. Niềm vui có thể đi cùng mệt mỏi, lo lắng hoặc buồn bã; những cảm xúc ấy xứng đáng được lắng nghe mà không phán xét.',
     sections: [
       {
@@ -149,6 +173,9 @@ export const blogPosts: BlogPost[] = [
     category: 'Sau sinh',
     readTime: '6 phút đọc',
     publishedAt: '20.08.2026',
+    stage: 'Sau sinh',
+    topics: ['Nuôi con', 'Chăm sóc hằng ngày'],
+    editorial: { author: 'Ban biên tập NutriMom', selected: false, moderation: 'approved', reviewer: null },
     lead: 'Mỗi hành trình nuôi con đều khác nhau. Thay vì chạy theo một khuôn mẫu hoàn hảo, mẹ có thể quan sát em bé, chăm sóc cơ thể mình và tìm hỗ trợ chuyên môn khi cần.',
     sections: [
       {
@@ -173,6 +200,9 @@ export const blogPosts: BlogPost[] = [
     category: 'Chuẩn bị',
     readTime: '5 phút đọc',
     publishedAt: '16.08.2026',
+    stage: 'Chuẩn bị mang thai',
+    topics: ['Khám & tư vấn', 'Chăm sóc hằng ngày'],
+    editorial: { author: 'Ban biên tập NutriMom', selected: false, moderation: 'approved', reviewer: null },
     lead: 'Chăm sóc sức khỏe trước khi mang thai là dịp để nhìn lại thói quen, tiền sử sức khỏe và những điều hai bạn cần chuẩn bị — không phải một danh sách để tạo thêm áp lực.',
     sections: [
       {
@@ -194,5 +224,42 @@ export const blogPosts: BlogPost[] = [
 ]
 
 export function findBlogPost(slug: string | undefined) {
-  return blogPosts.find((post) => post.slug === slug)
+  return publishedBlogPosts.find((post) => post.slug === slug)
 }
+
+const dateValue = (value: string) => value.split('.').reverse().join('-')
+export const publishedBlogPosts = blogPosts
+  .filter((post) => post.editorial.moderation === 'approved')
+  .sort((a, b) => dateValue(b.publishedAt).localeCompare(dateValue(a.publishedAt)))
+
+export const blogCategories = [...new Set(publishedBlogPosts.map((post) => post.category))]
+export const blogStages = ['Chuẩn bị mang thai', 'Trong thai kỳ', 'Sau sinh'] as const
+export const blogTopics = [...new Set(publishedBlogPosts.flatMap((post) => post.topics))]
+
+export interface BlogFilters {
+  category: string
+  stage: string
+  topic: string
+  savedOnly: boolean
+}
+
+export function filterBlogPosts(filters: BlogFilters, savedSlugs: readonly string[]) {
+  return publishedBlogPosts.filter((post) =>
+    (!filters.category || post.category === filters.category)
+    && (!filters.stage || post.stage === filters.stage)
+    && (!filters.topic || post.topics.includes(filters.topic))
+    && (!filters.savedOnly || savedSlugs.includes(post.slug)),
+  )
+}
+
+export const communityPreview = {
+  title: 'Một nơi để mẹ được lắng nghe',
+  description: 'Community sẽ là không gian riêng để thành viên đặt câu hỏi và chia sẻ trải nghiệm. Những câu chuyện cá nhân được phân biệt rõ với bài viết chính thức của NutriMom.',
+  stages: ['Chuẩn bị mang thai', 'Mẹ bầu', 'Chăm sóc sau sinh'],
+}
+
+export const editorialStandards = [
+  { title: 'Biên tập có trách nhiệm', description: 'Bài viết do ban biên tập quản lý và chỉ hiển thị sau khi được kiểm duyệt.' },
+  { title: 'Minh bạch việc rà soát', description: 'Chỉ bài có reviewer xác nhận mới mang nhãn tương ứng. Thông tin reviewer và ngày xác nhận nằm trong trang chi tiết.' },
+  { title: 'Nguồn tham khảo rõ ràng', description: 'Mỗi bài có nguồn để mẹ đọc thêm. Kiến thức tham khảo không thay thế tư vấn y tế cá nhân.' },
+]

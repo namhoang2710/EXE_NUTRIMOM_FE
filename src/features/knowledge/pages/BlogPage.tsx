@@ -1,209 +1,63 @@
-import {
-  ArrowRight,
-  Baby,
-  BookOpenText,
-  BowlFood,
-  CalendarBlank,
-  ChatsCircle,
-  Clock,
-  FlowerLotus,
-  HandHeart,
-  Heartbeat,
-  Leaf,
-  Moon,
-  SealCheck,
-  ShieldCheck,
-  Sparkle,
-  UsersThree,
-} from '@phosphor-icons/react'
-import type { CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
-import { blogPosts } from '../model/article-content'
+import { ArrowRight, BookOpenText, ChatsCircle, HandHeart, ShieldCheck } from '@phosphor-icons/react'
+import { useCallback, useEffect, useState } from 'react'
+import { ArticleCard } from '../components/ArticleCard'
+import { KnowledgeLibrary } from '../components/KnowledgeLibrary'
+import { communityPreview, editorialStandards, publishedBlogPosts } from '../model/article-content'
+import { useArticleBookmarks } from '../model/use-article-bookmarks'
 import './blog.css'
 
-const communities = [
-  {
-    title: 'Chuẩn bị mang thai',
-    description: 'Cùng nhau chuẩn bị sức khỏe, tinh thần và những câu hỏi đầu tiên cho hành trình mới.',
-    meta: '2.480 thành viên',
-    activity: '86 chia sẻ tuần này',
-    icon: <FlowerLotus size={30} weight="duotone" />,
-    tone: 'blush',
-  },
-  {
-    title: 'Mẹ bầu',
-    description: 'Không gian đồng hành qua từng tam cá nguyệt, từ dinh dưỡng đến những đổi thay cảm xúc.',
-    meta: '8.920 thành viên',
-    activity: '214 chia sẻ tuần này',
-    icon: <HeartBeatIcon />,
-    tone: 'lavender',
-  },
-  {
-    title: 'Chăm sóc sau sinh',
-    description: 'Chia sẻ thật về hồi phục, nuôi con và cách chăm sóc chính mình trong những ngày đầu.',
-    meta: '4.760 thành viên',
-    activity: '132 chia sẻ tuần này',
-    icon: <Baby size={31} weight="duotone" />,
-    tone: 'sky',
-  },
-]
-
-const communityValues = [
-  { title: 'Kiểm duyệt', description: 'Nội dung cộng đồng được rà soát để giữ không gian an toàn, tôn trọng.', icon: ShieldCheck },
-  { title: 'Đáng tin cậy', description: 'Kiến thức được biên tập từ nguồn y khoa và chuyên gia phù hợp.', icon: SealCheck },
-  { title: 'Tích hợp sức khỏe', description: 'Kết nối kiến thức với hành trình sức khỏe riêng của từng mẹ.', icon: Heartbeat },
-  { title: 'Cam kết', description: 'Bảo vệ riêng tư và luôn đặt sự an tâm của mẹ ở trung tâm.', icon: HandHeart },
-]
-
-function HeartBeatIcon() {
-  return <Heartbeat size={31} weight="duotone" />
-}
-
-function PostIcon({ category }: { category: string }) {
-  if (category === 'Dinh dưỡng') return <BowlFood size={25} weight="duotone" />
-  if (category === 'Sống khỏe') return <Moon size={25} weight="duotone" />
-  if (category === 'Sau sinh') return <Baby size={25} weight="duotone" />
-  if (category === 'Chuẩn bị') return <FlowerLotus size={25} weight="duotone" />
-  if (category === 'Vận động') return <Leaf size={25} weight="duotone" />
-  return <Heartbeat size={25} weight="duotone" />
-}
-
-export function BlogPage() {
-  const [featuredPost, ...latestPosts] = blogPosts
+export function BlogPage({ library = false }: { library?: boolean }) {
+  const [notice, setNotice] = useState('')
+  useEffect(() => {
+    if (!notice) return
+    const timeout = window.setTimeout(() => setNotice(''), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [notice])
+  const { savedSlugs, toggleBookmark } = useArticleBookmarks()
+  const featuredPost = publishedBlogPosts.find((post) => post.editorial.selected)
+  const toggle = useCallback((slug: string) => setNotice(toggleBookmark(slug)), [toggleBookmark])
 
   return (
-    <main className="nm-blog">
-      {/* Editorial hero */}
-      <section className="nm-blog-hero landing-section landing-reveal" aria-labelledby="blog-hero-title">
-        <img src="/benner_blog1.png" alt="Cộng đồng NutriMom đồng hành cùng mẹ trước, trong và sau thai kỳ" />
-        <div className="nm-blog-hero-content">
-          <div className="nm-eyebrow"><Sparkle size={15} weight="fill" /> NutriMom Journal</div>
-          <h1 id="blog-hero-title">Một góc nhỏ để mẹ <em>hiểu mình</em> và vững lòng hơn.</h1>
-          <p>Kiến thức được chắt lọc cẩn thận, câu chuyện thật và một cộng đồng luôn sẵn sàng lắng nghe mẹ.</p>
-          <div className="nm-blog-hero-actions">
-            <a className="nm-button nm-button--primary" href="#bai-viet-moi">
-              Khám phá bài viết <ArrowRight size={17} weight="bold" />
-            </a>
-            <a className="nm-button nm-button--soft" href="#cong-dong">Tìm cộng đồng của mẹ</a>
-          </div>
-          <div className="nm-blog-trust-row" aria-label="Thông tin nổi bật">
-            <span><BookOpenText size={18} weight="duotone" /><strong>{blogPosts.length}</strong> chủ đề chọn lọc</span>
-            <span><UsersThree size={18} weight="duotone" /><strong>16K+</strong> mẹ đồng hành</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured article */}
-      <section className="nm-blog-section landing-section" aria-labelledby="featured-heading">
-        <div className="nm-section-heading">
-          <div>
-            <span>Bài viết nổi bật</span>
-            <h2 id="featured-heading">Đọc chậm một chút, hiểu mình nhiều hơn</h2>
-          </div>
-          <p>Nội dung gần gũi, dễ áp dụng và luôn khuyến khích mẹ trao đổi cùng chuyên gia khi cần.</p>
-        </div>
-
-        <Link className="nm-featured-post" to={`/blog/${featuredPost.slug}`}>
-          <div className="nm-featured-post-image">
-            <img src="/banner2.png" alt="Bàn tay mẹ nâng niu bàn tay em bé" />
-            <span className="nm-image-badge"><Sparkle size={14} weight="fill" /> Biên tập chọn</span>
-          </div>
-          <div className="nm-featured-post-content">
-            <span className="nm-category">{featuredPost.category}</span>
-            <h3>{featuredPost.title}</h3>
-            <p>{featuredPost.excerpt}</p>
-            <div className="nm-post-meta">
-              <span><CalendarBlank size={16} /> {featuredPost.publishedAt}</span>
-              <span><Clock size={16} /> {featuredPost.readTime}</span>
+    <main className={`nm-blog${library ? ' nm-blog--library' : ''}`}>
+      <section className="nm-blog-hero" aria-labelledby="blog-hero-title">
+        <div className="nm-blog-hero-inner landing-section">
+          <div className="nm-blog-hero-content">
+            <span className="nm-eyebrow"><BookOpenText size={18} /> NutriMom · Kiến thức chính thức</span>
+            <h1 id="blog-hero-title">{library ? 'Thư viện nhỏ,' : 'Hiểu thêm một chút,'}<br /><em>an tâm hơn mỗi ngày.</em></h1>
+            <p>Kiến thức được biên tập cẩn thận để đồng hành cùng mẹ trước, trong và sau thai kỳ. Mẹ có thể đọc theo nhịp của mình và lưu lại điều hữu ích.</p>
+            <div className="nm-blog-hero-actions">
+              <a className="nm-button nm-button--primary" href="#bai-viet-moi">Khám phá thư viện <ArrowRight size={18} /></a>
+              <a className="nm-text-link" href="#tieu-chuan-bien-tap">Tiêu chuẩn biên tập <ShieldCheck size={18} /></a>
             </div>
-            <span className="nm-text-link">Đọc bài viết <ArrowRight size={17} weight="bold" /></span>
+            <div className="nm-blog-trust-row"><span><ShieldCheck size={18} /> Do ban biên tập quản lý</span><span><BookOpenText size={18} /> {publishedBlogPosts.length} bài chọn lọc</span></div>
           </div>
-        </Link>
-      </section>
-
-      {/* Latest articles */}
-      <section className="nm-blog-section nm-blog-section--tinted" id="bai-viet-moi" aria-labelledby="latest-heading">
-        <div className="landing-section">
-          <div className="nm-section-heading nm-section-heading--inline">
-            <div>
-              <span>Góc kiến thức</span>
-              <h2 id="latest-heading">Bài viết mới dành cho mẹ</h2>
-            </div>
-            <span className="nm-section-count">{latestPosts.length} bài viết</span>
-          </div>
-
-          <div className="nm-post-grid">
-            {latestPosts.map((post, index) => (
-              <Link className="nm-post-card" key={post.slug} to={`/blog/${post.slug}`} style={{ '--delay': `${index * 55}ms` } as CSSProperties}>
-                <div className="nm-post-card-top">
-                  <span className="nm-post-icon"><PostIcon category={post.category} /></span>
-                  <span className="nm-category">{post.category}</span>
-                </div>
-                <h3>{post.title}</h3>
-                <p>{post.excerpt}</p>
-                <div className="nm-post-card-bottom">
-                  <div className="nm-post-meta">
-                    <span>{post.publishedAt}</span>
-                    <span>{post.readTime}</span>
-                  </div>
-                  <span className="nm-round-arrow" aria-hidden="true"><ArrowRight size={17} weight="bold" /></span>
-                </div>
-              </Link>
-            ))}
+          <div className="nm-blog-hero-visual" aria-hidden="true">
+            <img src="/benner_blog1.png" alt="" />
+            <div className="nm-hero-caption"><HandHeart size={26} weight="duotone" /><span>Mỗi hành trình đều khác nhau.<br /><strong>Mẹ cứ bước theo nhịp của mình.</strong></span></div>
           </div>
         </div>
       </section>
 
-      {/* Community groups */}
+      <div className="nm-demo-note landing-section"><span>Dữ liệu minh họa</span> Thông tin biên tập và reviewer trong bản xem trước là minh họa. Bài đã lưu chỉ được lưu trên thiết bị này.</div>
+
+      {featuredPost && <section className="nm-blog-section landing-section" aria-labelledby="featured-heading">
+        <div className="nm-section-heading"><div><span>Biên tập chọn</span><h2 id="featured-heading">Một bài đọc để bắt đầu</h2></div><p>Những điều gần gũi, dễ hiểu cho hành trình chăm sóc mẹ và bé.</p></div>
+        <ArticleCard post={featuredPost} featured saved={savedSlugs.includes(featuredPost.slug)} onToggle={() => toggle(featuredPost.slug)} />
+      </section>}
+
+      <KnowledgeLibrary savedSlugs={savedSlugs} onBookmark={toggle} />
+
       <section className="nm-blog-section landing-section" id="cong-dong" aria-labelledby="community-heading">
-        <div className="nm-section-heading">
-          <div>
-            <span>Cùng nhau sẻ chia</span>
-            <h2 id="community-heading">Luôn có một nhóm đang chờ mẹ</h2>
-          </div>
-          <p>Hỏi điều mẹ băn khoăn, kể câu chuyện của mình và nhận lại sự đồng cảm từ những người cùng hành trình.</p>
-        </div>
-
-        <div className="nm-community-grid">
-          {communities.map((community) => (
-            <article className={`nm-community-card nm-community-card--${community.tone}`} key={community.title}>
-              <div className="nm-community-card-head">
-                <span className="nm-community-icon">{community.icon}</span>
-                <span className="nm-live-dot"><i /> Đang hoạt động</span>
-              </div>
-              <h3>{community.title}</h3>
-              <p>{community.description}</p>
-              <div className="nm-community-meta">
-                <span><UsersThree size={17} /> {community.meta}</span>
-                <span><ChatsCircle size={17} /> {community.activity}</span>
-              </div>
-              <Link className="nm-join-button" to="/register">
-                Tham gia <ArrowRight size={17} weight="bold" />
-              </Link>
-            </article>
-          ))}
+        <div className="nm-community-preview">
+          <span className="nm-community-icon"><ChatsCircle size={32} weight="duotone" /></span>
+          <div><div className="nm-community-preview-label"><span>Community · Thành viên chia sẻ</span><span className="nm-coming-soon">Sắp ra mắt</span></div><h2 id="community-heading">{communityPreview.title}</h2><p>{communityPreview.description}</p><div className="nm-community-stages">{communityPreview.stages.map((stage) => <span key={stage}>{stage}</span>)}</div><small>Trải nghiệm cá nhân không thay thế thông tin y tế đã biên tập hoặc tư vấn chuyên môn.</small></div>
         </div>
       </section>
 
-      {/* Community principles */}
-      <section className="nm-community-values" aria-labelledby="values-heading">
-        <div className="landing-section">
-          <div className="nm-values-intro">
-            <span className="nm-eyebrow"><HeartBeatIcon /> Cộng đồng của chúng tôi</span>
-            <h2 id="values-heading">Một nơi mềm mại cho những câu chuyện thật.</h2>
-            <p>NutriMom xây cộng đồng với sự tử tế, kiến thức có trách nhiệm và quyền riêng tư của mẹ làm nền tảng.</p>
-          </div>
-          <div className="nm-values-grid">
-            {communityValues.map(({ title, description, icon: Icon }) => (
-              <article className="nm-value-card" key={title}>
-                <span><Icon size={25} weight="duotone" /></span>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </article>
-            ))}
-          </div>
-        </div>
+      <section className="nm-editorial-standards" id="tieu-chuan-bien-tap" aria-labelledby="standards-heading">
+        <div className="landing-section"><div className="nm-section-heading"><div><span><ShieldCheck size={17} /> Niềm tin & sự an toàn</span><h2 id="standards-heading">Rõ nguồn, rõ người biên tập.</h2></div><p>Mẹ xứng đáng biết thông tin mình đang đọc đến từ đâu và đã được rà soát như thế nào.</p></div><div className="nm-values-grid">{editorialStandards.map((standard, index) => <article className="nm-value-card" key={standard.title}><span className="nm-value-number">0{index + 1}</span><h3>{standard.title}</h3><p>{standard.description}</p></article>)}</div></div>
       </section>
+      <div className="nm-bookmark-notice" role="status" aria-live="polite" aria-atomic="true">{notice}</div>
     </main>
   )
 }

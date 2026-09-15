@@ -87,13 +87,13 @@ export function OtpPage() {
 
     setSubmitting(true)
     try {
-      await verifyOtp({
+      const result = await verifyOtp({
         challengeId: challenge.challengeId,
         code,
         deviceId: getDeviceId(),
         displayName: isRegister ? displayName.trim() : undefined,
       })
-      navigate('/app', { replace: true })
+      navigate(result.user.roles.includes('ADMIN') ? '/admin' : '/app', { replace: true })
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message

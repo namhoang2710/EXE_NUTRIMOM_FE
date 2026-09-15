@@ -40,6 +40,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const session = await authApi.login(payload)
     setUser(session.user)
     setStatus('authenticated')
+    return session.user
   }, [])
 
   const register = useCallback(async (payload: RegisterInput) => {
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const result = await authApi.verifyOtp(payload)
     setUser(result.session.user)
     setStatus('authenticated')
-    return { newUser: result.newUser }
+    return { newUser: result.newUser, user: result.session.user }
   }, [])
 
   const refresh = useCallback(async () => {

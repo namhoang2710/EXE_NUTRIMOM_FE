@@ -32,9 +32,18 @@ export function LoginPage() {
 
     setSubmitting(true)
     try {
-      await login({ phone: phone.trim(), password, deviceId: getDeviceId() })
-      const target = (location.state as { from?: string } | null)?.from || '/app'
-      navigate(target, { replace: true })
+      const authenticatedUser = await login({ phone: phone.trim(), password, deviceId: getDeviceId() })
+      const requestedPath = (location.state as { from?: string } | null)?.from
+      if (authenticatedUser.roles.includes('ADMIN')) {
+        navigate('/admin', { replace: true })
+      } else if (requestedPath?.startsWith('/admin')) {
+        navigate('/app', {
+          replace: true,
+          state: { authorizationError: 'You are not authorized as admin' },
+        })
+      } else {
+        navigate(requestedPath || '/app', { replace: true })
+      }
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message
