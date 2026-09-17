@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { AssistantPage } from '@/features/assistant/pages/AssistantPage'
 import { AppointmentQuestionsPage } from '@/features/appointment-questions/pages/AppointmentQuestionsPage'
@@ -23,7 +24,22 @@ import { DashboardPage } from '@/features/user/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppLayout } from '@/shared/layouts/AppLayout'
 import { LandingLayout } from '@/shared/layouts/LandingLayout'
-import { GuestOnly, ProtectedRoute } from './routing/RouteGuards'
+import { AdminOnly, GuestOnly, ProtectedRoute } from './routing/RouteGuards'
+
+const AdminLayout = lazy(() => import('@/features/admin/layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
+const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage').then((module) => ({ default: module.AdminDashboardPage })))
+const AdminUsersPage = lazy(() => import('@/features/admin/pages/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })))
+const AdminAppointmentsPage = lazy(() => import('@/features/admin/pages/AdminAppointmentsPage').then((module) => ({ default: module.AdminAppointmentsPage })))
+const AdminConsultationsPage = lazy(() => import('@/features/admin/pages/AdminConsultationsPage').then((module) => ({ default: module.AdminConsultationsPage })))
+const AdminHealthPage = lazy(() => import('@/features/admin/pages/AdminHealthPage').then((module) => ({ default: module.AdminHealthPage })))
+const AdminNutritionPage = lazy(() => import('@/features/admin/pages/AdminNutritionPage').then((module) => ({ default: module.AdminNutritionPage })))
+const AdminKnowledgePage = lazy(() => import('@/features/admin/pages/AdminKnowledgePage').then((module) => ({ default: module.AdminKnowledgePage })))
+const AdminReportsPage = lazy(() => import('@/features/admin/pages/AdminReportsPage').then((module) => ({ default: module.AdminReportsPage })))
+const AdminSettingsPage = lazy(() => import('@/features/admin/pages/AdminSettingsPage').then((module) => ({ default: module.AdminSettingsPage })))
+
+function AdminRouteFallback() {
+  return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
+}
 
 export function AppRouter() {
   return (
@@ -55,6 +71,18 @@ export function AppRouter() {
         <Route path="chat" element={<ChatPage />} />
         <Route path="assistant" element={<AssistantPage />} />
         <Route path="account" element={<AccountPage />} />
+      </Route>
+
+      <Route path="admin" element={<AdminOnly><Suspense fallback={<AdminRouteFallback />}><AdminLayout /></Suspense></AdminOnly>}>
+        <Route index element={<AdminDashboardPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="appointments" element={<AdminAppointmentsPage />} />
+        <Route path="consultations" element={<AdminConsultationsPage />} />
+        <Route path="health" element={<AdminHealthPage />} />
+        <Route path="nutrition" element={<AdminNutritionPage />} />
+        <Route path="knowledge" element={<AdminKnowledgePage />} />
+        <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

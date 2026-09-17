@@ -8,7 +8,7 @@ import {
   SignOut,
 } from '@phosphor-icons/react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
@@ -26,6 +26,8 @@ export function AccountPage() {
   const [message, setMessage] = useState('')
   const [busyAction, setBusyAction] = useState<'refresh' | 'logout' | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
+  const authorizationError = (location.state as { authorizationError?: string } | null)?.authorizationError
 
   if (!user) return null
 
@@ -71,6 +73,7 @@ export function AccountPage() {
       </header>
 
       <section className="account-content">
+        {authorizationError && <div className="account-authorization-error" role="alert">{authorizationError}</div>}
         <div className="welcome-block">
           <div className="profile-mark" aria-hidden="true">{user.displayName.trim().charAt(0).toUpperCase()}</div>
           <div>
