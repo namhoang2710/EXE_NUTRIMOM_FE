@@ -1,5 +1,6 @@
 import type { ArticleDetailDto, ArticleImageInput, ArticleRequestDto, ArticleStatus } from './knowledge-dto'
 import { categoryValue, stageValue } from './article-types.ts'
+import { parseYoutubeVideoId } from './youtube-video.ts'
 
 export interface ArticleImageDraft {
   id: string
@@ -26,6 +27,7 @@ export interface ArticleFormDraft {
   status: ArticleStatus
   publishedAt: string
   lead: string
+  youtubeVideo: string
   coverImage?: ArticleImageDraft
   sourceLabel: string
   sourceHref: string
@@ -45,7 +47,7 @@ export function emptySection(): ArticleSectionDraft {
 export function emptyArticleForm(): ArticleFormDraft {
   return {
     slug: '', title: '', excerpt: '', category: 'nutrition', stage: 'pregnancy', topics: '',
-    status: 'draft', publishedAt: '', lead: '', sourceLabel: '', sourceHref: '', sections: [emptySection()],
+    status: 'draft', publishedAt: '', lead: '', youtubeVideo: '', sourceLabel: '', sourceHref: '', sections: [emptySection()],
   }
 }
 
@@ -68,6 +70,7 @@ export function articleDetailToForm(article: ArticleDetailDto): ArticleFormDraft
     status: article.status,
     publishedAt: toLocalDateTime(article.publishedAt),
     lead: article.lead ?? '',
+    youtubeVideo: article.youtubeVideoId ?? '',
     coverImage: article.coverImage ? { id: '', url: article.coverImage.url, alt: article.coverImage.alt ?? '', caption: article.coverImage.caption ?? '' } : undefined,
     sourceLabel: article.source?.label ?? '',
     sourceHref: article.source?.href ?? '',
@@ -107,6 +110,7 @@ export function validateArticleForm(form: ArticleFormDraft) {
   else if (form.slug.length > 180) errors.slug = 'Slug tối đa 180 ký tự.'
   if (form.excerpt.length > 2000) errors.excerpt = 'Mô tả tối đa 2.000 ký tự.'
   if (form.lead.length > 10_000) errors.lead = 'Mở đầu tối đa 10.000 ký tự.'
+  if (form.youtubeVideo && !parseYoutubeVideoId(form.youtubeVideo)) errors.youtubeVideo = 'Nhập link YouTube hợp lệ hoặc ID video gồm đúng 11 ký tự.'
   const topics = form.topics.split(',').map((item) => item.trim()).filter(Boolean)
   if (new Set(topics).size !== topics.length) errors.topics = 'Mỗi chủ đề chỉ được xuất hiện một lần.'
   else if (topics.length > 30) errors.topics = 'Tối đa 30 chủ đề.'
@@ -135,6 +139,7 @@ export function validateArticleForm(form: ArticleFormDraft) {
 
 export function articleFormToPayload(form: ArticleFormDraft): ArticleRequestDto {
   const topicValues = [...new Set(form.topics.split(',').map((item) => item.trim()).filter(Boolean))]
+  const youtubeVideoId = parseYoutubeVideoId(form.youtubeVideo)
   return {
     slug: form.slug.trim(),
     title: form.title.trim(),
@@ -146,6 +151,7 @@ export function articleFormToPayload(form: ArticleFormDraft): ArticleRequestDto 
     ...(form.status === 'published' && form.publishedAt ? { publishedAt: new Date(form.publishedAt).toISOString() } : {}),
     ...(imageInput(form.coverImage) ? { coverImage: imageInput(form.coverImage) } : {}),
     ...(form.lead.trim() ? { lead: form.lead.trim() } : {}),
+    ...(youtubeVideoId ? { youtubeVideoId } : {}),
     sections: form.sections.map((section) => ({
       heading: section.heading.trim(),
       paragraphs: lines(section.paragraphs, 100),

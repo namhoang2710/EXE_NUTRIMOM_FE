@@ -57,6 +57,7 @@ export interface ArticleSectionViewModel {
 
 export interface ArticleDetailViewModel extends ArticleCardViewModel {
   lead: string
+  youtubeVideoId?: string
   sections: ArticleSectionViewModel[]
   source?: { label: string; href: string }
   status: ArticleStatus

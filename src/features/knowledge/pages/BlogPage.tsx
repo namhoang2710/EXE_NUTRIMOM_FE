@@ -61,7 +61,7 @@ export function BlogPage({ library = false }: { library?: boolean }) {
         <ArticleCard post={featuredPost} featured saved={savedSlugs.includes(featuredPost.slug)} bookmarkBusy={bookmarksLoading || busySlugs.includes(featuredPost.slug)} onToggle={() => { void toggle(featuredPost.slug) }} />
       </section>}
 
-      <KnowledgeLibrary savedSlugs={savedSlugs} busySlugs={busySlugs} bookmarksLoading={bookmarksLoading} authenticated={authenticated} onBookmark={(slug) => { void toggle(slug) }} />
+      <KnowledgeLibrary savedSlugs={savedSlugs} bookmarksLoading={bookmarksLoading} authenticated={authenticated} />
 
       <section className="nm-blog-section landing-section" id="cong-dong" aria-labelledby="community-heading">
         <div className="nm-community-preview">

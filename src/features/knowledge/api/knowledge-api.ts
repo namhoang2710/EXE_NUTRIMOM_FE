@@ -1,6 +1,7 @@
 import { apiClient } from '@/core/api/api-client'
 import type {
   AdminArticleListQuery,
+  AdminArticleListItemDto,
   ArticleDetailDto,
   ArticlePageDto,
   ArticleRequestDto,
@@ -40,7 +41,7 @@ export const knowledgeApi = {
 
 export const knowledgeAdminApi = {
   listArticles(query: AdminArticleListQuery, signal?: AbortSignal) {
-    return apiClient.request<ArticlePageDto<ArticleDetailDto>>(`${knowledgeEndpoints.adminArticles}${buildKnowledgeQueryString(query)}`, { signal })
+    return apiClient.request<ArticlePageDto<AdminArticleListItemDto>>(`${knowledgeEndpoints.adminArticles}${buildKnowledgeQueryString(query)}`, { signal })
   },
   getArticle(id: string, signal?: AbortSignal) {
     return apiClient.request<ArticleDetailDto>(knowledgeEndpoints.adminArticle(id), { signal })

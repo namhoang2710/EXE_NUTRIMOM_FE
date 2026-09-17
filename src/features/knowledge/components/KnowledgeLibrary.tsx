@@ -1,20 +1,18 @@
 import { ArrowLeft, ArrowRight, BookOpenText, Check } from '@phosphor-icons/react'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { articleCategories, articleStages } from '../model/article-types'
 import { useLibraryPagination } from '../model/use-library-pagination'
-import { ArticleCard } from './ArticleCard'
+import { LibraryArticleCard } from './ArticleCard'
 import { LibrarySelect } from './LibrarySelect'
 
 interface KnowledgeLibraryProps {
   savedSlugs: readonly string[]
-  busySlugs: readonly string[]
   bookmarksLoading: boolean
   authenticated: boolean
-  onBookmark: (slug: string) => void
 }
 
-export function KnowledgeLibrary({ savedSlugs, busySlugs, bookmarksLoading, authenticated, onBookmark }: KnowledgeLibraryProps) {
+export function KnowledgeLibrary({ savedSlugs, bookmarksLoading, authenticated }: KnowledgeLibraryProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { query, pagination, loading, error, updateFilter, resetFilters, changePage, retryLoad } = useLibraryPagination()
@@ -23,29 +21,10 @@ export function KnowledgeLibrary({ savedSlugs, busySlugs, bookmarksLoading, auth
   const [openSelect, setOpenSelect] = useState<'stage' | null>(null)
   const [topic, setTopic] = useState(filters.topic)
   const frame = useRef<HTMLDivElement>(null)
-  const content = useRef<HTMLDivElement>(null)
-  const [minimumHeight, setMinimumHeight] = useState(0)
   const hasFilters = Boolean(filters.category || filters.stage || filters.topic || filters.savedOnly)
   const setStageOpen = useCallback((open: boolean) => setOpenSelect(open ? 'stage' : null), [])
 
   useEffect(() => setTopic(filters.topic), [filters.topic])
-
-  useLayoutEffect(() => {
-    const node = content.current
-    if (!node) return
-    let width = node.getBoundingClientRect().width
-    const measure = () => {
-      const bounds = node.getBoundingClientRect()
-      const resized = Math.abs(bounds.width - width) > 1
-      width = bounds.width
-      setMinimumHeight((previous) => resized ? Math.ceil(bounds.height) : Math.max(previous, Math.ceil(bounds.height)))
-    }
-    measure()
-    if (typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(measure)
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [])
 
   function scrollToResultsIfNeeded() {
     const node = frame.current
@@ -88,17 +67,17 @@ export function KnowledgeLibrary({ savedSlugs, busySlugs, bookmarksLoading, auth
           <button className="nm-reset-filters" type="button" disabled={!hasFilters} onClick={resetFilters}>Xóa bộ lọc</button>
         </div>
       </form>
-      <div className="nm-results-summary" role="status" aria-live="polite" aria-atomic="true">
+      <div className="nm-library-frame"><div className="nm-results-summary" role="status" aria-live="polite" aria-atomic="true">
         <span>{loading ? 'Đang cập nhật bài viết…' : totalItems ? `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, totalItems)} trong ${totalItems} bài viết${filters.savedOnly ? ' đã lưu' : ''}` : '0 bài viết phù hợp'}</span>
         <span>Nội dung chính thức · Sắp xếp mới nhất</span>
       </div>
-      <div className="nm-library-results" ref={frame} style={{ minHeight: minimumHeight || undefined }} aria-busy={loading}>
-        <div ref={content} className="nm-library-results-content" data-loading={loading} inert={loading}>
+      <div className="nm-library-results" ref={frame} aria-busy={loading}>
+        <div className="nm-library-results-content" data-loading={loading} inert={loading}>
           {error ? <div className="nm-empty-state" role="alert"><h3>Chưa thể cập nhật bài viết</h3><p>{error}</p><button type="button" className="nm-button nm-button--soft" onClick={retryLoad}>Thử lại</button></div> : items.length ? <div className="nm-post-grid" key={`${currentPage}-${items.map((post) => post.slug).join(',')}`}>
-            {items.map((post) => <ArticleCard key={post.id} post={post} saved={savedSlugs.includes(post.slug)} bookmarkBusy={bookmarksLoading || busySlugs.includes(post.slug)} onToggle={() => onBookmark(post.slug)} libraryControls returnTo={returnTo} />)}
+            {items.slice(0, pageSize).map((post) => <LibraryArticleCard key={post.id} post={post} returnTo={returnTo} />)}
           </div> : !loading && <div className="nm-empty-state"><BookOpenText size={32} weight="duotone" /><h3>{filters.savedOnly ? 'Chưa có bài đã lưu phù hợp' : 'Chưa có bài phù hợp với lựa chọn này'}</h3><p>{filters.savedOnly ? 'Mẹ có thể lưu bài từ thư viện để đọc lại khi cần.' : 'Mẹ thử chọn danh mục, giai đoạn hoặc chủ đề khác nhé.'}</p><button type="button" className="nm-button nm-button--soft" onClick={resetFilters}>Xem lại thư viện</button></div>}
         </div>
-        {loading && <div className="nm-library-loading" aria-hidden="true"><div className="nm-post-grid">{Array.from({ length: Math.max(3, items.length) }, (_, index) => <div className="nm-library-skeleton" key={index}><span /><span /><span /><span /><span /></div>)}</div></div>}
+        {loading && <div className="nm-library-loading" aria-hidden="true"><div className="nm-post-grid">{Array.from({ length: pageSize }, (_, index) => <div className="nm-library-skeleton" key={index}><span /><span /></div>)}</div></div>}
       </div>
       <nav className="nm-library-pagination" aria-label="Phân trang thư viện kiến thức">
         <button type="button" disabled={loading || currentPage <= 1 || !totalItems} onClick={() => goToPage(currentPage - 1)} aria-label="Trang trước"><ArrowLeft size={17} /><span>Trước</span></button>
@@ -106,6 +85,7 @@ export function KnowledgeLibrary({ savedSlugs, busySlugs, bookmarksLoading, auth
         <button type="button" disabled={loading || currentPage >= totalPages || !totalItems} onClick={() => goToPage(currentPage + 1)} aria-label="Trang sau"><span>Sau</span><ArrowRight size={17} /></button>
         <span className="nm-library-page-description">{totalItems ? `Trang ${currentPage} / ${totalPages}` : 'Chưa có bài viết'}</span>
       </nav>
+      </div>
     </div>
   </section>
 }

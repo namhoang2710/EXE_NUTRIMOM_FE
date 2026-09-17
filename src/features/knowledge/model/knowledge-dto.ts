@@ -57,12 +57,16 @@ export interface ArticleSummaryDto {
 
 export interface ArticleDetailDto extends ArticleSummaryDto {
   lead?: string
+  youtubeVideoId?: string
   sections: ArticleSectionDto[]
   source?: ArticleSourceDto
   status: ArticleStatus
   createdAt: string
   updatedAt: string
 }
+
+// Admin list items resemble details, but the list endpoint omits the video field.
+export type AdminArticleListItemDto = Omit<ArticleDetailDto, 'youtubeVideoId'>
 
 export interface ArticleRequestDto {
   slug: string
@@ -76,6 +80,7 @@ export interface ArticleRequestDto {
   authorId?: string
   coverImage?: ArticleImageInput
   lead?: string
+  youtubeVideoId?: string
   sections: ArticleSectionInput[]
   source?: ArticleSourceDto
 }

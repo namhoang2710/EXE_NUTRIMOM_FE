@@ -3,15 +3,31 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
 import { knowledgeAdminApi } from '@/features/knowledge/api/knowledge-api'
+import { LibrarySelect } from '@/features/knowledge/components/LibrarySelect'
 import { categoryLabel, articleCategories, articleStages, stageLabel } from '@/features/knowledge/model/article-types'
-import type { ArticleDetailDto, ArticlePageDto, ArticleSort, ArticleStatus } from '@/features/knowledge/model/knowledge-dto'
+import type { AdminArticleListItemDto, ArticlePageDto, ArticleSort, ArticleStatus } from '@/features/knowledge/model/knowledge-dto'
 import { ArticleEditor } from '../components/ArticleEditor'
 import { PageHeading, ResourceState, StatusBadge, TableCard } from '../components/AdminUI'
 import { formatAdminDate } from '../model/admin-formatters'
 
-const emptyPage: ArticlePageDto<ArticleDetailDto> = { items: [], totalItems: 0, totalPages: 0, currentPage: 1, pageSize: 12 }
+const emptyPage: ArticlePageDto<AdminArticleListItemDto> = { items: [], totalItems: 0, totalPages: 0, currentPage: 1, pageSize: 12 }
 const allowedSorts: ArticleSort[] = ['updatedAt:desc', 'updatedAt:asc', 'publishedAt:desc', 'publishedAt:asc', 'title:asc', 'title:desc', 'createdAt:desc', 'createdAt:asc']
 const allowedStatuses: ArticleStatus[] = ['draft', 'published', 'archived']
+const statusOptions = [
+  { value: 'draft', label: 'Bản nháp' },
+  { value: 'published', label: 'Đã xuất bản' },
+  { value: 'archived', label: 'Lưu trữ' },
+] as const
+const sortOptions = [
+  { value: 'updatedAt:desc', label: 'Cập nhật mới nhất' },
+  { value: 'updatedAt:asc', label: 'Cập nhật cũ nhất' },
+  { value: 'publishedAt:desc', label: 'Xuất bản mới nhất' },
+  { value: 'publishedAt:asc', label: 'Xuất bản cũ nhất' },
+  { value: 'title:asc', label: 'Tiêu đề A–Z' },
+  { value: 'title:desc', label: 'Tiêu đề Z–A' },
+  { value: 'createdAt:desc', label: 'Tạo mới nhất' },
+  { value: 'createdAt:asc', label: 'Tạo cũ nhất' },
+] as const
 
 export function AdminKnowledgePage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -37,9 +53,10 @@ export function AdminKnowledgePage() {
   const [error, setError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   const [editor, setEditor] = useState<{ id?: string } | null>(null)
-  const [deleting, setDeleting] = useState<ArticleDetailDto | null>(null)
+  const [deleting, setDeleting] = useState<AdminArticleListItemDto | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [openFilter, setOpenFilter] = useState<'status' | 'category' | 'stage' | 'sort' | null>(null)
 
   const setParameter = useCallback((name: string, value: string) => {
     setSearchParams((current) => {
@@ -85,18 +102,18 @@ export function AdminKnowledgePage() {
     } finally { setDeleteBusy(false) }
   }
 
-  const scheduled = (article: ArticleDetailDto) => article.status === 'published' && article.publishedAt && new Date(article.publishedAt).getTime() > Date.now()
+  const scheduled = (article: AdminArticleListItemDto) => article.status === 'published' && article.publishedAt && new Date(article.publishedAt).getTime() > Date.now()
   const hasFilters = Boolean(query.category || query.stage || query.topic || query.status || query.sort !== 'updatedAt:desc')
 
   return <div className="admin-page admin-knowledge-page">
     <PageHeading eyebrow="Content operations" title="Knowledge CMS" description="Quản lý bài viết, lịch xuất bản và nội dung đa phương tiện theo contract backend." actions={<button className="admin-button primary" type="button" onClick={() => setEditor({})}><Plus size={18} /> Bài viết mới</button>} />
 
     <section className="admin-card admin-knowledge-filters" aria-label="Bộ lọc bài viết">
-      <label><span>Trạng thái</span><select value={query.status ?? ''} onChange={(event) => setParameter('status', event.target.value)}><option value="">Tất cả</option><option value="draft">Bản nháp</option><option value="published">Đã xuất bản</option><option value="archived">Lưu trữ</option></select></label>
-      <label><span>Danh mục</span><select value={query.category ?? ''} onChange={(event) => setParameter('category', event.target.value)}><option value="">Tất cả</option>{articleCategories.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-      <label><span>Giai đoạn</span><select value={query.stage ?? ''} onChange={(event) => setParameter('stage', event.target.value)}><option value="">Tất cả</option>{articleStages.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+      <LibrarySelect label="Trạng thái" placeholder="Tất cả" options={statusOptions} value={query.status ?? ''} open={openFilter === 'status'} onOpenChange={(open) => setOpenFilter(open ? 'status' : null)} onChange={(value) => setParameter('status', value)} />
+      <LibrarySelect label="Danh mục" placeholder="Tất cả" options={articleCategories} value={query.category ?? ''} open={openFilter === 'category'} onOpenChange={(open) => setOpenFilter(open ? 'category' : null)} onChange={(value) => setParameter('category', value)} />
+      <LibrarySelect label="Giai đoạn" placeholder="Tất cả" options={articleStages} value={query.stage ?? ''} open={openFilter === 'stage'} onOpenChange={(open) => setOpenFilter(open ? 'stage' : null)} onChange={(value) => setParameter('stage', value)} />
       <form onSubmit={(event) => { event.preventDefault(); setParameter('topic', topic.trim()) }}><label><span>Chủ đề chính xác</span><span className="admin-filter-search"><input maxLength={100} value={topic} placeholder="Ví dụ: vitamin" onChange={(event) => setTopic(event.target.value)} /><button type="submit">Lọc</button></span></label></form>
-      <label><span>Sắp xếp</span><select value={query.sort} onChange={(event) => setParameter('sort', event.target.value)}><option value="updatedAt:desc">Cập nhật mới nhất</option><option value="updatedAt:asc">Cập nhật cũ nhất</option><option value="publishedAt:desc">Xuất bản mới nhất</option><option value="publishedAt:asc">Xuất bản cũ nhất</option><option value="title:asc">Tiêu đề A–Z</option><option value="title:desc">Tiêu đề Z–A</option><option value="createdAt:desc">Tạo mới nhất</option><option value="createdAt:asc">Tạo cũ nhất</option></select></label>
+      <LibrarySelect label="Sắp xếp" placeholder="Sắp xếp" options={sortOptions} value={query.sort} open={openFilter === 'sort'} onOpenChange={(open) => setOpenFilter(open ? 'sort' : null)} onChange={(value) => setParameter('sort', value)} />
       <button className="admin-text-button" type="button" disabled={!hasFilters} onClick={resetFilters}>Xóa bộ lọc</button>
     </section>
 

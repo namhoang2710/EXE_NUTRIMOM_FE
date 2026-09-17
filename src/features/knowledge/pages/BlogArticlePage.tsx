@@ -7,6 +7,7 @@ import { ArticleCard, ArticleMeta, BookmarkButton, EditorialBadges } from '../co
 import { mapArticleDetailToViewModel, mapArticleSummaryToCard } from '../model/article-adapters'
 import type { ArticleCardViewModel, ArticleDetailViewModel } from '../model/article-types'
 import { useArticleBookmarks } from '../model/use-article-bookmarks'
+import { sanitizeInlineHtml } from '../model/rich-text'
 import './blog.css'
 
 export function BlogArticlePage() {
@@ -85,10 +86,11 @@ export function BlogArticlePage() {
         <div className="nm-article-content">
           {post.sections.map((section, sectionIndex) => <section id={`muc-${sectionIndex + 1}`} key={section.id}>
             <span className="nm-article-index">{String(sectionIndex + 1).padStart(2, '0')}</span><h2>{section.heading}</h2>
-            {section.paragraphs.map((paragraph, index) => <p key={`${section.id}-p-${index}`}>{paragraph}</p>)}
-            {section.bullets.length > 0 && <ul>{section.bullets.map((bullet, index) => <li key={`${section.id}-b-${index}`}>{bullet}</li>)}</ul>}
+            {section.paragraphs.map((paragraph, index) => <p key={`${section.id}-p-${index}`} dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(paragraph) }} />)}
+            {section.bullets.length > 0 && <ul>{section.bullets.map((bullet, index) => <li key={`${section.id}-b-${index}`} dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(bullet) }} />)}</ul>}
             {section.image && <figure className="nm-section-image"><img src={section.image.url} alt={section.image.alt} loading="lazy" />{section.image.caption && <figcaption>{section.image.caption}</figcaption>}</figure>}
           </section>)}
+          {post.youtubeVideoId && <div className="nm-article-video"><iframe src={`https://www.youtube-nocookie.com/embed/${post.youtubeVideoId}`} title={`Video YouTube cho bài viết ${post.title}`} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /></div>}
           <div className="nm-medical-note"><Info size={23} weight="fill" /><div><strong>Một lời nhắc dịu dàng</strong><p>Thông tin trong bài không thay thế tư vấn y tế cá nhân. Nếu có triệu chứng bất thường hoặc câu hỏi về tình trạng riêng, mẹ hãy liên hệ bác sĩ hoặc cơ sở y tế.</p></div></div>
         </div>
 

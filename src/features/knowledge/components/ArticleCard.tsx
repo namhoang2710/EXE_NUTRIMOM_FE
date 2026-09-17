@@ -38,3 +38,12 @@ export function ArticleCard({ post, saved, onToggle, featured = false, libraryCo
     </div>
   </article>
 }
+
+export function LibraryArticleCard({ post, returnTo }: { post: ArticleCardViewModel; returnTo: string }) {
+  return <article className="nm-library-card">
+    <Link className="nm-library-card-link" to={`/blog/${post.slug}`} state={{ knowledgeReturnTo: returnTo }} aria-label={`Đọc bài viết: ${post.title}`}>
+      <span className="nm-library-card-image"><img src={post.coverImage?.url ?? '/banner2.png'} alt="" loading="lazy" /></span>
+      <span className="nm-library-card-copy"><strong>{post.title}</strong>{post.excerpt && <span className="nm-library-card-excerpt">{post.excerpt}</span>}<span className="nm-library-card-date"><CalendarBlank size={16} /><time dateTime={post.publishedAtIso}>{post.publishedAt}</time></span></span>
+    </Link>
+  </article>
+}

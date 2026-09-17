@@ -1,6 +1,7 @@
 import type { ArticleCardViewModel, ArticleDetailViewModel, ArticleImageViewModel } from './article-types'
 import { categoryLabel, stageLabel } from './article-types.ts'
 import type { ArticleDetailDto, ArticleImageDto, ArticleSummaryDto, MediaUploadDto } from './knowledge-dto'
+import { isValidYoutubeVideoId } from './youtube-video.ts'
 
 export function formatArticleDate(value?: string) {
   if (!value) return 'Chưa xuất bản'
@@ -56,6 +57,7 @@ export function mapArticleDetailToViewModel(article: ArticleDetailDto): ArticleD
     ...mapArticleSummaryToCard(article),
     readTime: calculateReadTime(text),
     lead: article.lead ?? '',
+    youtubeVideoId: isValidYoutubeVideoId(article.youtubeVideoId) ? article.youtubeVideoId : undefined,
     sections: [...(article.sections ?? [])]
       .sort((left, right) => left.sortOrder - right.sortOrder)
       .map((section) => ({
