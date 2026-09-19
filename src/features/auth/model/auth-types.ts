@@ -5,6 +5,7 @@ export interface User {
   phone: string
   displayName: string
   roles: string[]
+  onboardingStatus?: 'PROFILE_REQUIRED' | 'CONTEXT_REQUIRED' | 'COMPLETED'
   status: string
   createdAt: string
 }

@@ -2,7 +2,9 @@ export interface UserDto {
   id: string
   phone: string
   display_name: string
-  roles: string[]
+  roles?: string[]
+  role?: string
+  onboarding_status?: 'PROFILE_REQUIRED' | 'CONTEXT_REQUIRED' | 'COMPLETED'
   status: string
   created_at: string
 }
