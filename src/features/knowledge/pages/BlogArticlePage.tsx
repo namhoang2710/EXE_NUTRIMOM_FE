@@ -20,7 +20,8 @@ export function BlogArticlePage() {
   const [error, setError] = useState('')
   const { savedSlugs, toggleBookmark, busySlugs, loading: bookmarksLoading } = useArticleBookmarks()
   const returnTo = (location.state as { knowledgeReturnTo?: unknown } | null)?.knowledgeReturnTo
-  const backTo = typeof returnTo === 'string' && /^\/(blog(?:[?#]|$)|app\/knowledge(?:[?#]|$))/.test(returnTo) ? returnTo : '/blog'
+  const libraryPath = location.pathname.startsWith('/app/') ? '/app/knowledge' : '/blog'
+  const backTo = typeof returnTo === 'string' && /^\/(blog(?:[?#]|$)|app\/knowledge(?:[?#]|$)|app\/profile\/saved(?:[?#]|$))/.test(returnTo) ? returnTo : libraryPath
 
   useEffect(() => {
     if (!notice) return
@@ -65,7 +66,7 @@ export function BlogArticlePage() {
   }
 
   if (state === 'loading') return <main className="nm-article-state" aria-busy="true"><span className="nm-article-loader" /><h1>Đang mở bài viết…</h1><p>NutriMom đang chuẩn bị nội dung cho mẹ.</p></main>
-  if (state === 'not-found') return <main className="nm-article-state"><BookOpenText size={42} weight="duotone" /><h1>Không tìm thấy bài viết</h1><p>Bài viết có thể chưa xuất bản, đã được lưu trữ hoặc đường dẫn không còn tồn tại.</p><Link className="nm-button nm-button--primary" to="/blog"><ArrowLeft size={17} /> Về thư viện</Link></main>
+  if (state === 'not-found') return <main className="nm-article-state"><BookOpenText size={42} weight="duotone" /><h1>Không tìm thấy bài viết</h1><p>Bài viết có thể chưa xuất bản, đã được lưu trữ hoặc đường dẫn không còn tồn tại.</p><Link className="nm-button nm-button--primary" to={libraryPath}><ArrowLeft size={17} /> Về thư viện</Link></main>
   if (state === 'error' || !post) return <main className="nm-article-state"><Info size={42} weight="duotone" /><h1>Chưa thể tải bài viết</h1><p>{error}</p><button className="nm-button nm-button--soft" type="button" onClick={() => window.location.reload()}>Thử lại</button></main>
 
   return <main className="nm-article-page">
@@ -103,7 +104,7 @@ export function BlogArticlePage() {
       </div>
     </article>
 
-    {relatedPosts.length > 0 && <section className="nm-related-section" aria-labelledby="related-heading"><div className="landing-section"><div className="nm-section-heading nm-section-heading--inline"><div><span>Đọc tiếp</span><h2 id="related-heading">Có thể mẹ cũng quan tâm</h2></div><Link className="nm-text-link nm-related-link" to="/blog">Xem tất cả <ArrowRight size={17} weight="bold" /></Link></div><div className="nm-related-grid">{relatedPosts.map((item) => <ArticleCard key={item.id} post={item} saved={savedSlugs.includes(item.slug)} bookmarkBusy={bookmarksLoading || busySlugs.includes(item.slug)} onToggle={() => { void bookmark(item.slug) }} />)}</div></div></section>}
+    {relatedPosts.length > 0 && <section className="nm-related-section" aria-labelledby="related-heading"><div className="landing-section"><div className="nm-section-heading nm-section-heading--inline"><div><span>Đọc tiếp</span><h2 id="related-heading">Có thể mẹ cũng quan tâm</h2></div><Link className="nm-text-link nm-related-link" to={libraryPath}>Xem tất cả <ArrowRight size={17} weight="bold" /></Link></div><div className="nm-related-grid">{relatedPosts.map((item) => <ArticleCard key={item.id} post={item} saved={savedSlugs.includes(item.slug)} bookmarkBusy={bookmarksLoading || busySlugs.includes(item.slug)} onToggle={() => { void bookmark(item.slug) }} />)}</div></div></section>}
     <div className="nm-bookmark-notice" role="status" aria-live="polite" aria-atomic="true">{notice}</div>
   </main>
 }

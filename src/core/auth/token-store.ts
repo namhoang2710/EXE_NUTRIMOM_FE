@@ -40,4 +40,5 @@ export function saveApiSession(response: AuthResponseDto) {
 export function clearSession() {
   memorySession = null
   sessionStorage.removeItem(SESSION_KEY)
+  window.dispatchEvent(new Event('nutrimom:session-cleared'))
 }

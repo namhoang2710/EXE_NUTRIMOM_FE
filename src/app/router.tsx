@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { AssistantPage } from '@/features/assistant/pages/AssistantPage'
 import { AppointmentQuestionsPage } from '@/features/appointment-questions/pages/AppointmentQuestionsPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
@@ -13,18 +13,27 @@ import { HealthPage } from '@/features/health/pages/HealthPage'
 import { BlogArticlePage } from '@/features/knowledge/pages/BlogArticlePage'
 import { BlogPage } from '@/features/knowledge/pages/BlogPage'
 import { KnowledgePage } from '@/features/knowledge/pages/KnowledgePage'
+import { CommunityPage } from '@/features/knowledge/pages/CommunityPage'
 import { AboutPage } from '@/features/landing/pages/AboutPage'
 import { ContactPage } from '@/features/landing/pages/ContactPage'
 import { HomePage } from '@/features/landing/pages/HomePage'
 import { ServiceDetailPage } from '@/features/landing/pages/ServiceDetailPage'
 import { ServicesPage } from '@/features/landing/pages/ServicesPage'
 import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
-import { AccountPage } from '@/features/user/pages/AccountPage'
+import { AppHomePage } from '@/features/user/pages/AppHomePage'
+import { ProfilePage } from '@/features/user/pages/ProfilePage'
+import { SettingsPage } from '@/features/user/pages/SettingsPage'
+import { PregnancyOnboardingPage } from '@/features/user/pages/PregnancyOnboardingPage'
+import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
+import { AccountHealthPage } from '@/features/user/pages/AccountHealthPage'
+import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
+import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
+import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
 import { DashboardPage } from '@/features/user/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppLayout } from '@/shared/layouts/AppLayout'
 import { LandingLayout } from '@/shared/layouts/LandingLayout'
-import { AdminOnly, GuestOnly, ProtectedRoute } from './routing/RouteGuards'
+import { AdminOnly, GuestOnly, OnboardingRoute, ProtectedRoute } from './routing/RouteGuards'
 
 const AdminLayout = lazy(() => import('@/features/admin/layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage').then((module) => ({ default: module.AdminDashboardPage })))
@@ -58,19 +67,35 @@ export function AppRouter() {
       <Route path="register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
 
+      <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
+      <Route path="onboarding/pregnancy" element={<OnboardingRoute step="CONTEXT_REQUIRED"><PregnancyOnboardingPage /></OnboardingRoute>} />
+
+      <Route path="app/profile" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
+        <Route index element={<ProfilePage />} />
+        <Route path="health" element={<AccountHealthPage />} />
+        <Route path="saved" element={<SavedArticlesPage />} />
+        <Route path="account/password" element={<AccountPasswordPage />} />
+        <Route path="account/disable" element={<AccountDisablePage />} />
+      </Route>
+
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-        <Route index element={<AccountPage />} />
+        <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
         <Route path="health" element={<HealthPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="nutrition" element={<NutritionPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
+        <Route path="knowledge/:articleSlug" element={<BlogArticlePage />} />
+        <Route path="community" element={<CommunityPage />} />
+        <Route path="pricing" element={<ServicesPage />} />
+        <Route path="contact" element={<ContactPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="experts" element={<ExpertsPage />} />
         <Route path="consultations" element={<ConsultationsPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="assistant" element={<AssistantPage />} />
-        <Route path="account" element={<AccountPage />} />
+        <Route path="account" element={<Navigate to="/app/profile" replace />} />
       </Route>
 
       <Route path="admin" element={<AdminOnly><Suspense fallback={<AdminRouteFallback />}><AdminLayout /></Suspense></AdminOnly>}>

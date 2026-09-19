@@ -1,6 +1,7 @@
 @import "./shared/styles/animations.css";
 @import "./shared/styles/landing.css";
 @import "./shared/styles/app.css";
+@import "./shared/styles/authenticated.css";
 @import "./shared/styles/scroll-progress.css";
 
 :root {
