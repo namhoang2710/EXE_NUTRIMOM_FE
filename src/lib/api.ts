@@ -18,7 +18,7 @@ import { normalizeUser } from '../types/auth'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '')
 
-type ApiRequestOptions = RequestInit & {
+export type ApiRequestOptions = RequestInit & {
   authenticated?: boolean
   retryAfterRefresh?: boolean
 }
@@ -95,7 +95,7 @@ export function refreshSession() {
   return refreshInFlight
 }
 
-async function request<T>(path: string, options: ApiRequestOptions = {}) {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}) {
   const {
     authenticated = true,
     retryAfterRefresh = true,
@@ -104,7 +104,11 @@ async function request<T>(path: string, options: ApiRequestOptions = {}) {
   } = options
   const headers = new Headers(providedHeaders)
 
-  if (fetchOptions.body && !headers.has('Content-Type')) {
+  headers.set('Accept-Language', 'vi-VN')
+  headers.set('X-Device-Id', getDeviceId())
+  headers.set('X-Request-Id', crypto.randomUUID())
+
+  if (fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
 
@@ -126,16 +130,17 @@ async function request<T>(path: string, options: ApiRequestOptions = {}) {
 
   if (response.status === 401 && authenticated && retryAfterRefresh && current?.refreshToken) {
     await refreshSession()
-    return request<T>(path, { ...options, retryAfterRefresh: false })
+    return apiRequest<T>(path, { ...options, retryAfterRefresh: false })
   }
 
   if (!response.ok) throw await readError(response)
+  if (response.status === 204) return undefined as T
   const payload = (await response.json()) as ApiEnvelope<T>
   return payload.data
 }
 
 async function login(payload: LoginPayload) {
-  const response = await request<ApiAuthResponse>('/auth/login', {
+  const response = await apiRequest<ApiAuthResponse>('/auth/login', {
     method: 'POST',
     authenticated: false,
     body: JSON.stringify(payload),
@@ -144,7 +149,7 @@ async function login(payload: LoginPayload) {
 }
 
 async function register(payload: RegisterPayload) {
-  const response = await request<ApiAuthResponse>('/auth/register', {
+  const response = await apiRequest<ApiAuthResponse>('/auth/register', {
     method: 'POST',
     authenticated: false,
     body: JSON.stringify(payload),
@@ -153,7 +158,7 @@ async function register(payload: RegisterPayload) {
 }
 
 async function requestOtp(payload: RequestOtpPayload) {
-  return request<OtpChallenge>('/auth/otp/request', {
+  return apiRequest<OtpChallenge>('/auth/otp/request', {
     method: 'POST',
     authenticated: false,
     body: JSON.stringify(payload),
@@ -161,7 +166,7 @@ async function requestOtp(payload: RequestOtpPayload) {
 }
 
 async function verifyOtp(payload: VerifyOtpPayload) {
-  const response = await request<OtpVerifyResult>('/auth/otp/verify', {
+  const response = await apiRequest<OtpVerifyResult>('/auth/otp/verify', {
     method: 'POST',
     authenticated: false,
     body: JSON.stringify(payload),
@@ -173,7 +178,7 @@ async function verifyOtp(payload: VerifyOtpPayload) {
 }
 
 async function me(): Promise<User> {
-  const response = await request<ApiUser>('/auth/me')
+  const response = await apiRequest<ApiUser>('/auth/me')
   return normalizeUser(response)
 }
 
@@ -181,7 +186,7 @@ async function logout() {
   const current = getSession()
   try {
     if (current?.refreshToken) {
-      await request<{ logged_out: boolean }>('/auth/logout', {
+      await apiRequest<{ logged_out: boolean }>('/auth/logout', {
         method: 'POST',
         authenticated: false,
         retryAfterRefresh: false,

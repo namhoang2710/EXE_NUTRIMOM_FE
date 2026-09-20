@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { postAuthPath } from '../lib/navigation'
 
 function PageSkeleton() {
   return (
@@ -16,9 +17,9 @@ function PageSkeleton() {
 }
 
 export function GuestOnly({ children }: PropsWithChildren) {
-  const { status } = useAuth()
+  const { status, user } = useAuth()
   if (status === 'loading') return <PageSkeleton />
-  if (status === 'authenticated') return <Navigate to="/app" replace />
+  if (status === 'authenticated' && user) return <Navigate to={postAuthPath(user)} replace />
   return children
 }
 
@@ -29,5 +30,14 @@ export function ProtectedRoute({ children }: PropsWithChildren) {
   if (status === 'anonymous') {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
+  return children
+}
+
+export function OnboardedRoute({ children }: PropsWithChildren) {
+  const { status, user } = useAuth()
+  const location = useLocation()
+  if (status === 'loading') return <PageSkeleton />
+  if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (user?.onboardingStatus !== 'COMPLETED') return <Navigate to="/onboarding/profile" replace />
   return children
 }

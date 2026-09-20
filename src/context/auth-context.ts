@@ -7,11 +7,12 @@ export type AuthStatus = 'loading' | 'authenticated' | 'anonymous'
 export interface AuthContextValue {
   status: AuthStatus
   user: User | null
-  login: (payload: LoginPayload) => Promise<void>
-  register: (payload: RegisterPayload) => Promise<void>
+  login: (payload: LoginPayload) => Promise<User>
+  register: (payload: RegisterPayload) => Promise<User>
   requestOtp: typeof authApi.requestOtp
-  verifyOtp: (payload: VerifyOtpPayload) => Promise<{ newUser: boolean }>
+  verifyOtp: (payload: VerifyOtpPayload) => Promise<{ newUser: boolean; user: User }>
   refresh: () => Promise<void>
+  reloadUser: () => Promise<User>
   logout: () => Promise<void>
 }
 

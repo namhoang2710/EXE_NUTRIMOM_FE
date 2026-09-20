@@ -8,6 +8,7 @@ import { StatusMessage } from '../components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '../lib/api'
 import { getDeviceId } from '../lib/device'
+import { postAuthPath } from '../lib/navigation'
 
 interface RegisterForm {
   displayName: string
@@ -59,13 +60,13 @@ export function RegisterPage() {
 
     setSubmitting(true)
     try {
-      await register({
+      const user = await register({
         display_name: form.displayName.trim(),
         phone: form.phone.trim(),
         password: form.password,
         device_id: getDeviceId(),
       })
-      navigate('/app', { replace: true })
+      navigate(postAuthPath(user), { replace: true })
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message

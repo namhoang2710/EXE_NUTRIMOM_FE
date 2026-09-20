@@ -8,6 +8,7 @@ import { StatusMessage } from '../components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '../lib/api'
 import { getDeviceId } from '../lib/device'
+import { postAuthPath } from '../lib/navigation'
 import type { OtpChallenge, OtpPurpose } from '../types/auth'
 
 export function OtpPage() {
@@ -87,13 +88,13 @@ export function OtpPage() {
 
     setSubmitting(true)
     try {
-      await verifyOtp({
+      const result = await verifyOtp({
         challenge_id: challenge.challenge_id,
         code,
         device_id: getDeviceId(),
         display_name: isRegister ? displayName.trim() : undefined,
       })
-      navigate('/app', { replace: true })
+      navigate(postAuthPath(result.user), { replace: true })
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message

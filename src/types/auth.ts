@@ -20,17 +20,23 @@ export interface ApiUser {
   id: string
   phone: string
   display_name: string
+  role?: string
   roles: string[]
   status: string
+  onboarding_status?: OnboardingStatus
   created_at: string
 }
+
+export type OnboardingStatus = 'PROFILE_REQUIRED' | 'CONTEXT_REQUIRED' | 'COMPLETED'
 
 export interface User {
   id: string
   phone: string
   displayName: string
+  role: string
   roles: string[]
   status: string
+  onboardingStatus: OnboardingStatus
   createdAt: string
 }
 
@@ -95,8 +101,10 @@ export function normalizeUser(user: ApiUser): User {
     id: user.id,
     phone: user.phone,
     displayName: user.display_name,
+    role: user.role || user.roles[0] || 'USER',
     roles: user.roles,
     status: user.status,
+    onboardingStatus: user.onboarding_status || 'COMPLETED',
     createdAt: user.created_at,
   }
 }

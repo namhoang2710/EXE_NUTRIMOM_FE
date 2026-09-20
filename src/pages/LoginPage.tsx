@@ -8,6 +8,7 @@ import { StatusMessage } from '../components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '../lib/api'
 import { getDeviceId } from '../lib/device'
+import { postAuthPath } from '../lib/navigation'
 
 const DEMO_PHONE = '0901234567'
 const DEMO_PASSWORD = 'NutriMom@123'
@@ -32,8 +33,8 @@ export function LoginPage() {
 
     setSubmitting(true)
     try {
-      await login({ phone: phone.trim(), password, device_id: getDeviceId() })
-      const target = (location.state as { from?: string } | null)?.from || '/app'
+      const user = await login({ phone: phone.trim(), password, device_id: getDeviceId() })
+      const target = (location.state as { from?: string } | null)?.from || postAuthPath(user)
       navigate(target, { replace: true })
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
