@@ -25,9 +25,7 @@ import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
 import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
 import { SettingsPage } from '@/features/user/pages/SettingsPage'
-import { PregnancyOnboardingPage } from '@/features/user/pages/PregnancyOnboardingPage'
 import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
-import { AccountHealthPage } from '@/features/user/pages/AccountHealthPage'
 import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
 import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
 import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
@@ -70,11 +68,11 @@ export function AppRouter() {
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
 
       <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
-      <Route path="onboarding/pregnancy" element={<ProtectedRoute><PregnancyOnboardingPage /></ProtectedRoute>} />
+      <Route path="onboarding/pregnancy" element={<Navigate to="/app/health" replace />} />
 
       <Route path="app/profile" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ProfilePage />} />
-        <Route path="health" element={<AccountHealthPage />} />
+        <Route path="health" element={<Navigate to="/app/health" replace />} />
         <Route path="saved" element={<SavedArticlesPage />} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />

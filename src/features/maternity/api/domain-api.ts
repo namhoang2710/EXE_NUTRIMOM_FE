@@ -26,6 +26,7 @@ export const careApi = {
 
 export const recordsApi = {
   list: (query = '') => apiClient.request<CursorPage<MedicalRecord>>(`/medical-records${query}`),
+  get: (id: string) => apiClient.request<MedicalRecord>(`/medical-records/${id}`),
   create: (body: Record<string, unknown>) => apiClient.request<MedicalRecord>('/medical-records', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: Record<string, unknown>) => apiClient.request<MedicalRecord>(`/medical-records/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   remove: (id: string) => apiClient.request<void>(`/medical-records/${id}`, { method: 'DELETE' }),

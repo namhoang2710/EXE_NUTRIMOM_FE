@@ -85,11 +85,12 @@ export interface MomDashboard {
   profile_summary?: { display_name: string; salutation?: string | null; role: string } | null
   pregnancy_summary?: Pregnancy | null
   baby_summary?: { week: number; title?: string | null; summary?: string | null; baby_development?: string | null; disclaimer?: string | null } | null
-  next_appointment?: unknown | null
+  next_appointment?: { title?: string | null; starts_at?: string | null; location?: string | null } | null
+  health_snapshot?: { title?: string | null; value?: string | number | null; unit?: string | null; trend?: string | null } | null
   care_progress?: { completed: number; total: number } | null
-  active_alerts?: unknown[]
-  recommended_articles?: unknown[]
-  upcoming_reminders?: unknown[]
+  active_alerts?: Array<{ id?: string; severity?: string | null; title?: string | null; message?: string | null; recommended_action?: string | null }>
+  recommended_articles?: Array<{ id?: string; slug?: string; title?: string | null; excerpt?: string | null }>
+  upcoming_reminders?: Array<{ id?: string; title?: string | null; starts_at?: string | null; due_at?: string | null }>
   unread_notification_count?: number
 }
 

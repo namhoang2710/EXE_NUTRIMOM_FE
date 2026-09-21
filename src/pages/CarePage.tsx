@@ -1,9 +1,10 @@
 import { CheckCircle, FirstAidKit, FloppyDisk } from '@phosphor-icons/react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
 import { FeaturePage as AppShell } from '@/shared/layouts/FeaturePage'
 import { StatusMessage } from '@/shared/components/StatusMessage'
-import { careApi } from '@/features/maternity/api/domain-api'
+import { careApi, pregnancyApi } from '@/features/maternity/api/domain-api'
 import type { BirthPlan, CarePlan, Guidance, PreparationItem } from '@/types/domain'
 
 export function CarePage() {
@@ -11,9 +12,11 @@ export function CarePage() {
   const [items, setItems] = useState<PreparationItem[]>([])
   const [birthPlan, setBirthPlan] = useState<BirthPlan | null>(null)
   const [guidance, setGuidance] = useState<Guidance[]>([])
+  const [guidanceError, setGuidanceError] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [hasPregnancy, setHasPregnancy] = useState<boolean | null>(null)
   const [savingBirthPlan, setSavingBirthPlan] = useState(false)
   const [pendingItem, setPendingItem] = useState<string | null>(null)
   const [conflict, setConflict] = useState(false)
@@ -21,18 +24,41 @@ export function CarePage() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
+    setGuidanceError('')
     setConflict(false)
     try {
-      const [nextPlan, nextItems, nextBirth, nextGuidance] = await Promise.all([
+      const guidanceResult = await careApi.guidance().catch((reason) => {
+        setGuidanceError(reason instanceof Error ? reason.message : 'Chưa thể tải hướng dẫn đã kiểm duyệt.')
+        return null
+      })
+      setGuidance(guidanceResult?.items || [])
+
+      try {
+        await pregnancyApi.current()
+      } catch (reason) {
+        if (reason instanceof ApiClientError && (reason.code === 'RESOURCE_NOT_FOUND' || reason.code === 'ACTIVE_PREGNANCY_NOT_FOUND')) {
+          setHasPregnancy(false)
+          setPlan(null)
+          setItems([])
+          setBirthPlan(null)
+          return
+        }
+        throw reason
+      }
+
+      setHasPregnancy(true)
+      const results = await Promise.allSettled([
         careApi.current(),
         careApi.items(),
         careApi.birthPlan(),
-        careApi.guidance(),
       ])
-      setPlan(nextPlan)
-      setItems(nextItems)
-      setBirthPlan(nextBirth)
-      setGuidance(nextGuidance.items)
+      const [planResult, itemsResult, birthPlanResult] = results
+      setPlan(planResult.status === 'fulfilled' ? planResult.value : null)
+      setItems(itemsResult.status === 'fulfilled' ? itemsResult.value : [])
+      setBirthPlan(birthPlanResult.status === 'fulfilled' ? birthPlanResult.value : null)
+      if (results.some((result) => result.status === 'rejected')) {
+        setError('Một phần kế hoạch chăm sóc chưa tải được. Bạn có thể thử lại sau.')
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không thể tải kế hoạch chăm sóc.')
     } finally { setLoading(false) }
@@ -86,10 +112,12 @@ export function CarePage() {
     {message && <StatusMessage tone="success">{message}</StatusMessage>}
     {conflict && <button className="secondary-button" type="button" onClick={() => void load()}>Tải lại dữ liệu mới nhất</button>}
     {loading ? <section className="empty-state"><FirstAidKit size={42} weight="duotone" /><h2>Đang tải kế hoạch chăm sóc</h2><p>NutriMom đang lấy các nội dung mới nhất.</p></section> : <>
+      {hasPregnancy === false ? <section className="empty-state"><FirstAidKit size={42} weight="duotone" /><h2>Chưa có hồ sơ thai kỳ</h2><p>Hãy cập nhật hành trình thai kỳ trước để xem checklist và kế hoạch sinh phù hợp.</p><Link className="primary-button" to="/app/health">Cập nhật tuổi thai</Link></section> : <>
       <section className="app-card"><div className="section-title-row"><div><p className="card-kicker">Tiến độ</p><h2>{plan ? `${plan.progress.completed}/${plan.progress.total} mốc đã hoàn thành` : 'Chưa có kế hoạch'}</h2></div><FirstAidKit size={32} weight="duotone" /></div>{plan?.milestones.length ? <div className="milestone-list">{plan.milestones.map((milestone) => <article key={milestone.id}><span>Tuần {milestone.week}</span><div><strong>{milestone.title}</strong><p>{milestone.description}</p></div><em>{milestone.status}</em></article>)}</div> : <p>Chưa có mốc chăm sóc được cấu hình cho thai kỳ hiện tại.</p>}</section>
       <div className="two-column"><section className="app-card"><h2>Checklist chuẩn bị</h2><div className="checklist">{items.map((item) => <label key={item.id}><input type="checkbox" checked={item.completed} disabled={pendingItem === item.id} onChange={() => void toggle(item)} /><span><strong>{item.title}</strong><small>{item.group_code}</small></span>{item.completed && <CheckCircle size={20} weight="fill" />}</label>)}{items.length === 0 && <p>Chưa có checklist cho thai kỳ hiện tại.</p>}</div></section>
         <section className="app-card"><h2>Kế hoạch sinh</h2>{birthPlan ? <form key={birthPlan.version} className="compact-form" onSubmit={(event) => void saveBirthPlan(event)}><label>Người đồng hành<input name="companion" defaultValue={birthPlan.companion || ''} disabled={savingBirthPlan} /></label><label>Cơ sở dự kiến<input name="preferred_facility" defaultValue={birthPlan.preferred_facility || ''} disabled={savingBirthPlan} /></label><label>Ghi chú giảm đau<textarea name="pain_management_note" defaultValue={birthPlan.pain_management_note || ''} disabled={savingBirthPlan} /></label><label>Chăm sóc bé sơ sinh<textarea name="newborn_care_note" defaultValue={birthPlan.newborn_care_note || ''} disabled={savingBirthPlan} /></label><label>Ghi chú khác<textarea name="free_text_note" defaultValue={birthPlan.free_text_note || ''} disabled={savingBirthPlan} /></label><button className="primary-button" disabled={savingBirthPlan}><FloppyDisk size={20} />{savingBirthPlan ? 'Đang lưu...' : 'Lưu kế hoạch'}</button></form> : <p>Chưa có kế hoạch sinh.</p>}</section></div>
-      <section className="app-card content-card"><h2>Hướng dẫn đã được kiểm duyệt</h2>{guidance.length ? <div className="guidance-list">{guidance.map((item) => <article key={item.id}><strong>{item.title}</strong><p>{item.summary}</p><small>{item.source || 'Nguồn chưa cập nhật'}{item.reviewer ? ` · ${item.reviewer}` : ''}{item.evidence_level ? ` · ${item.evidence_level}` : ''}</small>{item.source_url && <a className="text-link" href={item.source_url} target="_blank" rel="noreferrer">Xem nguồn</a>}</article>)}</div> : <p>Chưa có hướng dẫn phù hợp.</p>}</section>
+      </>}
+      <section className="app-card content-card"><h2>Hướng dẫn đã được kiểm duyệt</h2>{guidanceError ? <p>{guidanceError}</p> : guidance.length ? <div className="guidance-list">{guidance.map((item) => <article key={item.id}><strong>{item.title}</strong><p>{item.summary}</p><small>{item.source || 'Nguồn chưa cập nhật'}{item.reviewer ? ` · ${item.reviewer}` : ''}{item.evidence_level ? ` · ${item.evidence_level}` : ''}</small>{item.source_url && <a className="text-link" href={item.source_url} target="_blank" rel="noreferrer">Xem nguồn</a>}</article>)}</div> : <p>Chưa có hướng dẫn phù hợp.</p>}</section>
     </>}
   </AppShell>
 }
