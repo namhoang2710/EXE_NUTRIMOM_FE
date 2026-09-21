@@ -1,12 +1,12 @@
 import { CalendarBlank, Heartbeat, WarningCircle } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AppShell } from '../components/AppShell'
-import { useAuth } from '../hooks/useAuth'
-import { StatusMessage } from '../components/StatusMessage'
-import { dashboardApi } from '../lib/domain-api'
-import { formatDate } from '../lib/date'
-import type { MomDashboard, PartnerDashboard } from '../types/domain'
+import { FeaturePage as AppShell } from '@/shared/layouts/FeaturePage'
+import { useAuth } from '@/features/auth/hooks/useAuth'
+import { StatusMessage } from '@/shared/components/StatusMessage'
+import { dashboardApi } from '@/features/maternity/api/domain-api'
+import { formatDate } from '@/core/auth/date'
+import type { MomDashboard, PartnerDashboard } from '@/types/domain'
 
 export function DashboardPage() {
   const [dashboard, setDashboard] = useState<MomDashboard | null>(null)

@@ -102,7 +102,7 @@ export interface CarePlan {
 
 export interface PreparationItem { id: string; group_code: string; title: string; completed: boolean; completed_at?: string | null; sort_order: number; version: number }
 export interface BirthPlan { id: string; pregnancy_id: string; companion?: string | null; preferred_facility?: string | null; pain_management_note?: string | null; newborn_care_note?: string | null; free_text_note?: string | null; version: number }
-export interface Guidance { id: string; week?: number | null; topic?: string | null; locale?: string | null; title: string; summary?: string | null; source_name?: string | null; source_url?: string | null; reviewer?: string | null; disclaimer?: string | null }
+export interface Guidance { id: string; week?: number | null; topic?: string | null; locale?: string | null; title: string; summary?: string | null; source?: string | null; source_url?: string | null; reviewer?: string | null; reviewed_at?: string | null; next_review_at?: string | null; evidence_level?: string | null; disclaimer?: string | null }
 
 export interface CursorPage<T> { items: T[]; next_cursor?: string | null; has_more?: boolean }
 export interface PartnerDashboard { membership_role: string; pregnancy_overview?: { id: string; status: string; gestational_week: number; gestational_day: number; trimester: number; estimated_due_date?: string | null; days_until_due: number; care_facility_name?: string | null } | null; assigned_tasks?: Array<{ id: string; title: string; description?: string | null; priority: string; due_at?: string | null; status: string }> }

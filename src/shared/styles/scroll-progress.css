@@ -1,0 +1,98 @@
+.scroll-progress-button {
+  position: fixed;
+  z-index: 28;
+  right: clamp(18px, 2.5vw, 36px);
+  bottom: clamp(20px, 3vw, 34px);
+  width: 62px;
+  height: 62px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  color: #fff;
+  opacity: 0;
+  background: transparent;
+  filter: drop-shadow(0 12px 25px rgba(27, 16, 40, 0.3));
+  pointer-events: none;
+  cursor: pointer;
+  transform: translateY(20px) scale(0.78);
+  transition:
+    opacity 280ms ease,
+    transform 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 240ms ease;
+}
+
+.scroll-progress-button.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.scroll-progress-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.scroll-progress-ring-track,
+.scroll-progress-ring-value {
+  fill: none;
+  stroke-width: 3;
+}
+
+.scroll-progress-ring-track {
+  stroke: rgba(230, 201, 138, 0.28);
+}
+
+.scroll-progress-ring-value {
+  stroke: #e6c98a;
+  stroke-dasharray: 100;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 100ms linear;
+}
+
+.scroll-progress-button-core {
+  position: absolute;
+  inset: 6px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(230, 201, 138, 0.2);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #3a2753, #21162e);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 8px 20px rgba(22, 12, 34, 0.32);
+}
+
+.scroll-progress-button:hover {
+  color: #fff;
+  filter: drop-shadow(0 15px 30px rgba(27, 16, 40, 0.42));
+  transform: translateY(-3px) scale(1.04);
+}
+
+.scroll-progress-button:focus-visible {
+  outline: 3px solid rgba(230, 201, 138, 0.42);
+  outline-offset: 4px;
+}
+
+@media (max-width: 620px) {
+  .scroll-progress-button {
+    right: 14px;
+    bottom: 16px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .scroll-progress-button-core {
+    inset: 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress-button,
+  .scroll-progress-ring-value {
+    transition: none;
+  }
+}
