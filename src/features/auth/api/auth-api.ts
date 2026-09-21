@@ -80,6 +80,7 @@ async function register(payload: RegisterInput) {
     password: payload.password,
     device_id: payload.deviceId,
     display_name: payload.displayName,
+    accepted_terms: payload.acceptedTerms,
   }
   const response = await apiClient.request<AuthResponseDto>('/auth/register', {
     method: 'POST',

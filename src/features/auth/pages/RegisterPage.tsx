@@ -74,6 +74,7 @@ export function RegisterPage() {
         phone: form.phone.trim(),
         password: form.password,
         deviceId: getDeviceId(),
+        acceptedTerms: form.accepted,
       })
       navigate('/app', { replace: true })
     } catch (requestError) {

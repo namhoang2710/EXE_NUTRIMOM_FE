@@ -40,6 +40,7 @@ export interface LoginRequestDto {
 
 export interface RegisterRequestDto extends LoginRequestDto {
   display_name: string
+  accepted_terms: boolean
 }
 
 export interface RequestOtpRequestDto {

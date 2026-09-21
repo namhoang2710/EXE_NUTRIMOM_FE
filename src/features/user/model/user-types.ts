@@ -21,12 +21,19 @@ export type ProfilePatch = Partial<Pick<UserProfile, 'display_name' | 'email' | 
 
 export interface UserPreferences {
   language: string
+  locale: string
   timezone: string
+  theme: string
+  weight_unit: string
+  length_unit: string
+  glucose_unit: string
+  backup_enabled: boolean
   notification_enabled: boolean
   push_enabled: boolean
   email_enabled: boolean
   sms_enabled: boolean
   preferred_reminder_time: string | null
+  quiet_hours: Record<string, string> | null
   version: number
 }
 

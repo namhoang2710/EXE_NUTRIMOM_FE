@@ -9,7 +9,6 @@ function PageSkeleton() {
 
 function destination(status?: OnboardingStatus) {
   if (status === 'PROFILE_REQUIRED') return '/onboarding/profile'
-  if (status === 'CONTEXT_REQUIRED') return '/onboarding/pregnancy'
   return '/app'
 }
 
@@ -41,7 +40,7 @@ export function ProtectedRoute({ children }: PropsWithChildren) {
   if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />
   if (user?.roles.includes('ADMIN')) return <Navigate to="/admin" replace />
   if (!profile) return profileError ? <ProfileUnavailable /> : <PageSkeleton />
-  if (profile.onboarding_status !== 'COMPLETED') return <Navigate to={destination(profile.onboarding_status)} replace />
+  if (profile.onboarding_status === 'PROFILE_REQUIRED') return <Navigate to="/onboarding/profile" replace />
   return children
 }
 
@@ -51,6 +50,7 @@ export function OnboardingRoute({ children, step }: PropsWithChildren<{ step: 'P
   if (status === 'loading') return <PageSkeleton />
   if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname }} />
   if (!profile) return profileError ? <ProfileUnavailable /> : <PageSkeleton />
+  if (step === 'CONTEXT_REQUIRED') return profile.onboarding_status === 'CONTEXT_REQUIRED' ? children : <Navigate to={destination(profile.onboarding_status)} replace />
   if (profile.onboarding_status !== step) return <Navigate to={destination(profile.onboarding_status)} replace />
   return children
 }

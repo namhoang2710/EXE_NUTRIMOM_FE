@@ -33,7 +33,7 @@ export function AccountWorkspace() {
   const accountActive = location.pathname.startsWith('/app/profile/account/')
   const links = [
     { to: '/app/profile', end: true, label: 'Hồ sơ cá nhân', icon: UserCircle },
-    { to: '/app/profile/health', end: false, label: 'Mục sức khỏe', icon: Heartbeat },
+    { to: '/app/health', end: false, label: 'Thai kỳ & sức khỏe', icon: Heartbeat },
     { to: '/app/profile/saved', end: false, label: 'Đã lưu', icon: BookmarkSimple },
   ]
 

@@ -23,7 +23,7 @@ function createRequestId() {
 }
 
 function preferredLanguage() {
-  return typeof navigator === 'undefined' ? 'vi' : navigator.language || 'vi'
+  return 'vi-VN'
 }
 
 export function setRefreshHandler(handler: RefreshHandler) {

@@ -4,6 +4,8 @@ export interface User {
   id: string
   phone: string
   displayName: string
+  /** Primary persona derived by the backend (MOM, PARTNER, FAMILY_MEMBER...). */
+  role: string
   roles: string[]
   onboardingStatus?: 'PROFILE_REQUIRED' | 'CONTEXT_REQUIRED' | 'COMPLETED'
   status: string
@@ -27,6 +29,7 @@ export interface LoginInput {
 
 export interface RegisterInput extends LoginInput {
   displayName: string
+  acceptedTerms: boolean
 }
 
 export interface RequestOtpInput {

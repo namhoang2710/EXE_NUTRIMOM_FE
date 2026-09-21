@@ -10,6 +10,8 @@ import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { ConsultationsPage } from '@/features/consultation/pages/ConsultationsPage'
 import { ExpertsPage } from '@/features/experts/pages/ExpertsPage'
 import { HealthPage } from '@/features/health/pages/HealthPage'
+import { CarePage } from '@/pages/CarePage'
+import { RecordsPage } from '@/pages/RecordsPage'
 import { BlogArticlePage } from '@/features/knowledge/pages/BlogArticlePage'
 import { BlogPage } from '@/features/knowledge/pages/BlogPage'
 import { KnowledgePage } from '@/features/knowledge/pages/KnowledgePage'
@@ -23,9 +25,7 @@ import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
 import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
 import { SettingsPage } from '@/features/user/pages/SettingsPage'
-import { PregnancyOnboardingPage } from '@/features/user/pages/PregnancyOnboardingPage'
 import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
-import { AccountHealthPage } from '@/features/user/pages/AccountHealthPage'
 import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
 import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
 import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
@@ -68,11 +68,11 @@ export function AppRouter() {
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
 
       <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
-      <Route path="onboarding/pregnancy" element={<OnboardingRoute step="CONTEXT_REQUIRED"><PregnancyOnboardingPage /></OnboardingRoute>} />
+      <Route path="onboarding/pregnancy" element={<Navigate to="/app/health" replace />} />
 
       <Route path="app/profile" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ProfilePage />} />
-        <Route path="health" element={<AccountHealthPage />} />
+        <Route path="health" element={<Navigate to="/app/health" replace />} />
         <Route path="saved" element={<SavedArticlesPage />} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
@@ -83,6 +83,8 @@ export function AppRouter() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
         <Route path="health" element={<HealthPage />} />
+        <Route path="care" element={<CarePage />} />
+        <Route path="records" element={<RecordsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="nutrition" element={<NutritionPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />

@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { userApi } from '../api/user-api'
-import type { Gender, ProfilePatch, UserProfile } from '../model/user-types'
+import type { Gender, ProfilePatch } from '../model/user-types'
 
 function validBirthDate(value: string) {
   const date = new Date(`${value}T00:00:00`)
@@ -21,6 +21,10 @@ export function ProfilePage({ onboarding = false }: { onboarding?: boolean }) {
   const [success, setSuccess] = useState('')
   const [conflict, setConflict] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
+  useEffect(() => {
+    if (!profile) return
+    setDraft({ display_name: profile.display_name, email: profile.email ?? '', date_of_birth: profile.date_of_birth ?? '', gender: profile.gender ?? '' })
+  }, [profile])
   if (!profile) return null
 
   async function reload() {
@@ -46,10 +50,8 @@ export function ProfilePage({ onboarding = false }: { onboarding?: boolean }) {
     setBusy(true)
     try {
       await userApi.updateProfile(body)
-      const latest: UserProfile = await reloadProfile()
-      if (onboarding && latest.onboarding_status === 'CONTEXT_REQUIRED') navigate('/onboarding/pregnancy', { replace: true })
-      else if (onboarding && latest.onboarding_status === 'COMPLETED') navigate('/app', { replace: true })
-      else if (onboarding) setError('Hồ sơ chưa hoàn tất. Vui lòng kiểm tra lại thông tin đã nhập.')
+      await reloadProfile()
+      if (onboarding) navigate('/app', { replace: true })
       else setSuccess('Hồ sơ đã được cập nhật.')
     } catch (reason) {
       if (reason instanceof ApiClientError && reason.status === 409) { setConflict(true); setError('Hồ sơ đã thay đổi ở nơi khác. Vui lòng tải lại dữ liệu mới nhất.') }
