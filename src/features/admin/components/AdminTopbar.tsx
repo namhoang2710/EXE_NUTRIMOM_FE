@@ -18,7 +18,7 @@ export function AdminTopbar({ onMenuOpen }: AdminTopbarProps) {
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const value = query.trim()
-    if (value) navigate(`/admin/users?search=${encodeURIComponent(value)}`)
+    if (value) navigate(`/admin/users?q=${encodeURIComponent(value)}`)
   }
 
   async function handleLogout() {
