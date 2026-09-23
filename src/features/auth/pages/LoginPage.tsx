@@ -8,6 +8,7 @@ import { StatusMessage } from '@/shared/components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
+import { isValidPhone } from '../model/auth-validation'
 
 const DEMO_PHONE = '0901234567'
 const DEMO_PASSWORD = 'NutriMom@123'
@@ -16,6 +17,7 @@ export function LoginPage() {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ phone?: string; password?: string }>({})
   const [submitting, setSubmitting] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -24,6 +26,9 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
+    const nextErrors = { phone: isValidPhone(phone.trim()) ? undefined : 'Số điện thoại Việt Nam chưa hợp lệ.', password: password && password.length <= 72 ? undefined : 'Vui lòng nhập mật khẩu (tối đa 72 ký tự).' }
+    setFieldErrors(nextErrors)
+    if (nextErrors.phone || nextErrors.password) return
 
     if (!phone.trim() || !password) {
       setError('Vui lòng nhập số điện thoại và mật khẩu.')
@@ -32,13 +37,23 @@ export function LoginPage() {
 
     setSubmitting(true)
     try {
-      await login({ phone: phone.trim(), password, deviceId: getDeviceId() })
-      const target = (location.state as { from?: string } | null)?.from || '/app'
-      navigate(target, { replace: true })
+      const authenticatedUser = await login({ phone: phone.trim(), password, deviceId: getDeviceId() })
+      const requestedPath = (location.state as { from?: string } | null)?.from
+      if (authenticatedUser.roles.includes('ADMIN')) {
+        navigate('/admin', { replace: true })
+      } else if (requestedPath?.startsWith('/admin')) {
+        navigate('/app', {
+          replace: true,
+          state: { authorizationError: 'You are not authorized as admin' },
+        })
+      } else {
+        navigate(requestedPath || '/app', { replace: true })
+      }
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message
         : 'Không thể đăng nhập. Vui lòng thử lại.')
+      if (requestError instanceof ApiClientError) setFieldErrors(requestError.fields)
     } finally {
       setSubmitting(false)
     }
@@ -63,12 +78,13 @@ export function LoginPage() {
         <FormField
           label="Số điện thoại"
           name="phone"
+          error={fieldErrors.phone}
           type="tel"
           inputMode="tel"
           autoComplete="tel"
           placeholder="Ví dụ: 0901 234 567"
           value={phone}
-          onChange={(event) => setPhone(event.target.value)}
+          onChange={(event) => { setPhone(event.target.value); setFieldErrors((current) => ({ ...current, phone: undefined })) }}
           icon={<Phone size={20} />}
           disabled={submitting}
         />
@@ -76,10 +92,11 @@ export function LoginPage() {
         <PasswordField
           label="Mật khẩu"
           name="password"
+          error={fieldErrors.password}
           autoComplete="current-password"
           placeholder="Nhập mật khẩu của bạn"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={(event) => { setPassword(event.target.value); setFieldErrors((current) => ({ ...current, password: undefined })) }}
           disabled={submitting}
         />
 

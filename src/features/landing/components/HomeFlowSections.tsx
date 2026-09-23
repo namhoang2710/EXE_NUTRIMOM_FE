@@ -10,7 +10,9 @@ import {
 } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { blogPosts } from '@/features/knowledge/model/article-content'
+import { knowledgeApi } from '@/features/knowledge/api/knowledge-api'
+import { mapArticleSummaryToCard } from '@/features/knowledge/model/article-adapters'
+import type { ArticleCardViewModel } from '@/features/knowledge/model/article-types'
 import './home-flow.css'
 
 function useRevealOnView() {
@@ -208,7 +210,16 @@ function HeartMark() {
 
 export function HomeKnowledge() {
   const { elementRef, visible } = useRevealOnView()
-  const [featuredPost, ...supportingPosts] = blogPosts
+  const [posts, setPosts] = useState<ArticleCardViewModel[]>([])
+  const [featuredPost, ...supportingPosts] = posts
+
+  useEffect(() => {
+    const controller = new AbortController()
+    knowledgeApi.listArticles({ page: 1, pageSize: 3, sort: 'publishedAt:desc' }, controller.signal)
+      .then((result) => { if (!controller.signal.aborted) setPosts(result.items.map(mapArticleSummaryToCard)) })
+      .catch(() => { if (!controller.signal.aborted) setPosts([]) })
+    return () => controller.abort()
+  }, [])
 
   if (!featuredPost) return null
 

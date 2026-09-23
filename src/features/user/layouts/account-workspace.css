@@ -1,0 +1,44 @@
+.nm-account-workspace { min-height: 100dvh; background: var(--page); }
+.nm-account-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 40; width: 256px; height: 100dvh; display: flex; flex-direction: column; overflow-y: auto; color: #e4ddf0; background: radial-gradient(circle at 15% -10%,rgba(117,98,168,.32),transparent 27%),#241b37; }
+.nm-account-sidebar-top { display: flex; align-items: center; gap: 11px; min-height: 105px; border-bottom: 1px solid rgba(255,255,255,.08); padding: 20px 19px; }
+.nm-account-sidebar-top > div:nth-child(2) { display: grid; min-width: 0; gap: 4px; }
+.nm-account-sidebar-top strong { overflow: hidden; color: #faf7ff; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.nm-account-sidebar-top span { color: #aa9abb; font-size: 11px; }
+.nm-account-sidebar-avatar { display: grid; width: 42px; height: 42px; flex: none; place-items: center; border-radius: 13px; color: #fff; background: linear-gradient(145deg,#5c4b91,#8772bb); font-weight: 800; }
+.nm-account-side-nav { display: grid; gap: 4px; padding: 22px 13px 18px; }
+.nm-account-side-label { margin: 0 0 8px; padding: 0 12px; color: #aa9abb; font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.nm-account-side-link { position: relative; display: flex; min-height: 44px; align-items: center; gap: 12px; width: 100%; border: 0; border-radius: 10px; padding: 10px 12px; color: #c7bdd6; background: transparent; font: inherit; font-size: 13px; font-weight: 640; text-align: left; text-decoration: none; cursor: pointer; transition: color 160ms ease,background 160ms ease,transform 160ms ease; }
+.nm-account-side-link:hover { color: #faf7ff; background: rgba(255,255,255,.06); transform: translateX(2px); }
+.nm-account-side-link.is-active { color: #fff; background: linear-gradient(105deg,rgba(117,98,168,.5),rgba(117,98,168,.22)); box-shadow: inset 0 0 0 1px rgba(190,171,234,.17); }
+.nm-account-side-link.is-active::before { position: absolute; inset: 10px auto 10px -13px; width: 3px; border-radius: 0 3px 3px 0; background: #b6a4e4; content: ''; }
+.nm-account-side-link svg { flex: none; }
+.nm-account-settings-trigger svg:last-child { margin-left: auto; transition: transform 200ms ease; }
+.nm-account-settings-trigger svg.is-rotated { transform: rotate(180deg); }
+.nm-account-submenu { display: grid; max-height: 0; overflow: hidden; opacity: 0; transition: max-height 250ms ease,opacity 200ms ease; }
+.nm-account-submenu.is-open { max-height: 110px; opacity: 1; }
+.nm-account-submenu > a { min-height: 0; overflow: hidden; margin-left: 20px; padding-top: 0; padding-bottom: 0; visibility: hidden; transition: padding 250ms ease,visibility 0s linear 250ms; }
+.nm-account-submenu.is-open > a { min-height: 42px; padding-top: 9px; padding-bottom: 9px; visibility: visible; transition: padding 250ms ease,visibility 0s; }
+.nm-account-side-logout { margin: auto 13px 18px; width: calc(100% - 26px); color: #f0c7c9; }
+.nm-account-workspace-main { min-width: 0; min-height: 100dvh; margin-left: 256px; padding: clamp(28px,3vw,42px) clamp(20px,3vw,42px) 80px; }
+.nm-account-workspace-main > main { max-width: 1180px; margin: 0 auto; }
+.nm-account-mobile-toggle,.nm-account-sidebar-close,.nm-account-sidebar-backdrop { display: none; }
+.nm-account-workspace .nm-account-page { width: 100%; margin: 0; padding: 0; }
+.nm-account-workspace .nm-account-intro { text-align: left; margin-bottom: 28px; }
+.nm-account-workspace .nm-account-intro h1 { font-size: clamp(2rem,3.5vw,3rem); }
+.nm-account-workspace .nm-account-form { border-radius: 22px; }
+.nm-account-workspace-page { display: grid; gap: 22px; }
+.nm-account-workspace-heading > span { color: var(--accent); font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.nm-account-workspace-heading h1 { margin: 8px 0 6px; font-size: clamp(2rem,3.5vw,3rem); letter-spacing: -.04em; }
+.nm-account-workspace-heading p { max-width: 650px; margin: 0; color: var(--muted); line-height: 1.6; }
+.nm-account-state-card { padding: clamp(26px,4vw,42px); border: 1px solid var(--border); border-radius: 22px; background: var(--surface); }
+.nm-account-state-card svg { color: var(--accent); }
+.nm-account-state-card h2 { margin: 14px 0 8px; font-size: 1.3rem; }
+.nm-account-state-card p { max-width: 580px; color: var(--muted); line-height: 1.65; }
+.nm-saved-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+.nm-saved-grid .nm-post-card { min-width: 0; }
+.nm-saved-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.nm-saved-pagination button { border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; background: var(--surface); cursor: pointer; }
+.nm-account-workspace .nm-delete-panel { margin-top: 0; }
+@media (max-width: 900px) { .nm-account-mobile-toggle { display: inline-flex; align-items: center; gap: 9px; margin: 20px 20px 0; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; color: var(--accent-strong); background: var(--surface); font: inherit; font-weight: 700; cursor: pointer; } .nm-account-workspace-main { margin-left: 0; padding: 24px 20px 70px; } .nm-account-sidebar { z-index: 80; width: min(85vw,290px); border-radius: 0; visibility: hidden; pointer-events: none; transform: translateX(-105%); transition: transform 280ms ease,visibility 0s linear 280ms; } .nm-account-sidebar.is-open { visibility: visible; pointer-events: auto; transform: translateX(0); transition: transform 280ms ease,visibility 0s; } .nm-account-sidebar-close { display: grid; place-items: center; margin-left: auto; border: 0; border-radius: 9px; padding: 7px; color: #e4ddf0; background: rgba(255,255,255,.08); cursor: pointer; } .nm-account-sidebar-backdrop { position: fixed; z-index: 70; inset: 0; display: block; width: 100%; border: 0; background: rgba(19,13,32,.55); } }
+@media (max-width: 580px) { .nm-account-mobile-toggle { margin-left: 14px; } .nm-account-workspace-main { padding-right: 14px; padding-left: 14px; } .nm-saved-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .nm-account-sidebar,.nm-account-side-link,.nm-account-submenu,.nm-account-submenu > a,.nm-account-settings-trigger svg:last-child { transition-duration: 0ms; } }

@@ -8,6 +8,7 @@ import { StatusMessage } from '@/shared/components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
+import { isValidPhone, isValidRegisterPassword } from '../model/auth-validation'
 
 interface RegisterForm {
   displayName: string
@@ -28,17 +29,26 @@ const initialForm: RegisterForm = {
 export function RegisterPage() {
   const [form, setForm] = useState(initialForm)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
 
   function update<K extends keyof RegisterForm>(key: K, value: RegisterForm[K]) {
     setForm((current) => ({ ...current, [key]: value }))
+    setFieldErrors((current) => ({ ...current, [key]: '' }))
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
+    const nextErrors: Record<string, string> = {}
+    if (!form.displayName.trim() || form.displayName.trim().length > 100) nextErrors.display_name = 'Tên hiển thị cần từ 1 đến 100 ký tự.'
+    if (!isValidPhone(form.phone.trim())) nextErrors.phone = 'Số điện thoại Việt Nam chưa hợp lệ.'
+    if (!isValidRegisterPassword(form.password)) nextErrors.password = 'Mật khẩu cần 8–72 ký tự, có chữ cái và chữ số.'
+    if (form.password !== form.confirmPassword) nextErrors.confirmPassword = 'Mật khẩu xác nhận chưa khớp.'
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) return
 
     if (!form.displayName.trim() || !form.phone.trim() || !form.password) {
       setError('Vui lòng điền đầy đủ các trường bắt buộc.')
@@ -64,12 +74,14 @@ export function RegisterPage() {
         phone: form.phone.trim(),
         password: form.password,
         deviceId: getDeviceId(),
+        acceptedTerms: form.accepted,
       })
       navigate('/app', { replace: true })
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message
         : 'Không thể tạo tài khoản. Vui lòng thử lại.')
+      if (requestError instanceof ApiClientError) setFieldErrors(requestError.fields)
     } finally {
       setSubmitting(false)
     }
@@ -88,6 +100,7 @@ export function RegisterPage() {
         <FormField
           label="Tên hiển thị"
           name="displayName"
+          error={fieldErrors.display_name}
           autoComplete="name"
           placeholder="Ví dụ: Nguyễn An"
           value={form.displayName}
@@ -99,6 +112,7 @@ export function RegisterPage() {
         <FormField
           label="Số điện thoại"
           name="phone"
+          error={fieldErrors.phone}
           type="tel"
           inputMode="tel"
           autoComplete="tel"
@@ -112,6 +126,7 @@ export function RegisterPage() {
         <PasswordField
           label="Mật khẩu"
           name="password"
+          error={fieldErrors.password}
           autoComplete="new-password"
           placeholder="Tối thiểu 8 ký tự"
           hint="Có ít nhất một chữ cái và một chữ số."
@@ -123,6 +138,7 @@ export function RegisterPage() {
         <PasswordField
           label="Xác nhận mật khẩu"
           name="confirmPassword"
+          error={fieldErrors.confirmPassword}
           autoComplete="new-password"
           placeholder="Nhập lại mật khẩu"
           value={form.confirmPassword}

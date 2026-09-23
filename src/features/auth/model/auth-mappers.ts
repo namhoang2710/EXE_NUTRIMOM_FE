@@ -6,7 +6,9 @@ export function normalizeUser(user: UserDto): User {
     id: user.id,
     phone: user.phone,
     displayName: user.display_name,
-    roles: user.roles,
+    role: user.role ?? user.roles?.[0] ?? 'USER',
+    roles: user.roles ?? (user.role ? [user.role] : []),
+    onboardingStatus: user.onboarding_status,
     status: user.status,
     createdAt: user.created_at,
   }

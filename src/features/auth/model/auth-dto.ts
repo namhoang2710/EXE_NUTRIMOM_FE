@@ -2,7 +2,9 @@ export interface UserDto {
   id: string
   phone: string
   display_name: string
-  roles: string[]
+  roles?: string[]
+  role?: string
+  onboarding_status?: 'PROFILE_REQUIRED' | 'CONTEXT_REQUIRED' | 'COMPLETED'
   status: string
   created_at: string
 }
@@ -38,6 +40,7 @@ export interface LoginRequestDto {
 
 export interface RegisterRequestDto extends LoginRequestDto {
   display_name: string
+  accepted_terms: boolean
 }
 
 export interface RequestOtpRequestDto {

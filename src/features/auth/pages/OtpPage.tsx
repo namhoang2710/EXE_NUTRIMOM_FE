@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
 import type { OtpChallenge, OtpPurpose } from '@/features/auth/model/auth-types'
+import { isValidPhone } from '../model/auth-validation'
 
 export function OtpPage() {
   const [searchParams] = useSearchParams()
@@ -38,7 +39,7 @@ export function OtpPage() {
     setError('')
     setMessage('')
 
-    if (!phone.trim()) {
+    if (!isValidPhone(phone.trim())) {
       setError('Vui lòng nhập số điện thoại nhận OTP.')
       return
     }
@@ -87,13 +88,13 @@ export function OtpPage() {
 
     setSubmitting(true)
     try {
-      await verifyOtp({
+      const result = await verifyOtp({
         challengeId: challenge.challengeId,
         code,
         deviceId: getDeviceId(),
         displayName: isRegister ? displayName.trim() : undefined,
       })
-      navigate('/app', { replace: true })
+      navigate(result.user.roles.includes('ADMIN') ? '/admin' : '/app', { replace: true })
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message
@@ -165,7 +166,7 @@ export function OtpPage() {
           {message && <StatusMessage tone="success">{message}</StatusMessage>}
           {error && <StatusMessage tone="error">{error}</StatusMessage>}
 
-          <OtpInput value={code} onChange={setCode} disabled={submitting} />
+          <OtpInput value={code} onChange={(value) => { setCode(value); setError('') }} disabled={submitting} />
 
           {challenge.debugCode && import.meta.env.DEV && (
             <div className="debug-code">
