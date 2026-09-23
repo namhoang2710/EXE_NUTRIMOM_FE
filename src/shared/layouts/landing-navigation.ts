@@ -3,5 +3,6 @@ export const landingNavigation = [
   { label: 'About', to: '/about' },
   { label: 'Services', to: '/services' },
   { label: 'Blog', to: '/blog' },
+  { label: 'Expert', to: '/experts' },
   { label: 'Contact', to: '/contact' },
 ] as const

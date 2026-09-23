@@ -60,6 +60,7 @@ export function AppRouter() {
         <Route path="services/:serviceSlug" element={<ServiceDetailPage />} />
         <Route path="blog" element={<BlogPage />} />
         <Route path="blog/:articleSlug" element={<BlogArticlePage />} />
+        <Route path="experts" element={<ExpertsPage />} />
         <Route path="contact" element={<ContactPage />} />
       </Route>
 
