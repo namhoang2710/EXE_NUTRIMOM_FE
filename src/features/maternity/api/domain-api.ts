@@ -1,4 +1,5 @@
 import { apiClient } from '@/core/api/api-client'
+import { env } from '@/core/config/env'
 import { getSession } from '@/core/auth/token-store'
 import type { BirthPlan, CarePlan, CursorPage, Guidance, MedicalRecord, MomDashboard, PartnerDashboard, Pregnancy, PregnancyCalculation, PreparationItem, UploadedFile, UploadSession, WeekContent } from '@/types/domain'
 
@@ -36,6 +37,17 @@ export const filesApi = {
   createSession: (body: Record<string, unknown>) => apiClient.request<UploadSession>('/files/upload-sessions', { method: 'POST', body: JSON.stringify(body) }),
   complete: (id: string, body: Record<string, unknown>) => apiClient.request<UploadedFile>(`/files/${id}/complete`, { method: 'POST', body: JSON.stringify(body) }),
   download: (id: string) => apiClient.request<{ download_url: string }>(`/files/${id}/download-url`),
+  previewImage: async (id: string, signal?: AbortSignal) => {
+    const { download_url } = await apiClient.request<{ download_url: string }>(`/files/${id}/download-url`)
+    const apiOrigin = new URL(env.apiBaseUrl, window.location.origin).origin
+    const previewUrl = new URL(download_url, apiOrigin)
+    if (previewUrl.origin !== apiOrigin) throw new Error('Đường dẫn ảnh không hợp lệ.')
+    const response = await fetch(previewUrl, { signal })
+    if (!response.ok) throw new Error('Không thể tải ảnh xem trước.')
+    const blob = await response.blob()
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(blob.type)) throw new Error('Tệp không phải ảnh được hỗ trợ.')
+    return URL.createObjectURL(blob)
+  },
 }
 
 export async function uploadContent(session: UploadSession, file: File) {
