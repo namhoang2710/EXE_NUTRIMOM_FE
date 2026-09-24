@@ -5,6 +5,7 @@ import type { LoginInput, RegisterInput, RequestOtpInput, User, VerifyOtpInput }
 import { AuthContext, type AuthContextValue, type AuthStatus } from '@/features/auth/model/auth-context'
 import { userApi } from '@/features/user/api/user-api'
 import type { UserProfile } from '@/features/user/model/user-types'
+import { isAdminUser, isExpertUser } from '@/features/auth/model/role-routing'
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>('loading')
@@ -34,7 +35,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const currentUser = await authApi.me()
         if (!active) return
         setUser(currentUser)
-        await reloadProfile().catch(() => undefined)
+        if (!isAdminUser(currentUser) && !isExpertUser(currentUser)) await reloadProfile().catch(() => undefined)
         if (active && getSession()) setStatus('authenticated')
       } catch {
         clearSession()
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const acceptSession = useCallback(async (sessionUser: User) => {
     setUser(sessionUser)
     setProfile(null)
-    await reloadProfile().catch(() => undefined)
+    if (!isAdminUser(sessionUser) && !isExpertUser(sessionUser)) await reloadProfile().catch(() => undefined)
     if (getSession()) setStatus('authenticated')
     return sessionUser
   }, [reloadProfile])

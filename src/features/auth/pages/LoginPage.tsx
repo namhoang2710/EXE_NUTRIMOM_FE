@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
 import { isValidPhone } from '../model/auth-validation'
+import { authenticatedDestination, isAdminUser, isExpertUser } from '../model/role-routing'
 
 const DEMO_PHONE = '0901234567'
 const DEMO_PASSWORD = 'NutriMom@123'
@@ -39,12 +40,12 @@ export function LoginPage() {
     try {
       const authenticatedUser = await login({ phone: phone.trim(), password, deviceId: getDeviceId() })
       const requestedPath = (location.state as { from?: string } | null)?.from
-      if (authenticatedUser.roles.includes('ADMIN')) {
-        navigate('/admin', { replace: true })
-      } else if (requestedPath?.startsWith('/admin')) {
+      if (isAdminUser(authenticatedUser) || isExpertUser(authenticatedUser)) {
+        navigate(authenticatedDestination(authenticatedUser), { replace: true })
+      } else if (requestedPath?.startsWith('/admin') || requestedPath?.startsWith('/expert')) {
         navigate('/app', {
           replace: true,
-          state: { authorizationError: 'You are not authorized as admin' },
+          state: { authorizationError: 'Bạn không có quyền truy cập khu vực này.' },
         })
       } else {
         navigate(requestedPath || '/app', { replace: true })
