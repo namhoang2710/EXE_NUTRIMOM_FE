@@ -10,6 +10,7 @@ import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
 import type { OtpChallenge, OtpPurpose } from '@/features/auth/model/auth-types'
 import { isValidPhone } from '../model/auth-validation'
+import { authenticatedDestination } from '../model/role-routing'
 
 export function OtpPage() {
   const [searchParams] = useSearchParams()
@@ -94,7 +95,7 @@ export function OtpPage() {
         deviceId: getDeviceId(),
         displayName: isRegister ? displayName.trim() : undefined,
       })
-      navigate(result.user.roles.includes('ADMIN') ? '/admin' : '/app', { replace: true })
+      navigate(authenticatedDestination(result.user), { replace: true })
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message
