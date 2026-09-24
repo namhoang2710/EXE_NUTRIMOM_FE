@@ -9,9 +9,6 @@ import { CalendarPage } from '@/features/calendar/pages/CalendarPage'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { ConsultationsPage } from '@/features/consultation/pages/ConsultationsPage'
 import { ExpertsPage } from '@/features/experts/pages/ExpertsPage'
-import { HealthPage } from '@/features/health/pages/HealthPage'
-import { CarePage } from '@/pages/CarePage'
-import { RecordsPage } from '@/pages/RecordsPage'
 import { BlogArticlePage } from '@/features/knowledge/pages/BlogArticlePage'
 import { BlogPage } from '@/features/knowledge/pages/BlogPage'
 import { KnowledgePage } from '@/features/knowledge/pages/KnowledgePage'
@@ -26,7 +23,10 @@ import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
 import { SettingsPage } from '@/features/user/pages/SettingsPage'
 import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
+import { AccountCarePage } from '@/features/user/pages/AccountCarePage'
+import { AccountHealthPage } from '@/features/user/pages/AccountHealthPage'
 import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
+import { AccountRecordsPage } from '@/features/user/pages/AccountRecordsPage'
 import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
 import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
 import { DashboardPage } from '@/features/user/pages/DashboardPage'
@@ -70,11 +70,13 @@ export function AppRouter() {
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
 
       <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
-      <Route path="onboarding/pregnancy" element={<Navigate to="/app/health" replace />} />
+      <Route path="onboarding/pregnancy" element={<Navigate to="/app/profile/health" replace />} />
 
       <Route path="app/profile" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ProfilePage />} />
-        <Route path="health" element={<Navigate to="/app/health" replace />} />
+        <Route path="health" element={<AccountHealthPage />} />
+        <Route path="care" element={<AccountCarePage />} />
+        <Route path="records" element={<AccountRecordsPage />} />
         <Route path="saved" element={<SavedArticlesPage />} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
@@ -84,9 +86,9 @@ export function AppRouter() {
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
-        <Route path="health" element={<HealthPage />} />
-        <Route path="care" element={<CarePage />} />
-        <Route path="records" element={<RecordsPage />} />
+        <Route path="health" element={<Navigate to="/app/profile/health" replace />} />
+        <Route path="care" element={<Navigate to="/app/profile/care" replace />} />
+        <Route path="records" element={<Navigate to="/app/profile/records" replace />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="nutrition" element={<NutritionPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />

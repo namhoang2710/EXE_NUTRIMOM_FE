@@ -1,4 +1,4 @@
-import { BookmarkSimple, CaretDown, GearSix, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
+import { BookmarkSimple, CaretDown, FileText, FirstAidKit, GearSix, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -33,8 +33,10 @@ export function AccountWorkspace() {
   const accountActive = location.pathname.startsWith('/app/profile/account/')
   const links = [
     { to: '/app/profile', end: true, label: 'Hồ sơ cá nhân', icon: UserCircle },
-    { to: '/app/health', end: false, label: 'Thai kỳ & sức khỏe', icon: Heartbeat },
-    { to: '/app/profile/saved', end: false, label: 'Đã lưu', icon: BookmarkSimple },
+    { to: '/app/profile/health', end: false, label: 'Thai kỳ & sức khỏe', icon: Heartbeat },
+    { to: '/app/profile/care', end: false, label: 'Kế hoạch chăm sóc', icon: FirstAidKit },
+    { to: '/app/profile/records', end: false, label: 'Hồ sơ y tế', icon: FileText },
+    { to: '/app/profile/saved', end: false, label: 'Bài viết đã lưu', icon: BookmarkSimple },
   ]
 
   return <div className="nm-account-workspace">
