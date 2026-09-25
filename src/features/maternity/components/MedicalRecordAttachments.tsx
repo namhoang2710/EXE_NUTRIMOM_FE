@@ -1,7 +1,7 @@
-import { DownloadSimple, FileText, X } from '@phosphor-icons/react'
+import { DownloadSimple, FileText } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { filesApi, recordsApi } from '@/features/maternity/api/domain-api'
+import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import type { MedicalRecord } from '@/types/domain'
 
 type Attachment = NonNullable<MedicalRecord['attachments']>[number]
@@ -19,13 +19,6 @@ export function MedicalRecordAttachments({ recordId, attachmentCount, attachment
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [selected, setSelected] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    if (!selected) return
-    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelected(null) }
-    document.addEventListener('keydown', close)
-    return () => document.removeEventListener('keydown', close)
-  }, [selected])
 
   useEffect(() => {
     if (attachmentCount === 0) return
@@ -70,6 +63,6 @@ export function MedicalRecordAttachments({ recordId, attachmentCount, attachment
       <button className="attachment-button" type="button" onClick={() => onDownload(file.id)} aria-label={`Tải ${file.file_name}`}><DownloadSimple size={16} aria-hidden="true" />Tải tệp</button>
     </div>)}
     {failed && <small className="field-hint">Không thể xem trước một số ảnh. Bạn vẫn có thể tải tệp.</small>}
-    {selectedFile && previews[selectedFile.id] && createPortal(<div className="record-image-backdrop" role="presentation" onClick={() => setSelected(null)}><section className="record-image-viewer" role="dialog" aria-modal="true" aria-label={`Xem ảnh ${selectedFile.file_name}`} onClick={(event) => event.stopPropagation()}><div className="record-image-toolbar"><strong>{selectedFile.file_name}</strong><div><button type="button" onClick={() => onDownload(selectedFile.id)}><DownloadSimple size={18} />Tải ảnh gốc</button><button type="button" aria-label="Đóng ảnh" onClick={() => setSelected(null)}><X size={20} /></button></div></div><img src={previews[selectedFile.id]} alt={selectedFile.file_name} /></section></div>, document.body)}
+    {selectedFile && previews[selectedFile.id] && <AccessibleDialog open title={`Xem ảnh ${selectedFile.file_name}`} onClose={() => setSelected(null)} className="record-image-dialog" footer={<button className="secondary-button" type="button" onClick={() => onDownload(selectedFile.id)}><DownloadSimple size={18} />Tải ảnh gốc</button>}><img src={previews[selectedFile.id]} alt={selectedFile.file_name} /></AccessibleDialog>}
   </div>
 }

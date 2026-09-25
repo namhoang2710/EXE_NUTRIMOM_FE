@@ -1,8 +1,12 @@
+@import "tailwindcss";
 @import "./shared/styles/animations.css";
 @import "./shared/styles/landing.css";
 @import "./shared/styles/app.css";
 @import "./shared/styles/authenticated.css";
 @import "./shared/styles/scroll-progress.css";
+@import "./shared/styles/product-ui.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   font-family: "Segoe UI Variable", "Aptos", "Segoe UI", system-ui, sans-serif;
@@ -1444,3 +1448,17 @@ input:focus-visible {
 
 @media (max-width: 900px) { .app-layout { grid-template-columns: 1fr; gap: 0; width: min(100% - 32px, 760px); } .app-nav { position: static; display: flex; overflow-x: auto; margin-top: 14px; padding: 0 0 6px; } .app-nav-link { flex: 0 0 auto; } .app-content { padding-top: 36px; } .dashboard-grid { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .nav-user { display: none; } .nav-logout span { display: none; } .account-nav-inner { width: min(100% - 24px, 1120px); } .app-card { padding: 20px; } .content-columns, .two-column, .inline-fields, .record-filters { grid-template-columns: 1fr; } .page-heading-actions { align-items: flex-start; flex-direction: column; } .milestone-list article { grid-template-columns: 1fr; gap: 8px; } .record-item { grid-template-columns: auto 1fr; } .record-item .icon-danger { grid-column: 2; justify-self: end; grid-row: 1; } }
+
+@theme inline {
+  --color-background: var(--page);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-muted: var(--surface-muted);
+  --color-muted-foreground: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--button-text);
+  --color-success: var(--success);
+  --color-destructive: var(--danger);
+}

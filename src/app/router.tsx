@@ -22,12 +22,9 @@ import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
 import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
 import { SettingsPage } from '@/features/user/pages/SettingsPage'
-import { SupportRequestsPage } from '@/features/contact/pages/SupportRequestsPage'
 import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
 import { AccountCarePage } from '@/features/user/pages/AccountCarePage'
-import { AccountHealthPage } from '@/features/user/pages/AccountHealthPage'
 import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
-import { AccountRecordsPage } from '@/features/user/pages/AccountRecordsPage'
 import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
 import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
 import { DashboardPage } from '@/features/user/pages/DashboardPage'
@@ -49,9 +46,16 @@ const AdminSettingsPage = lazy(() => import('@/features/admin/pages/AdminSetting
 const AdminContactInboxPage = lazy(() => import('@/features/contact/pages/AdminContactInboxPage').then((module) => ({ default: module.AdminContactInboxPage })))
 const AdminContactDetailPage = lazy(() => import('@/features/contact/pages/AdminContactDetailPage').then((module) => ({ default: module.AdminContactDetailPage })))
 const ExpertDashboardPage = lazy(() => import('@/features/expert-console/pages/ExpertDashboardPage').then((module) => ({ default: module.ExpertDashboardPage })))
+const AccountHealthPage = lazy(() => import('@/features/user/pages/AccountHealthPage').then((module) => ({ default: module.AccountHealthPage })))
+const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecordsPage').then((module) => ({ default: module.AccountRecordsPage })))
+const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
 
 function AdminRouteFallback() {
   return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
+}
+
+function UserRouteFallback() {
+  return <main className="nm-product-page" aria-label="Đang tải trang"><div className="dashboard-grid skeleton-grid"><div /><div /></div></main>
 }
 
 export function AppRouter() {
@@ -77,11 +81,11 @@ export function AppRouter() {
 
       <Route path="app/profile" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ProfilePage />} />
-        <Route path="health" element={<AccountHealthPage />} />
+        <Route path="health" element={<Suspense fallback={<UserRouteFallback />}><AccountHealthPage /></Suspense>} />
         <Route path="care" element={<AccountCarePage />} />
-        <Route path="records" element={<AccountRecordsPage />} />
+        <Route path="records" element={<Suspense fallback={<UserRouteFallback />}><AccountRecordsPage /></Suspense>} />
         <Route path="saved" element={<SavedArticlesPage />} />
-        <Route path="support" element={<SupportRequestsPage />} />
+        <Route path="support" element={<Suspense fallback={<UserRouteFallback />}><SupportRequestsPage /></Suspense>} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
       </Route>
