@@ -1,0 +1,51 @@
+import { ArrowRight, BookmarkSimple, CalendarBlank, Check, Clock, SealCheck, ShieldCheck, Sparkle } from '@phosphor-icons/react'
+import { Link, useLocation } from 'react-router-dom'
+import type { ArticleCardViewModel } from '../model/article-types'
+
+export function EditorialBadges({ post }: { post: ArticleCardViewModel }) {
+  return <div className="nm-editorial-badges">
+    {post.editorial.selected && <span className="nm-editorial-badge--selected"><Sparkle size={14} weight="fill" /> Biên tập chọn</span>}
+    {post.editorial.moderation === 'approved' && <span><ShieldCheck size={14} /> Đã kiểm duyệt</span>}
+    {post.editorial.reviewer && <span><SealCheck size={14} /> Reviewer xác nhận</span>}
+  </div>
+}
+
+export function ArticleMeta({ post }: { post: ArticleCardViewModel }) {
+  return <div className="nm-post-meta">
+    <span><CalendarBlank size={15} /><time dateTime={post.publishedAtIso}>{post.publishedAt}</time></span>
+    <span><Clock size={15} />{post.readTime}</span>
+  </div>
+}
+
+export function BookmarkButton({ post, saved, onToggle, animated = false, busy = false }: { post: ArticleCardViewModel; saved: boolean; onToggle: () => void; animated?: boolean; busy?: boolean }) {
+  return <button className={`nm-bookmark-button${animated ? ' nm-library-bookmark' : ''}`} type="button" aria-pressed={saved} aria-label={`${saved ? 'Bỏ lưu' : 'Lưu'} bài: ${post.title}`} disabled={busy} onClick={onToggle}>{animated ? <span className="nm-library-bookmark-icon" aria-hidden="true"><BookmarkSimple size={19} /><Check size={19} weight="bold" /></span> : <BookmarkSimple size={19} weight={saved ? 'fill' : 'regular'} />}<span>{busy ? 'Đang lưu…' : saved ? 'Đã lưu' : 'Lưu bài'}</span></button>
+}
+
+export function ArticleCard({ post, saved, onToggle, featured = false, libraryControls = false, returnTo, bookmarkBusy = false }: { post: ArticleCardViewModel; saved: boolean; onToggle: () => void; featured?: boolean; libraryControls?: boolean; returnTo?: string; bookmarkBusy?: boolean }) {
+  const location = useLocation()
+  const detailPath = `${location.pathname.startsWith('/app/') ? '/app/knowledge' : '/blog'}/${post.slug}`
+  const returnState = { knowledgeReturnTo: returnTo ?? location.pathname + location.search + location.hash }
+  return <article className={featured ? 'nm-featured-post' : 'nm-post-card'}>
+    {featured && <div className="nm-featured-post-image"><img src={post.coverImage?.url ?? '/banner2.png'} alt={post.coverImage?.alt ?? ''} loading="lazy" /></div>}
+    {!featured && post.coverImage && <div className="nm-post-card-image"><img src={post.coverImage.url} alt={post.coverImage.alt} loading="lazy" /></div>}
+    <div className={featured ? 'nm-featured-post-content' : 'nm-post-card-content'}>
+      <div className="nm-post-card-top"><span className="nm-category">{post.category}</span><span className="nm-post-stage">{post.stage}</span></div>
+      <EditorialBadges post={post} />
+      <h3><Link to={detailPath} state={returnState}>{post.title}</Link></h3>
+      <p>{post.excerpt}</p>
+      <span className="nm-post-author">{post.editorial.author}</span>
+      <ArticleMeta post={post} />
+      <div className="nm-post-card-bottom"><Link className="nm-text-link" to={detailPath} state={returnState}>Đọc bài viết <ArrowRight size={17} /></Link><BookmarkButton post={post} saved={saved} onToggle={onToggle} animated={libraryControls} busy={bookmarkBusy} /></div>
+    </div>
+  </article>
+}
+
+export function LibraryArticleCard({ post, returnTo }: { post: ArticleCardViewModel; returnTo: string }) {
+  const detailPath = `${returnTo.startsWith('/app/') ? '/app/knowledge' : '/blog'}/${post.slug}`
+  return <article className="nm-library-card">
+    <Link className="nm-library-card-link" to={detailPath} state={{ knowledgeReturnTo: returnTo }} aria-label={`Đọc bài viết: ${post.title}`}>
+      <span className="nm-library-card-image"><img src={post.coverImage?.url ?? '/banner2.png'} alt="" loading="lazy" /></span>
+      <span className="nm-library-card-copy"><strong>{post.title}</strong>{post.excerpt && <span className="nm-library-card-excerpt">{post.excerpt}</span>}<span className="nm-library-card-date"><CalendarBlank size={16} /><time dateTime={post.publishedAtIso}>{post.publishedAt}</time></span></span>
+    </Link>
+  </article>
+}
