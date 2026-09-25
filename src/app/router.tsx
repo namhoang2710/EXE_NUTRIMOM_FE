@@ -22,6 +22,7 @@ import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
 import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
 import { SettingsPage } from '@/features/user/pages/SettingsPage'
+import { SupportRequestsPage } from '@/features/contact/pages/SupportRequestsPage'
 import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
 import { AccountCarePage } from '@/features/user/pages/AccountCarePage'
 import { AccountHealthPage } from '@/features/user/pages/AccountHealthPage'
@@ -45,6 +46,8 @@ const AdminNutritionPage = lazy(() => import('@/features/admin/pages/AdminNutrit
 const AdminKnowledgePage = lazy(() => import('@/features/admin/pages/AdminKnowledgePage').then((module) => ({ default: module.AdminKnowledgePage })))
 const AdminReportsPage = lazy(() => import('@/features/admin/pages/AdminReportsPage').then((module) => ({ default: module.AdminReportsPage })))
 const AdminSettingsPage = lazy(() => import('@/features/admin/pages/AdminSettingsPage').then((module) => ({ default: module.AdminSettingsPage })))
+const AdminContactInboxPage = lazy(() => import('@/features/contact/pages/AdminContactInboxPage').then((module) => ({ default: module.AdminContactInboxPage })))
+const AdminContactDetailPage = lazy(() => import('@/features/contact/pages/AdminContactDetailPage').then((module) => ({ default: module.AdminContactDetailPage })))
 const ExpertDashboardPage = lazy(() => import('@/features/expert-console/pages/ExpertDashboardPage').then((module) => ({ default: module.ExpertDashboardPage })))
 
 function AdminRouteFallback() {
@@ -78,6 +81,7 @@ export function AppRouter() {
         <Route path="care" element={<AccountCarePage />} />
         <Route path="records" element={<AccountRecordsPage />} />
         <Route path="saved" element={<SavedArticlesPage />} />
+        <Route path="support" element={<SupportRequestsPage />} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
       </Route>
@@ -111,6 +115,8 @@ export function AppRouter() {
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="appointments" element={<AdminAppointmentsPage />} />
         <Route path="consultations" element={<AdminConsultationsPage />} />
+        <Route path="support" element={<AdminContactInboxPage />} />
+        <Route path="support/:requestId" element={<AdminContactDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
         <Route path="nutrition" element={<AdminNutritionPage />} />
         <Route path="knowledge" element={<AdminKnowledgePage />} />

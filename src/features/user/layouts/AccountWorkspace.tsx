@@ -1,4 +1,4 @@
-import { BookmarkSimple, CaretDown, FileText, FirstAidKit, GearSix, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
+import { BookmarkSimple, CaretDown, FileText, FirstAidKit, GearSix, Headset, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -37,6 +37,7 @@ export function AccountWorkspace() {
     { to: '/app/profile/care', end: false, label: 'Kế hoạch chăm sóc', icon: FirstAidKit },
     { to: '/app/profile/records', end: false, label: 'Hồ sơ y tế', icon: FileText },
     { to: '/app/profile/saved', end: false, label: 'Bài viết đã lưu', icon: BookmarkSimple },
+    { to: '/app/profile/support', end: false, label: 'Hỗ trợ / Liên hệ', icon: Headset },
   ]
 
   return <div className="nm-account-workspace">
