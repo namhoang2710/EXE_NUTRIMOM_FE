@@ -1,4 +1,4 @@
-import { ErrorCodes, type ErrorCode } from './error-code'
+import { ErrorCodes, type ErrorCode } from './error-code.ts'
 
 export interface ApiErrorBody {
   code: ErrorCode
@@ -37,6 +37,7 @@ export class ApiClientError extends Error {
   readonly fields: Record<string, string>
   readonly retryable: boolean
   readonly requestId?: string
+  readonly serverMessage: string
 
   constructor(status: number, error: ApiErrorBody) {
     super(friendlyMessages[error.code] || error.message || 'Không thể kết nối với máy chủ.')
@@ -46,6 +47,7 @@ export class ApiClientError extends Error {
     this.fields = error.fields || {}
     this.retryable = Boolean(error.retryable)
     this.requestId = error.request_id
+    this.serverMessage = error.message || ''
   }
 }
 
