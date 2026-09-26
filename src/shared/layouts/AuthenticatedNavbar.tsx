@@ -65,7 +65,7 @@ export function AuthenticatedNavbar() {
     finally { setBusy(false); navigate('/', { replace: true }) }
   }
   const name = profile?.display_name || user?.displayName || 'Thành viên NutriMom'
-  const guideActive = location.pathname === '/app/contact' || location.pathname === '/app/experts'
+  const guideActive = location.pathname === '/app/contact' || location.pathname === '/app/experts' || location.pathname === '/app/consultations'
   function closeNavigation() { setMenuOpen(false); setGuideOpen(false) }
   return <header className={`nm-app-header${headerVisible ? '' : ' is-hidden'}`}><nav className="nm-floating-nav" aria-label="Điều hướng ứng dụng"><Link className="nm-app-brand" to="/app"><img src="/nutrimom-logo.png" alt="" width="39" height="39" /><span>NutriMom</span></Link>
     <div className={`nm-app-links${menuOpen ? ' is-open' : ''}`} id="nm-app-links-mobile">
