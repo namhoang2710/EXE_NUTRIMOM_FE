@@ -13,6 +13,7 @@ Frontend web React 19 + Vite + TypeScript cho luồng xác thực của NutriMom
 - Lấy hồ sơ hiện tại từ `GET /api/v1/auth/me`.
 - Làm mới phiên chủ động và đăng xuất thu hồi refresh token.
 - Route bảo vệ cho trang tài khoản.
+- Hộp thư hỗ trợ: user gửi thắc mắc và theo dõi/huỷ yêu cầu, admin lọc hộp thư, gọi điện giải đáp rồi đánh dấu hoàn tất.
 - Giao diện sáng/tối, responsive và hỗ trợ bàn phím.
 
 ## Chạy local

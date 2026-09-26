@@ -28,6 +28,7 @@ const friendlyMessages: Record<string, string> = {
   VALIDATION_ERROR: 'Vui lòng kiểm tra lại thông tin đã nhập.',
   VERSION_CONFLICT: 'Dữ liệu đã thay đổi ở nơi khác. Vui lòng tải lại.',
   OTP_PROVIDER_NOT_CONFIGURED: 'Dịch vụ OTP chưa được cấu hình. Vui lòng liên hệ nhóm phát triển.',
+  CONTACT_REQUEST_LIMIT_REACHED: 'Bạn đang có 3 yêu cầu hỗ trợ chờ xử lý. Vui lòng chờ phản hồi hoặc hủy bớt trước khi gửi thêm.',
 }
 
 export class ApiClientError extends Error {

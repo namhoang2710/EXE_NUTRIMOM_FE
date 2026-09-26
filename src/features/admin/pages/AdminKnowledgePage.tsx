@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, BookOpenText, PencilSimple, Plus, Trash, WarningCircle } from '@phosphor-icons/react'
+import { BookOpenText, PencilSimple, Plus, Trash, WarningCircle } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
@@ -7,10 +7,12 @@ import { LibrarySelect } from '@/features/knowledge/components/LibrarySelect'
 import { categoryLabel, articleCategories, articleStages, stageLabel } from '@/features/knowledge/model/article-types'
 import type { AdminArticleListItemDto, ArticlePageDto, ArticleSort, ArticleStatus } from '@/features/knowledge/model/knowledge-dto'
 import { ArticleEditor } from '../components/ArticleEditor'
-import { PageHeading, ResourceState, StatusBadge, TableCard } from '../components/AdminUI'
+import { PageHeading, ResourceState, StatusBadge, TableCard, TablePagination } from '../components/AdminUI'
 import { formatAdminDate } from '../model/admin-formatters'
 
-const emptyPage: ArticlePageDto<AdminArticleListItemDto> = { items: [], totalItems: 0, totalPages: 0, currentPage: 1, pageSize: 12 }
+const articlePageSizes = [12, 24, 48, 96] as const
+const defaultArticlePageSize = 12
+const emptyPage: ArticlePageDto<AdminArticleListItemDto> = { items: [], totalItems: 0, totalPages: 0, currentPage: 1, pageSize: defaultArticlePageSize }
 const allowedSorts: ArticleSort[] = ['updatedAt:desc', 'updatedAt:asc', 'publishedAt:desc', 'publishedAt:asc', 'title:asc', 'title:desc', 'createdAt:desc', 'createdAt:asc']
 const allowedStatuses: ArticleStatus[] = ['draft', 'published', 'archived']
 const statusOptions = [
@@ -37,9 +39,10 @@ export function AdminKnowledgePage() {
     const status = searchParams.get('status') as ArticleStatus | null
     const category = searchParams.get('category')
     const stage = searchParams.get('stage')
+    const pageSize = Number(searchParams.get('pageSize'))
     return {
       page: Number.isSafeInteger(page) && page > 0 ? page : 1,
-      pageSize: 12,
+      pageSize: (articlePageSizes as readonly number[]).includes(pageSize) ? pageSize : defaultArticlePageSize,
       category: category && articleCategories.some((option) => option.value === category) ? category : undefined,
       stage: stage && articleStages.some((option) => option.value === stage) ? stage : undefined,
       topic: searchParams.get('topic') || undefined,
@@ -108,7 +111,7 @@ export function AdminKnowledgePage() {
   return <div className="admin-page admin-knowledge-page">
     <PageHeading eyebrow="Content operations" title="Knowledge CMS" description="Quản lý bài viết, lịch xuất bản và nội dung đa phương tiện theo contract backend." actions={<button className="admin-button primary" type="button" onClick={() => setEditor({})}><Plus size={18} /> Bài viết mới</button>} />
 
-    <section className="admin-card admin-knowledge-filters" aria-label="Bộ lọc bài viết">
+    <section className="admin-card admin-filters admin-knowledge-filters" aria-label="Bộ lọc bài viết">
       <LibrarySelect label="Trạng thái" placeholder="Tất cả" options={statusOptions} value={query.status ?? ''} open={openFilter === 'status'} onOpenChange={(open) => setOpenFilter(open ? 'status' : null)} onChange={(value) => setParameter('status', value)} />
       <LibrarySelect label="Danh mục" placeholder="Tất cả" options={articleCategories} value={query.category ?? ''} open={openFilter === 'category'} onOpenChange={(open) => setOpenFilter(open ? 'category' : null)} onChange={(value) => setParameter('category', value)} />
       <LibrarySelect label="Giai đoạn" placeholder="Tất cả" options={articleStages} value={query.stage ?? ''} open={openFilter === 'stage'} onOpenChange={(open) => setOpenFilter(open ? 'stage' : null)} onChange={(value) => setParameter('stage', value)} />
@@ -122,7 +125,17 @@ export function AdminKnowledgePage() {
         <div className="admin-table-scroll"><table className="admin-table admin-knowledge-table"><thead><tr><th>Bài viết</th><th>Phân loại</th><th>Tác giả</th><th>Xuất bản</th><th>Cập nhật</th><th>Trạng thái</th><th aria-label="Thao tác" /></tr></thead><tbody>
           {page.items.map((article) => <tr key={article.id}><td><div className="admin-article-cell"><span>{article.coverImage ? <img src={article.coverImage.url} alt="" /> : <BookOpenText size={19} />}</span><div><strong>{article.title}</strong><small>/{article.slug}</small></div></div></td><td><strong className="admin-table-primary">{categoryLabel(article.category)}</strong><small className="admin-cell-subtitle">{stageLabel(article.stage)}</small></td><td>{article.author.name}</td><td>{article.publishedAt ? formatAdminDate(article.publishedAt, true) : '—'}</td><td>{formatAdminDate(article.updatedAt, true)}</td><td><StatusBadge value={scheduled(article) ? 'scheduled' : article.status} /></td><td><div className="admin-row-actions"><button className="admin-row-action" type="button" aria-label={`Sửa ${article.title}`} onClick={() => setEditor({ id: article.id })}><PencilSimple size={17} /></button><button className="admin-row-action danger" type="button" aria-label={`Xóa ${article.title}`} onClick={() => { setDeleting(article); setDeleteError('') }}><Trash size={17} /></button></div></td></tr>)}
         </tbody></table></div>
-        {page.totalPages > 1 && <nav className="admin-pagination" aria-label="Phân trang bài viết"><button type="button" disabled={state === 'loading' || page.currentPage <= 1} onClick={() => setParameter('page', String(page.currentPage - 1))}><ArrowLeft size={16} /> Trước</button><span>Trang {page.currentPage} / {page.totalPages}</span><button type="button" disabled={state === 'loading' || page.currentPage >= page.totalPages} onClick={() => setParameter('page', String(page.currentPage + 1))}>Sau <ArrowRight size={16} /></button></nav>}
+        <TablePagination
+          page={page.currentPage}
+          pageSize={page.pageSize}
+          totalItems={page.totalItems}
+          totalPages={page.totalPages}
+          pageSizes={articlePageSizes}
+          busy={state === 'loading'}
+          itemNoun="bài viết"
+          onPageChange={(next) => setParameter('page', next > 1 ? String(next) : '')}
+          onPageSizeChange={(next) => setParameter('pageSize', next === defaultArticlePageSize ? '' : String(next))}
+        />
       </ResourceState>
     </TableCard>
 

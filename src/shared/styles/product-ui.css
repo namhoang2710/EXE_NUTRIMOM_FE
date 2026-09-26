@@ -1,0 +1,199 @@
+/* Shared authenticated product UI. Layer scale: content < sidebar 40 < dialogs 120. */
+
+body { overflow-x: hidden; }
+
+.nm-product-page { width: min(100% - 40px, 1010px); margin: 0 auto; padding: clamp(52px, 7vw, 82px) 0 96px; }
+.nm-account-workspace .nm-product-page { width: 100%; margin: 0; padding: 0; }
+
+.nm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 3vw, 28px);
+  background: rgba(20, 15, 30, .64);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  animation: nm-dialog-fade-in 180ms ease-out both;
+}
+
+.nm-dialog-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(100%, 540px);
+  max-height: min(92dvh, 820px);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, var(--accent));
+  border-radius: 22px;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 30px 90px rgba(29, 20, 47, .34), 0 6px 20px rgba(29, 20, 47, .14);
+  animation: nm-dialog-panel-in 260ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.nm-dialog-panel-stable { min-height: 360px; }
+.nm-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--border); padding: 22px 24px 18px; }
+.nm-dialog-header > div { min-width: 0; }
+.nm-dialog-header h2 { margin: 0; font-size: clamp(1.18rem, 3vw, 1.42rem); letter-spacing: -.025em; text-wrap: balance; }
+.nm-dialog-header p { max-width: 58ch; margin: 7px 0 0; color: var(--muted); font-size: .92rem; line-height: 1.55; }
+.nm-dialog-close { display: grid; width: 38px; height: 38px; flex: none; place-items: center; border: 1px solid var(--border); border-radius: 11px; color: var(--muted); background: var(--surface-muted); cursor: pointer; }
+.nm-dialog-close:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-strong); }
+.nm-dialog-close:disabled { cursor: not-allowed; opacity: .5; }
+.nm-dialog-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 22px 24px 26px; }
+.nm-dialog-panel-stable .nm-dialog-body { display: grid; min-height: 172px; align-content: center; }
+.nm-dialog-footer { display: flex; align-items: center; justify-content: flex-end; gap: 11px; border-top: 1px solid var(--border); padding: 16px 24px; background: color-mix(in srgb, var(--surface) 94%, var(--surface-muted)); }
+.nm-dialog-footer .primary-button, .nm-dialog-footer .secondary-button, .nm-dialog-footer .danger-submit { min-height: 46px; }
+.nm-dialog-error { margin: 12px 0 0; border: 1px solid color-mix(in srgb, var(--danger) 34%, var(--border)); border-radius: 12px; padding: 11px 13px; color: var(--danger); background: var(--danger-soft); font-size: .9rem; line-height: 1.5; }
+.nm-dialog-spinner, .nm-stateful-spinner { animation: nm-spin 850ms linear infinite; }
+
+.nm-action-dialog-state { display: grid; justify-items: center; gap: 12px; color: var(--accent); text-align: center; }
+.nm-action-dialog-state > p { max-width: 38ch; margin: 0; color: var(--muted); line-height: 1.6; }
+.nm-action-dialog-success { color: var(--success); }
+.nm-action-dialog-success > p { color: var(--text); font-weight: 650; }
+
+.nm-stateful-button {
+  display: inline-flex;
+  min-width: 154px;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--success) 78%, #1c5038);
+  border-radius: 12px;
+  padding: 12px 18px;
+  color: #f8fffb;
+  background: color-mix(in srgb, var(--success) 86%, #1d563a);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--success) 18%, transparent);
+  font: inherit;
+  font-size: .95rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.nm-stateful-button:hover:not(:disabled) { background: color-mix(in srgb, var(--success) 74%, #16462f); box-shadow: 0 13px 28px color-mix(in srgb, var(--success) 24%, transparent); }
+[data-theme="dark"] .nm-stateful-button { border-color: #3d8a69; background: #2f7356; }
+[data-theme="dark"] .nm-stateful-button:hover:not(:disabled) { background: #286249; }
+.nm-stateful-button:disabled { cursor: not-allowed; opacity: .78; }
+.nm-stateful-button-icon { display: inline-grid; place-items: center; }
+
+.pregnancy-journey-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; overflow: hidden; border: 1px solid rgba(255,210,204,.22); border-radius: 24px; margin-bottom: 18px; padding: clamp(24px, 5vw, 42px); color: #fffdfd; background: radial-gradient(circle at 83% 47%, rgba(255,203,174,.34) 0%, rgba(224,116,124,.2) 25%, transparent 49%), linear-gradient(112deg, #4d467c 0%, #655080 38%, #92566f 69%, #c96d62 100%); box-shadow: 0 22px 58px rgba(96,55,89,.22); }
+.pregnancy-journey-hero h2 { margin: 6px 0 8px; color: #fff; font-size: clamp(1.65rem, 4vw, 2.45rem); letter-spacing: -.035em; }
+.pregnancy-journey-hero p { margin: 0; color: rgba(255,255,255,.82); line-height: 1.55; }
+.pregnancy-journey-hero .card-kicker { color: rgba(255,255,255,.76); }
+.pregnancy-journey-copy { position: relative; z-index: 1; min-width: 0; flex: 1 1 520px; }
+.pregnancy-stage-artwork { position: relative; z-index: 0; display: grid; width: clamp(160px, 19vw, 238px); aspect-ratio: 1; flex: 0 0 auto; place-items: center; isolation: isolate; pointer-events: none; }
+.pregnancy-stage-artwork::before { position: absolute; z-index: -1; width: 78%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,210,179,.24); box-shadow: 0 0 58px 22px rgba(255,170,150,.18); filter: blur(10px); content: ''; }
+.pregnancy-stage-artwork-float { display: grid; width: 100%; height: 100%; place-items: center; }
+.pregnancy-stage-artwork img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 18px 22px rgba(25, 15, 45, .28)); user-select: none; -webkit-user-drag: none; }
+.pregnancy-stage-artwork-fallback { display: grid; width: 72%; aspect-ratio: 1; place-items: center; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; color: #e5def7; background: rgba(255,255,255,.07); box-shadow: 0 18px 38px rgba(25,15,45,.2); }
+
+.pregnancy-charts-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 18px; margin-bottom: 18px; }
+.pregnancy-chart-card { min-width: 0; border: 1px solid var(--border); border-radius: 22px; padding: 22px; background: var(--surface); box-shadow: 0 16px 42px rgba(72,58,99,.075); }
+.pregnancy-chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.pregnancy-chart-heading > div { min-width: 0; }
+.pregnancy-chart-heading .card-kicker { margin-top: 0; }
+.pregnancy-chart-heading h2 { margin: 5px 0 7px; font-size: 1.25rem; letter-spacing: -.025em; }
+.pregnancy-chart-heading p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.pregnancy-chart-heading > svg { flex: none; color: var(--accent); }
+.pregnancy-chart-location { display: inline-flex; flex: none; align-items: center; gap: 5px; color: var(--success); font-size: .78rem; font-weight: 750; white-space: nowrap; }
+.pregnancy-chart-canvas { width: 100%; height: 230px; margin-top: 12px; overflow: hidden; }
+.pregnancy-chart-tooltip { display: grid; gap: 4px; border: 1px solid var(--border); border-radius: 11px; padding: 10px 12px; color: var(--text); background: var(--surface); box-shadow: var(--shadow); font-size: .8rem; }
+.pregnancy-chart-tooltip span { color: var(--success); font-weight: 700; }
+.pregnancy-week-dot { fill: var(--accent); opacity: .48; }
+.pregnancy-marker-pulse { fill: color-mix(in srgb, var(--success) 24%, transparent); transform-box: fill-box; transform-origin: center; animation: pregnancy-marker-pulse 1.8s ease-out infinite; }
+.pregnancy-marker-core { fill: var(--success); stroke: var(--surface); stroke-width: 2.5; }
+.due-date-radial-wrap { display: grid; justify-items: center; margin-top: 8px; }
+.due-date-radial { position: relative; width: min(100%, 245px); aspect-ratio: 1; }
+.due-date-center { position: absolute; inset: 25%; display: grid; align-content: center; justify-items: center; text-align: center; pointer-events: none; }
+.due-date-center strong { max-width: 11ch; font-size: 1.02rem; line-height: 1.25; text-wrap: balance; }
+.due-date-center span { margin-top: 5px; color: var(--success); font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.due-date-remaining { margin: -4px 0 0; color: var(--muted); font-size: .9rem; font-weight: 650; }
+.pregnancy-chart-empty { display: grid; min-height: 240px; place-items: center; align-content: center; gap: 8px; color: var(--accent); text-align: center; }
+.pregnancy-chart-empty span { max-width: 30ch; color: var(--muted); font-size: .9rem; }
+.pregnancy-chart-skeleton { min-height: 340px; border-radius: 22px; background: linear-gradient(90deg, var(--surface-muted), var(--surface-strong), var(--surface-muted)); background-size: 200% 100%; animation: skeleton-pulse 1.4s infinite; }
+.pregnancy-journey-hero { scroll-margin-top: 24px; }
+.pregnancy-content-card small { display: block; margin-top: 7px; color: var(--subtle); }
+
+.pregnancy-save-dialog { width: min(100%, 580px); }
+.pregnancy-confirm-summary { display: grid; gap: 12px; }
+.pregnancy-confirm-summary > div { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 3px 12px; border: 1px solid var(--border); border-radius: 14px; padding: 15px; background: var(--surface-muted); }
+.pregnancy-confirm-summary svg { grid-row: 1 / 3; color: var(--accent); }
+.pregnancy-confirm-summary span { color: var(--muted); font-size: .82rem; }
+.pregnancy-confirm-summary strong { font-size: 1rem; }
+.pregnancy-confirm-summary .nm-dialog-error { display: flex; grid-template-columns: none; align-items: flex-start; gap: 8px; }
+.pregnancy-setup-loader { display: grid; min-height: 190px; justify-items: center; align-content: center; gap: 22px; color: var(--accent-strong); }
+.nm-wandering-eyes { display: inline-flex; width: var(--nm-eyes-size); aspect-ratio: 2.15; align-items: center; justify-content: center; gap: 8px; }
+.nm-wandering-eye { position: relative; width: 48%; aspect-ratio: 1; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border)); border-radius: 50%; background: var(--surface-muted); box-shadow: inset 0 -4px 10px color-mix(in srgb, var(--accent) 7%, transparent); animation: nm-eye-blink 5.2s ease-in-out infinite; }
+.nm-wandering-eye > span { position: absolute; top: 50%; left: 50%; width: 31%; aspect-ratio: 1; border-radius: 50%; background: var(--accent-strong); transform: translate(-50%, -50%); animation: nm-eye-wander 4.8s ease-in-out infinite; }
+.pregnancy-typewriter { width: 0; max-width: 100%; overflow: hidden; border-right: 2px solid var(--accent); font-weight: 700; line-height: 1.5; white-space: nowrap; animation: nm-typewriter 3.2s steps(34, end) infinite alternate, nm-caret 700ms step-end infinite; }
+
+.medical-record-editor { width: min(100%, 720px); max-height: min(94dvh, 880px); }
+.medical-record-form { padding-bottom: 4px; }
+.medical-record-form .custom-select, .medical-record-form .calendar-field { z-index: auto; }
+.nm-upload-success { margin: 0; color: var(--success); font-size: .9rem; font-weight: 650; }
+.record-image-dialog { width: min(100%, 1100px); }
+.record-image-dialog .nm-dialog-body { display: grid; place-items: center; padding: 14px; background: color-mix(in srgb, var(--page) 75%, var(--surface)); }
+.record-image-dialog .nm-dialog-body img { display: block; max-width: 100%; max-height: calc(92dvh - 170px); object-fit: contain; }
+
+.page-heading h1, .nm-account-workspace-heading h1 { overflow-wrap: anywhere; text-wrap: balance; }
+.page-heading-actions > div, .record-item > div, .nm-account-workspace-main { min-width: 0; }
+.record-item { overflow: hidden; }
+
+@keyframes nm-dialog-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nm-dialog-panel-in { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes nm-spin { to { transform: rotate(360deg); } }
+@keyframes pregnancy-marker-pulse { 0% { opacity: .58; transform: scale(.7); } 70%, 100% { opacity: 0; transform: scale(1.45); } }
+@keyframes nm-eye-wander { 0%, 12%, 100% { transform: translate(-50%, -50%); } 30% { transform: translate(-78%, -55%); } 56% { transform: translate(-24%, -48%); } 78% { transform: translate(-50%, -24%); } }
+@keyframes nm-eye-blink { 0%, 44%, 48%, 100% { transform: scaleY(1); } 46% { transform: scaleY(.12); } }
+@keyframes nm-typewriter { 0%, 12% { width: 0; } 72%, 100% { width: 34ch; } }
+@keyframes nm-caret { 50% { border-color: transparent; } }
+
+@media (max-width: 900px) {
+  .pregnancy-charts-grid { grid-template-columns: 1fr; }
+  .due-date-chart { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .7fr); align-items: center; }
+  .due-date-radial-wrap { margin-top: 0; }
+}
+
+@media (max-width: 620px) {
+  .nm-product-page { width: min(100% - 28px, 1010px); padding-top: 42px; }
+  .nm-dialog-backdrop { align-items: end; padding: 8px; }
+  .nm-dialog-panel { width: 100%; max-height: calc(100dvh - 16px); border-radius: 20px 20px 14px 14px; }
+  .nm-dialog-panel-stable { min-height: min(420px, calc(100dvh - 16px)); }
+  .nm-dialog-header { padding: 18px 18px 15px; }
+  .nm-dialog-body { padding: 18px; }
+  .nm-dialog-footer { padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); }
+  .nm-dialog-footer > button { min-width: 0; flex: 1; }
+  .medical-record-editor { height: calc(100dvh - 16px); }
+  .pregnancy-journey-hero { display: grid; grid-template-columns: minmax(0,1fr) clamp(96px,30vw,140px); align-items: center; gap: 14px; padding: 22px; }
+  .pregnancy-stage-artwork { width: 100%; }
+  .pregnancy-chart-card { padding: 18px 14px; }
+  .pregnancy-chart-heading { align-items: flex-start; flex-direction: column; }
+  .pregnancy-chart-canvas { height: 210px; }
+  .due-date-chart { display: block; }
+  .pregnancy-typewriter { max-width: 29ch; font-size: .88rem; animation-name: nm-typewriter-mobile, nm-caret; }
+  .record-item { grid-template-columns: 1fr auto !important; }
+  .record-item > svg { display: none; }
+  .record-actions { grid-column: 2; grid-row: 1; }
+}
+
+@media (max-width: 380px) {
+  .nm-dialog-footer { flex-direction: column-reverse; }
+  .nm-dialog-footer > button { width: 100%; }
+  .pregnancy-chart-location { white-space: normal; }
+  .method-tabs { display: grid; grid-template-columns: 1fr; }
+  .method-tabs button { width: 100%; }
+  .pregnancy-journey-hero { grid-template-columns: 1fr; }
+  .pregnancy-stage-artwork { width: clamp(112px,42vw,145px); justify-self: end; margin-top: -8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nm-dialog-backdrop, .nm-dialog-panel, .nm-dialog-spinner, .nm-stateful-spinner, .pregnancy-marker-pulse, .nm-wandering-eye, .nm-wandering-eye > span, .pregnancy-typewriter, .pregnancy-chart-skeleton { animation: none !important; }
+  .pregnancy-typewriter { width: auto; border-right: 0; white-space: normal; }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .nm-dialog-backdrop { background: rgba(20, 15, 30, .78); }
+}
+
+@keyframes nm-typewriter-mobile { 0%, 12% { width: 0; } 72%, 100% { width: 29ch; } }

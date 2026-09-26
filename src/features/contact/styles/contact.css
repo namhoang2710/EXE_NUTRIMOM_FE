@@ -1,0 +1,221 @@
+/* Trang "Hỗ trợ / Liên hệ" của user, nằm trong AccountWorkspace. */
+
+.nm-contact-form textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.nm-contact-form textarea:focus-visible,
+.nm-contact-form select:focus-visible {
+  border-color: var(--accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.nm-contact-form label {
+  margin-top: 18px;
+}
+
+.nm-contact-form section > label:first-of-type {
+  margin-top: 0;
+}
+
+.nm-contact-counter {
+  margin: 7px 0 0;
+  color: var(--subtle);
+  font-size: .85rem;
+  text-align: right;
+}
+
+.nm-contact-counter.is-near-limit {
+  color: var(--danger);
+  font-weight: 650;
+}
+
+.nm-contact-limit {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 20px;
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
+  border-radius: 14px;
+  padding: 13px 15px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  font-size: .94rem;
+  line-height: 1.55;
+}
+
+.nm-contact-limit svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+/* Lịch sử yêu cầu */
+
+.nm-contact-history {
+  margin-top: 34px;
+}
+
+.nm-contact-history h2 {
+  margin: 0 0 18px;
+  font-size: 1.2rem;
+}
+
+.nm-contact-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nm-contact-item {
+  display: grid;
+  gap: 11px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px 20px;
+  background: var(--surface);
+}
+
+.nm-contact-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.nm-contact-item-top strong {
+  display: block;
+  font-size: 1.02rem;
+}
+
+.nm-contact-item-top time {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: .87rem;
+}
+
+.nm-contact-item-message {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.nm-contact-item-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  color: var(--muted);
+  font-size: .87rem;
+}
+
+.nm-contact-item-foot .nm-secondary-action {
+  padding: 8px 16px;
+  font-size: .89rem;
+}
+
+/* Badge trạng thái, bản dùng ngoài admin shell. */
+
+.nm-contact-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  border-radius: 99px;
+  padding: 5px 11px;
+  font-size: .8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.nm-contact-badge.positive { color: var(--success); background: var(--success-soft); }
+.nm-contact-badge.negative { color: var(--muted); background: var(--surface-strong); }
+.nm-contact-badge.warning { color: #916a20; background: #faf1d9; }
+
+/* Hộp thoại xác nhận, bản dùng ngoài admin shell. */
+
+/* Tương đương `.admin-dialog-open` của admin.css, cho các trang không nạp file đó. */
+.nm-dialog-open { overflow: hidden; }
+
+.nm-contact-dialog-backdrop {
+  position: fixed;
+  /* Canh giữa theo vùng nội dung chứ không theo cả màn hình: chừa đúng bề rộng sidebar
+     cố định (khớp `margin-left` của `.nm-account-workspace-main` trong account-workspace.css).
+     `--nm-scrollbar-gutter` do ConfirmDialog đặt khi khoá cuộn, để tâm không lệch nửa thanh cuộn. */
+  inset: 0 var(--nm-scrollbar-gutter, 0px) 0 256px;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  /* Không phủ nền: lớp này chỉ để canh giữa và bắt click ra ngoài. */
+  background: transparent;
+}
+
+/* Dưới 900px sidebar chuyển thành lớp phủ trượt, vùng nội dung chiếm trọn màn hình. */
+@media (max-width: 900px) {
+  .nm-contact-dialog-backdrop { left: 0; }
+}
+
+.nm-contact-dialog {
+  width: min(440px, 100%);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 28px;
+  color: var(--text);
+  background: var(--surface);
+  /* Nền không bị làm tối nên hộp thoại tự tách lớp bằng viền và bóng đổ sâu hơn. */
+  box-shadow: 0 24px 70px rgba(19, 13, 32, .3), 0 4px 14px rgba(19, 13, 32, .12);
+  text-align: center;
+}
+
+.nm-contact-dialog h2 {
+  margin: 14px 0 0;
+  font-size: 1.22rem;
+}
+
+.nm-contact-dialog p {
+  margin: 9px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.nm-contact-dialog-icon {
+  display: inline-grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.nm-contact-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 11px;
+  margin-top: 22px;
+}
+
+@media (max-width: 640px) {
+  .nm-contact-item-top {
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .nm-contact-dialog-actions {
+    flex-direction: column-reverse;
+  }
+}

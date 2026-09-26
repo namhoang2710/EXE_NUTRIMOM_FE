@@ -4,6 +4,9 @@
 @import "./shared/styles/app.css";
 @import "./shared/styles/authenticated.css";
 @import "./shared/styles/scroll-progress.css";
+@import "./shared/styles/product-ui.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   font-family: "Segoe UI Variable", "Aptos", "Segoe UI", system-ui, sans-serif;
@@ -30,6 +33,16 @@
   --success: #3f765e;
   --success-soft: #e9f4ee;
   --shadow: 0 24px 70px rgba(72, 58, 99, 0.13);
+  --workspace-sidebar-bg: #241b37;
+  --workspace-sidebar-glow: rgba(117, 98, 168, 0.32);
+  --workspace-sidebar-text: #c7bdd6;
+  --workspace-sidebar-text-strong: #faf7ff;
+  --workspace-sidebar-text-muted: #aa9abb;
+  --workspace-sidebar-active: rgba(117, 98, 168, 0.5);
+  --workspace-sidebar-active-soft: rgba(117, 98, 168, 0.22);
+  --workspace-sidebar-marker: #b6a4e4;
+  --workspace-sidebar-avatar-start: #5c4b91;
+  --workspace-sidebar-avatar-end: #8772bb;
 }
 
 :root[data-theme="dark"] {
@@ -1331,6 +1344,8 @@ input:focus-visible {
 .pregnancy-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-radius: 22px; margin-bottom: 18px; padding: clamp(24px, 5vw, 42px); }
 .pregnancy-hero p { color: rgba(255,255,255,.82); }
 .calculator-card { display: grid; gap: 20px; margin-top: 20px; }
+.weekly-content-status { display: grid; justify-items: start; gap: 10px; margin-bottom: 20px; }
+.weekly-content-status .status-message { width: 100%; }
 .method-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
 .method-tabs button { border: 1px solid var(--border); border-radius: 999px; padding: 9px 13px; color: var(--muted); background: var(--surface); font-weight: 680; cursor: pointer; }
 .method-tabs button.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
@@ -1338,6 +1353,30 @@ input:focus-visible {
 .calculation-result { display: grid; gap: 8px; border-radius: 14px; padding: 18px; background: var(--success-soft); color: var(--success); }
 .calculation-result span { color: var(--muted); }
 .calculation-result .primary-button { justify-self: start; margin-top: 6px; }
+.calendar-field { position: relative; }
+.calendar-field .field-label { color: var(--text); font-size: 14px; font-weight: 680; }
+.calendar-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 52px; padding: 12px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.calendar-trigger:hover, .calendar-trigger[aria-expanded="true"] { border-color: var(--accent); }
+.calendar-trigger.has-error { border-color: var(--danger); }
+.calendar-trigger svg { color: var(--accent); }
+.calendar-placeholder { color: var(--muted); }
+.calendar-error { color: var(--danger); }
+.calendar-popup { position: absolute; z-index: 20; top: calc(100% + 7px); left: 0; width: min(100%, 348px); padding: 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 0 16px 40px rgba(37, 27, 63, .16); }
+.calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.calendar-header strong { font-size: 14px; }
+.calendar-month-year { display: flex; gap: 4px; min-width: 0; }
+.calendar-month-year select { min-width: 0; padding: 6px 3px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }
+.calendar-header button, .calendar-grid button { display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--text); cursor: pointer; }
+.calendar-header button { width: 36px; height: 36px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; }
+.calendar-weekday { padding: 8px 0; color: var(--muted); font-size: 12px; }
+.calendar-grid button { min-height: 38px; font: inherit; font-size: 13px; }
+.calendar-grid button:hover:not(:disabled), .calendar-header button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-strong); }
+.calendar-grid button.selected { background: var(--accent); color: #fff; }
+.calendar-grid button:disabled, .calendar-header button:disabled { opacity: .35; cursor: not-allowed; }
+.calendar-trigger:focus-visible, .calendar-popup button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.calendar-today { margin-top: 10px; padding: 7px 4px; border: 0; background: transparent; color: var(--accent-strong); font: inherit; font-weight: 680; cursor: pointer; }
+.calculation-warning { margin: 0; padding: 12px 14px; border-radius: 10px; background: #fff3d9; color: #744d09; font-size: 14px; }
 .disclaimer { border-top: 1px solid var(--border); margin-top: 20px !important; padding-top: 16px; font-size: 13px; }
 .empty-state { display: grid; justify-items: start; gap: 8px; border: 1px dashed var(--border-strong); border-radius: 20px; margin-bottom: 20px; padding: 34px; background: var(--surface-muted); }
 .empty-state svg { color: var(--accent); }
@@ -1350,7 +1389,7 @@ input:focus-visible {
 .compact-form textarea { min-height: 78px; resize: vertical; }
 .custom-select { position: relative; }
 .select-trigger { display: flex; min-height: 52px; width: 100%; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--text); background: var(--surface); text-align: left; cursor: pointer; }
-.select-menu { position: absolute; z-index: 20; top: calc(100% + 6px); width: 100%; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+.select-menu { position: absolute; z-index: 20; top: calc(100% + 6px); width: 100%; max-height: min(320px, 50vh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
 .select-menu button { display: block; width: 100%; border: 0; padding: 11px 14px; color: var(--text); background: transparent; text-align: left; cursor: pointer; }
 .select-menu button:hover, .select-menu button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-strong); }
 .milestone-list { display: grid; gap: 12px; margin-top: 20px; }
@@ -1363,8 +1402,8 @@ input:focus-visible {
 .checklist label > span { display: grid; flex: 1; gap: 3px; }
 .checklist small { color: var(--subtle); }
 .checklist svg { color: var(--success); }
-.record-list { display: grid; gap: 14px; }
-.record-filters { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px; margin-bottom: 20px; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
+.record-list { position: relative; z-index: 1; display: grid; gap: 14px; }
+.record-filters { position: relative; z-index: 2; display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px; margin-bottom: 20px; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
 .load-more { margin-top: 18px; }
 .record-item { display: grid; grid-template-columns: auto 1fr auto; gap: 17px; align-items: start; }
 .record-item h2 { margin-top: 3px; }
@@ -1372,6 +1411,22 @@ input:focus-visible {
 .record-actions { display: flex; gap: 8px; }
 .icon-button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--border); border-radius: 10px; color: var(--accent-strong); background: var(--surface-muted); cursor: pointer; }
 .attachment-button { display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 0 0; border: 0; padding: 5px 0; color: var(--accent-strong); background: transparent; cursor: pointer; font-size: 12px; font-weight: 680; text-decoration: underline; text-underline-offset: 3px; }
+.record-attachments { display: grid; gap: 9px; min-width: 0; margin-top: 10px; }
+.record-attachment { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-muted); }
+.record-thumbnail { flex: none; width: 96px; height: 72px; overflow: hidden; padding: 0; border: 0; border-radius: 8px; background: var(--surface); cursor: zoom-in; }
+.record-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.record-file-icon { display: grid; width: 42px; height: 42px; flex: none; place-items: center; color: var(--accent-strong); }
+.record-file-name { min-width: 0; flex: 1; overflow-wrap: anywhere; font-size: 13px; }
+.record-attachment .attachment-button { flex: none; margin: 0; }
+.record-image-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(22, 17, 34, .82); }
+.record-image-viewer { display: grid; gap: 14px; width: min(100%, 1100px); max-height: 95dvh; padding: 15px; border-radius: 16px; background: var(--surface); color: var(--text); }
+.record-image-viewer > img { display: block; max-width: 100%; max-height: calc(95dvh - 90px); margin: auto; object-fit: contain; }
+.record-image-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; }
+.record-image-toolbar strong { min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.record-image-toolbar > div { display: flex; flex: none; gap: 8px; }
+.record-image-toolbar button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 9px; padding: 8px; background: var(--surface); color: var(--accent-strong); cursor: pointer; }
+.record-thumbnail:focus-visible, .record-image-toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 620px) { .record-attachment { flex-wrap: wrap; } .record-file-name { flex-basis: calc(100% - 112px); } .record-attachment .attachment-button { margin-left: 106px; } .record-image-toolbar { align-items: flex-start; flex-direction: column; } }
 .guidance-list { display: grid; gap: 12px; margin-top: 16px; }
 .guidance-list article { display: grid; gap: 5px; border-left: 3px solid var(--accent); padding: 5px 0 5px 15px; }
 .guidance-list p { margin: 0; }
@@ -1393,3 +1448,17 @@ input:focus-visible {
 
 @media (max-width: 900px) { .app-layout { grid-template-columns: 1fr; gap: 0; width: min(100% - 32px, 760px); } .app-nav { position: static; display: flex; overflow-x: auto; margin-top: 14px; padding: 0 0 6px; } .app-nav-link { flex: 0 0 auto; } .app-content { padding-top: 36px; } .dashboard-grid { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .nav-user { display: none; } .nav-logout span { display: none; } .account-nav-inner { width: min(100% - 24px, 1120px); } .app-card { padding: 20px; } .content-columns, .two-column, .inline-fields, .record-filters { grid-template-columns: 1fr; } .page-heading-actions { align-items: flex-start; flex-direction: column; } .milestone-list article { grid-template-columns: 1fr; gap: 8px; } .record-item { grid-template-columns: auto 1fr; } .record-item .icon-danger { grid-column: 2; justify-self: end; grid-row: 1; } }
+
+@theme inline {
+  --color-background: var(--page);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-muted: var(--surface-muted);
+  --color-muted-foreground: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--button-text);
+  --color-success: var(--success);
+  --color-destructive: var(--danger);
+}

@@ -1,5 +1,7 @@
 import {
   ArrowClockwise,
+  ArrowLeft,
+  ArrowRight,
   CalendarCheck,
   ChatCircleText,
   CurrencyCircleDollar,
@@ -122,4 +124,54 @@ export function ResourceState({ status, empty, error, onRetry, children }: {
     )
   }
   return children
+}
+
+const paginationNumber = new Intl.NumberFormat()
+
+const defaultPaginationLabels = {
+  rows: 'Số dòng',
+  previous: 'Trước',
+  next: 'Sau',
+  nav: 'Phân trang',
+  summary: (from: string, to: string, total: string, noun: string) => `Hiển thị ${from}–${to} trong ${total} ${noun}`,
+  page: (current: number, last: number) => `Trang ${current} / ${last}`,
+}
+
+export type TablePaginationLabels = Partial<typeof defaultPaginationLabels>
+
+/**
+ * Chân bảng có khoảng đang xem + chọn số dòng + điều hướng trang.
+ * Tách từ markup inline của AdminUsersPage; nhãn mặc định tiếng Việt, ghi đè qua `labels`
+ * cho những trang còn dùng tiếng Anh.
+ */
+export function TablePagination({ page, pageSize, totalItems, totalPages, pageSizes, busy = false, itemNoun = 'mục', labels, onPageChange, onPageSizeChange }: {
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+  pageSizes: readonly number[]
+  busy?: boolean
+  itemNoun?: string
+  labels?: TablePaginationLabels
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
+}) {
+  const text = { ...defaultPaginationLabels, ...labels }
+  const lastPage = Math.max(1, totalPages)
+  const firstShown = totalItems === 0 ? 0 : (page - 1) * pageSize + 1
+  const lastShown = Math.min(page * pageSize, totalItems)
+
+  return (
+    <footer className="admin-table-pagination">
+      <span>{text.summary(paginationNumber.format(firstShown), paginationNumber.format(lastShown), paginationNumber.format(totalItems), itemNoun)}</span>
+      <label>{text.rows} <select value={pageSize} disabled={busy} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
+        {pageSizes.map((size) => <option key={size} value={size}>{size}</option>)}
+      </select></label>
+      <nav aria-label={text.nav}>
+        <button type="button" disabled={busy || page <= 1} onClick={() => onPageChange(page - 1)}><ArrowLeft size={16} />{text.previous}</button>
+        <span>{text.page(page, lastPage)}</span>
+        <button type="button" disabled={busy || page >= lastPage} onClick={() => onPageChange(page + 1)}>{text.next}<ArrowRight size={16} /></button>
+      </nav>
+    </footer>
+  )
 }

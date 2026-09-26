@@ -9,9 +9,6 @@ import { CalendarPage } from '@/features/calendar/pages/CalendarPage'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { ConsultationsPage } from '@/features/consultation/pages/ConsultationsPage'
 import { ExpertsPage } from '@/features/experts/pages/ExpertsPage'
-import { HealthPage } from '@/features/health/pages/HealthPage'
-import { CarePage } from '@/pages/CarePage'
-import { RecordsPage } from '@/pages/RecordsPage'
 import { BlogArticlePage } from '@/features/knowledge/pages/BlogArticlePage'
 import { BlogPage } from '@/features/knowledge/pages/BlogPage'
 import { KnowledgePage } from '@/features/knowledge/pages/KnowledgePage'
@@ -26,6 +23,7 @@ import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
 import { SettingsPage } from '@/features/user/pages/SettingsPage'
 import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
+import { AccountCarePage } from '@/features/user/pages/AccountCarePage'
 import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
 import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
 import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
@@ -33,7 +31,7 @@ import { DashboardPage } from '@/features/user/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppLayout } from '@/shared/layouts/AppLayout'
 import { LandingLayout } from '@/shared/layouts/LandingLayout'
-import { AdminOnly, GuestOnly, OnboardingRoute, ProtectedRoute } from './routing/RouteGuards'
+import { AdminOnly, ExpertOnly, GuestOnly, OnboardingRoute, ProtectedRoute } from './routing/RouteGuards'
 
 const AdminLayout = lazy(() => import('@/features/admin/layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage').then((module) => ({ default: module.AdminDashboardPage })))
@@ -45,9 +43,19 @@ const AdminNutritionPage = lazy(() => import('@/features/admin/pages/AdminNutrit
 const AdminKnowledgePage = lazy(() => import('@/features/admin/pages/AdminKnowledgePage').then((module) => ({ default: module.AdminKnowledgePage })))
 const AdminReportsPage = lazy(() => import('@/features/admin/pages/AdminReportsPage').then((module) => ({ default: module.AdminReportsPage })))
 const AdminSettingsPage = lazy(() => import('@/features/admin/pages/AdminSettingsPage').then((module) => ({ default: module.AdminSettingsPage })))
+const AdminContactInboxPage = lazy(() => import('@/features/contact/pages/AdminContactInboxPage').then((module) => ({ default: module.AdminContactInboxPage })))
+const AdminContactDetailPage = lazy(() => import('@/features/contact/pages/AdminContactDetailPage').then((module) => ({ default: module.AdminContactDetailPage })))
+const ExpertDashboardPage = lazy(() => import('@/features/expert-console/pages/ExpertDashboardPage').then((module) => ({ default: module.ExpertDashboardPage })))
+const AccountHealthPage = lazy(() => import('@/features/user/pages/AccountHealthPage').then((module) => ({ default: module.AccountHealthPage })))
+const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecordsPage').then((module) => ({ default: module.AccountRecordsPage })))
+const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
 
 function AdminRouteFallback() {
   return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
+}
+
+function UserRouteFallback() {
+  return <main className="nm-product-page" aria-label="Đang tải trang"><div className="dashboard-grid skeleton-grid"><div /><div /></div></main>
 }
 
 export function AppRouter() {
@@ -69,12 +77,15 @@ export function AppRouter() {
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
 
       <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
-      <Route path="onboarding/pregnancy" element={<Navigate to="/app/health" replace />} />
+      <Route path="onboarding/pregnancy" element={<Navigate to="/app/profile/health" replace />} />
 
       <Route path="app/profile" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ProfilePage />} />
-        <Route path="health" element={<Navigate to="/app/health" replace />} />
+        <Route path="health" element={<Suspense fallback={<UserRouteFallback />}><AccountHealthPage /></Suspense>} />
+        <Route path="care" element={<AccountCarePage />} />
+        <Route path="records" element={<Suspense fallback={<UserRouteFallback />}><AccountRecordsPage /></Suspense>} />
         <Route path="saved" element={<SavedArticlesPage />} />
+        <Route path="support" element={<Suspense fallback={<UserRouteFallback />}><SupportRequestsPage /></Suspense>} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
       </Route>
@@ -83,9 +94,9 @@ export function AppRouter() {
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
-        <Route path="health" element={<HealthPage />} />
-        <Route path="care" element={<CarePage />} />
-        <Route path="records" element={<RecordsPage />} />
+        <Route path="health" element={<Navigate to="/app/profile/health" replace />} />
+        <Route path="care" element={<Navigate to="/app/profile/care" replace />} />
+        <Route path="records" element={<Navigate to="/app/profile/records" replace />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="nutrition" element={<NutritionPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
@@ -101,11 +112,15 @@ export function AppRouter() {
         <Route path="account" element={<Navigate to="/app/profile" replace />} />
       </Route>
 
+      <Route path="expert" element={<ExpertOnly><Suspense fallback={<AdminRouteFallback />}><ExpertDashboardPage /></Suspense></ExpertOnly>} />
+
       <Route path="admin" element={<AdminOnly><Suspense fallback={<AdminRouteFallback />}><AdminLayout /></Suspense></AdminOnly>}>
         <Route index element={<AdminDashboardPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="appointments" element={<AdminAppointmentsPage />} />
         <Route path="consultations" element={<AdminConsultationsPage />} />
+        <Route path="support" element={<AdminContactInboxPage />} />
+        <Route path="support/:requestId" element={<AdminContactDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
         <Route path="nutrition" element={<AdminNutritionPage />} />
         <Route path="knowledge" element={<AdminKnowledgePage />} />

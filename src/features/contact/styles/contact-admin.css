@@ -1,0 +1,127 @@
+/* Hộp thư hỗ trợ phía admin. Luôn render trong `.admin-shell` nên dùng được biến --admin-*. */
+
+.admin-contact-filters {
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) auto;
+}
+
+/* `.admin-badge` được thiết kế cho nhãn tiếng Anh viết hoa; nhãn tiếng Việt cần cỡ chữ thật. */
+.admin-badge.admin-contact-badge {
+  padding: 4px 9px;
+  font-size: 10.5px;
+  font-weight: 750;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.admin-contact-table {
+  min-width: 940px;
+}
+
+.admin-contact-preview {
+  display: block;
+  max-width: 340px;
+  overflow: hidden;
+  color: var(--admin-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-contact-table .admin-row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Trang chi tiết */
+
+.admin-contact-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.admin-contact-panel {
+  padding: 18px;
+}
+
+.admin-contact-panel .admin-card-heading {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.admin-contact-message {
+  margin: 0;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 15px;
+  color: var(--admin-ink);
+  background: var(--admin-card-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.admin-contact-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px 18px;
+  margin: 16px 0 0;
+}
+
+.admin-contact-meta dt {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.admin-contact-meta dd {
+  margin: 0;
+  color: var(--admin-ink);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.admin-contact-meta:empty {
+  display: none;
+}
+
+.admin-contact-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--admin-accent-strong);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.admin-contact-phone:hover {
+  text-decoration: underline;
+}
+
+.admin-contact-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.admin-contact-notice {
+  margin: 0 0 16px;
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 32%, var(--admin-border));
+  border-radius: 11px;
+  padding: 11px 14px;
+  color: var(--admin-ink);
+  background: var(--admin-accent-soft);
+  font-size: 11px;
+}
+
+@media (max-width: 1000px) {
+  .admin-contact-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-contact-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
