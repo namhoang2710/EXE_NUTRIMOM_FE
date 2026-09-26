@@ -2240,97 +2240,6 @@
   padding-block: var(--landing-section-space);
 }
 
-.home-hero {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  width: 100%;
-  height: calc(100svh - 124px);
-  min-height: 0;
-  align-items: center;
-  overflow: hidden;
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-  padding-block: clamp(36px, 5vh, 64px);
-  padding-inline: clamp(48px, 12vw, 260px);
-  background: var(--page);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 48%, transparent);
-}
-
-.home-hero-backdrop {
-  position: absolute;
-  z-index: -2;
-  inset: 0;
-  background-image:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--page) 99%, transparent) 0%,
-      color-mix(in srgb, var(--page) 96%, transparent) 34%,
-      color-mix(in srgb, var(--page) 72%, transparent) 49%,
-      color-mix(in srgb, var(--page) 12%, transparent) 73%,
-      transparent 100%
-    ),
-    var(--hero-image);
-  background-position: center, center right;
-  background-repeat: no-repeat;
-  background-size: cover, cover;
-  opacity: 0;
-  transform: scale(1.018);
-  transition:
-    opacity 1s ease-in-out,
-    transform 4s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
-}
-
-.home-hero-backdrop.is-active {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.home-hero-backdrop.is-banner-1 { --hero-image: url('/banner1.png'); }
-.home-hero-backdrop.is-banner-2 { --hero-image: url('/banner2.png'); }
-.home-hero-backdrop.is-banner-3 { --hero-image: url('/banner3.png'); }
-.home-hero-backdrop.is-banner-4 { --hero-image: url('/banner4.png'); }
-
-.home-hero-copy-stack {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: min(53%, 570px);
-}
-
-.home-hero::after {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, transparent 66%, color-mix(in srgb, var(--page) 18%, transparent));
-  content: "";
-  pointer-events: none;
-}
-
-.home-hero-copy {
-  grid-area: 1 / 1;
-  width: 100%;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(14px);
-  transition:
-    opacity 700ms ease-in-out,
-    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 900ms;
-}
-
-.home-hero-copy.is-active {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
-  transition-delay: 150ms, 100ms, 0s;
-}
-
 .landing-eyebrow,
 .page-heading > span,
 .landing-section-heading > span,
@@ -4303,18 +4212,6 @@ html:has(.testimonial-marquee-section) {
     grid-template-columns: auto minmax(400px, 1fr) auto;
   }
 
-  .home-hero {
-    padding-inline: clamp(48px, 8vw, 82px);
-  }
-
-  .home-hero-backdrop {
-    background-position: center, 58% center;
-  }
-
-  .home-hero-copy-stack {
-    width: min(56%, 540px);
-  }
-
   .values-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4325,10 +4222,6 @@ html:has(.testimonial-marquee-section) {
 }
 
 @media (max-height: 680px) and (min-width: 861px) {
-  .home-hero {
-    padding-block: 24px;
-  }
-
   .home-hero h1 {
     margin-top: 14px;
     font-size: clamp(38px, 7vh, 48px);
@@ -4395,7 +4288,6 @@ html:has(.testimonial-marquee-section) {
     display: none;
   }
 
-  .home-hero,
   .inner-hero,
   .home-story,
   .about-mission,
@@ -4404,33 +4296,8 @@ html:has(.testimonial-marquee-section) {
     grid-template-columns: 1fr;
   }
 
-  .home-hero {
-    height: auto;
-    min-height: 680px;
-    align-items: flex-end;
-    margin: 0;
-    padding: 320px 42px 46px;
-  }
-
-  .home-hero-backdrop {
-    background-image:
-      linear-gradient(
-        0deg,
-        color-mix(in srgb, var(--page) 99%, transparent) 0%,
-        color-mix(in srgb, var(--page) 95%, transparent) 43%,
-        color-mix(in srgb, var(--page) 25%, transparent) 76%,
-        transparent 100%
-      ),
-      var(--hero-image);
-    background-position: center, 69% center;
-  }
-
   .inner-hero-copy {
     text-align: center;
-  }
-
-  .home-hero-copy-stack {
-    width: 100%;
   }
 
   .landing-eyebrow,
@@ -4542,18 +4409,6 @@ html:has(.testimonial-marquee-section) {
   .inner-hero h1,
   .page-heading h1 {
     font-size: 40px;
-  }
-
-  .home-hero {
-    width: 100%;
-    min-height: 650px;
-    margin: 0;
-    border-radius: 0;
-    padding: 285px 24px 36px;
-  }
-
-  .home-hero-backdrop {
-    background-position: center, 68% center;
   }
 
   .inner-hero-image {
