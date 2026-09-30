@@ -10,7 +10,7 @@ const wait = (milliseconds: number) => new Promise<void>((resolve) => window.set
 
 interface StatefulButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
   children: ReactNode
-  onAction: () => Promise<void>
+  onAction: () => Promise<void | boolean>
   onSuccess?: () => void
   onError?: (error: unknown) => void
   minimumLoadingMs?: number
@@ -25,7 +25,7 @@ export function StatefulButton({
   onSuccess,
   onError,
   minimumLoadingMs = 2000,
-  successHoldMs = 650,
+  successHoldMs = 2000,
   ...buttonProps
 }: StatefulButtonProps) {
   const [state, setState] = useState<StatefulButtonState>('idle')
@@ -38,10 +38,19 @@ export function StatefulButton({
     await gate.current.run(async () => {
       setState('loading')
       try {
-        await runAsyncAction({ action: onAction, minimumMs: minimumLoadingMs })
+        let succeeded = true
+        await runAsyncAction({
+          action: async () => { succeeded = await onAction() !== false },
+          minimumMs: minimumLoadingMs,
+        })
+        if (!succeeded) {
+          setState('idle')
+          return
+        }
         setState('success')
         if (!reduceMotion) await wait(successHoldMs)
         onSuccess?.()
+        setState('idle')
       } catch (error) {
         setState('idle')
         onError?.(error)
@@ -60,19 +69,21 @@ export function StatefulButton({
       data-state={state}
       onClick={(event) => void handleClick(event)}
     >
-      <AnimatePresence initial={false} mode="popLayout">
-        {state === 'loading' && (
-          <motion.span key="loading" className="nm-stateful-button-icon" initial={reduceMotion ? false : { opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}>
-            <CircleNotch size={19} weight="bold" className="nm-stateful-spinner" aria-hidden="true" />
-          </motion.span>
-        )}
-        {state === 'success' && (
-          <motion.span key="success" className="nm-stateful-button-icon" initial={reduceMotion ? false : { opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} aria-hidden="true">
-            <CheckCircle size={20} weight="fill" />
-          </motion.span>
-        )}
-      </AnimatePresence>
-      <span>{children}</span>
+      <motion.span layout={!reduceMotion} className="nm-stateful-button-content">
+        <AnimatePresence initial={false} mode="popLayout">
+          {state === 'loading' && (
+            <motion.span key="loading" className="nm-stateful-button-icon" initial={reduceMotion ? false : { opacity: 0, scale: 0, width: 0 }} animate={{ opacity: 1, scale: 1, width: 20 }} exit={{ opacity: 0, scale: 0, width: 0 }} transition={{ duration: reduceMotion ? 0 : 0.2 }}>
+              <CircleNotch size={19} weight="bold" className="nm-stateful-spinner" aria-hidden="true" />
+            </motion.span>
+          )}
+          {state === 'success' && (
+            <motion.span key="success" className="nm-stateful-button-icon" initial={reduceMotion ? false : { opacity: 0, scale: 0, width: 0 }} animate={{ opacity: 1, scale: 1, width: 20 }} exit={{ opacity: 0, scale: 0, width: 0 }} transition={{ duration: reduceMotion ? 0 : 0.2 }} aria-hidden="true">
+              <CheckCircle size={20} weight="regular" />
+            </motion.span>
+          )}
+        </AnimatePresence>
+        <motion.span layout={!reduceMotion}>{children}</motion.span>
+      </motion.span>
     </button>
   )
 }

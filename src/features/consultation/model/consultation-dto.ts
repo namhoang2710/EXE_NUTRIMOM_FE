@@ -1,7 +1,7 @@
 export type ConsultationSpecialtyDto = 'PSYCHOLOGY' | 'OBSTETRICS' | 'HEALTH'
 export type ConsultationAssignmentTypeDto = 'DIRECT' | 'RANDOM'
 export type ConsultationStatusDto = 'PENDING_EXPERT' | 'PENDING_CONSULTATION' | 'COMPLETED' | 'CANCELLED'
-export type ConsultationSlotStatusDto = 'OPEN' | 'BOOKED'
+import type { UnavailableReason } from './slot-grid'
 
 export interface ConsultationExpertDto {
   user_id: string
@@ -16,13 +16,15 @@ export interface ConsultationExpertDto {
   rating_count: number
 }
 
-export interface ConsultationSlotDto {
-  id: string
-  expert_user_id: string
-  slot_date: string
+export interface DayAvailabilityDto {
+  date: string
+  day_off: boolean
+  slots: Array<{
   start_time: string
   end_time: string
-  status: ConsultationSlotStatusDto
+    available: boolean
+    reason?: UnavailableReason
+  }>
 }
 
 export interface ConsultationSlotInfoDto {
@@ -72,7 +74,8 @@ export interface ConsultationReviewDto {
 export interface CreateDirectConsultationDto {
   assignment_type: 'DIRECT'
   expert_user_id: string
-  slot_id: string
+  slot_date: string
+  start_time: string
   note?: string
 }
 

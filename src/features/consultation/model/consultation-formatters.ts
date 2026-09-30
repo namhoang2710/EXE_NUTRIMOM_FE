@@ -1,4 +1,5 @@
-import type { ConsultationRequest, ConsultationSlot } from './consultation-types'
+import type { ConsultationRequest } from './consultation-types'
+import { vietnamToday } from './slot-grid.ts'
 
 const vietnamDateFormatter = new Intl.DateTimeFormat('vi-VN', {
   timeZone: 'Asia/Ho_Chi_Minh',
@@ -18,11 +19,7 @@ const vietnamDateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
 })
 
 export function todayInVietnam(now = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(now)
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  return `${values.year}-${values.month}-${values.day}`
+  return vietnamToday(now)
 }
 
 export function formatConsultationDate(date: string) {
@@ -37,15 +34,6 @@ export function formatConsultationDateTime(value: string) {
 
 export function formatConsultationTime(value: string) {
   return value.slice(0, 5)
-}
-
-export function isPastConsultationSlot(slot: Pick<ConsultationSlot, 'date' | 'startTime'>, now = new Date()) {
-  const startsAt = new Date(`${slot.date}T${slot.startTime}+07:00`)
-  return Number.isNaN(startsAt.getTime()) || startsAt.getTime() <= now.getTime()
-}
-
-export function isSelectableConsultationSlot(slot: ConsultationSlot, now = new Date()) {
-  return slot.status === 'OPEN' && !isPastConsultationSlot(slot, now)
 }
 
 export function canCancelConsultation(item: Pick<ConsultationRequest, 'status'>) {

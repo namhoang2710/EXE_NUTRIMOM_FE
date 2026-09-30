@@ -1,4 +1,4 @@
-import type { ConsultationQuery, ReviewQuery, SlotQuery } from './expert-console-types'
+import type { ConsultationQuery, ReviewQuery } from './expert-console-types'
 
 type QueryValue = string | number | boolean | undefined
 
@@ -9,10 +9,6 @@ export function toQueryString(values: Record<string, QueryValue>) {
   })
   const serialized = query.toString()
   return serialized ? `?${serialized}` : ''
-}
-
-export function buildSlotQuery(query: SlotQuery) {
-  return toQueryString({ date: query.date, from: query.from, to: query.to, status: query.status })
 }
 
 export function buildConsultationQuery(query: ConsultationQuery) {

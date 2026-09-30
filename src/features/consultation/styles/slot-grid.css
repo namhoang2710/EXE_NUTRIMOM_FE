@@ -1,0 +1,108 @@
+.consultation-date-strip {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px auto;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.consultation-date-strip__days {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(7, minmax(72px, 1fr));
+  gap: 7px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.consultation-date-strip__days > button,
+.consultation-date-strip__nav,
+.consultation-date-strip__picker input {
+  min-height: 54px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.consultation-date-strip__days > button {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-width: 72px;
+  place-items: center;
+  align-content: center;
+  gap: 1px;
+  overflow: hidden;
+  padding: 7px 5px;
+  cursor: pointer;
+}
+
+.consultation-date-strip__selection {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border: 1px solid var(--accent);
+  border-radius: inherit;
+  background: var(--accent-soft);
+}
+
+.consultation-date-strip__days > button[aria-pressed='true'] { color: var(--accent-strong); }
+.consultation-date-strip__days > button:disabled,
+.consultation-date-strip__nav:disabled,
+.consultation-date-strip__picker input:disabled { cursor: not-allowed; opacity: .52; }
+.consultation-date-strip__weekday,
+.consultation-date-strip__month { color: var(--muted); font-size: .68rem; text-transform: capitalize; }
+.consultation-date-strip__days strong { font-size: 1rem; line-height: 1; }
+.consultation-date-strip__days small { margin-top: 3px; color: var(--success); font-size: .63rem; font-weight: 750; }
+.consultation-date-strip__nav { display: grid; width: 44px; place-items: center; align-self: center; cursor: pointer; }
+.consultation-date-strip__picker { display: grid; }
+.consultation-date-strip__picker input { width: 46px; padding: 0 7px; color-scheme: light; font-size: 0; cursor: pointer; }
+:root[data-theme='dark'] .consultation-date-strip__picker input { color-scheme: dark; }
+
+.consultation-time-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.consultation-time-grid > button {
+  display: grid;
+  min-width: 0;
+  min-height: 58px;
+  place-content: center;
+  gap: 3px;
+  border: 1px solid color-mix(in srgb, var(--success) 48%, var(--border));
+  border-radius: 12px;
+  padding: 8px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--success-soft) 38%, var(--surface));
+  font-weight: 720;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.consultation-time-grid > button:hover:not(:disabled) { border-color: var(--success); background: var(--success-soft); }
+.consultation-time-grid > button.is-selected { border-color: var(--accent); color: var(--button-text); background: var(--accent); }
+.consultation-time-grid > button:disabled { border-color: var(--border); color: var(--muted); background: var(--surface-muted); cursor: not-allowed; opacity: .78; }
+.consultation-time-grid > button[data-state='booked']:disabled { border-color: color-mix(in srgb, #bb765f 32%, var(--border)); background: color-mix(in srgb, #bb765f 12%, var(--surface)); }
+.consultation-time-grid small { display: inline-flex; align-items: center; justify-content: center; gap: 4px; color: inherit; font-size: .68rem; font-weight: 650; }
+
+@media (max-width: 760px) {
+  .consultation-date-strip { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .consultation-date-strip__days { grid-template-columns: repeat(7, minmax(68px, 1fr)); scroll-snap-type: x proximity; }
+  .consultation-date-strip__days > button { scroll-snap-align: start; }
+  .consultation-date-strip__picker { grid-column: 1 / -1; }
+  .consultation-date-strip__picker input { width: 100%; min-height: 44px; padding: 0 12px; font-size: .82rem; }
+}
+
+@media (max-width: 380px) {
+  .consultation-time-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consultation-date-strip *,
+  .consultation-time-grid * { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}

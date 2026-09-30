@@ -5,6 +5,6 @@ export function buildConsultationListQuery(page: number, pageSize = CONSULTATION
   return `?${params.toString()}`
 }
 
-export function buildExpertSlotsQuery(date: string) {
+export function buildAvailabilityQuery(date: string) {
   return `?${new URLSearchParams({ date }).toString()}`
 }

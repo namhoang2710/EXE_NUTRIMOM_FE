@@ -12,6 +12,10 @@ export interface Expert {
   ratingCount: number
 }
 
+export interface ExpertDetail extends Expert {
+  bio: string | null
+}
+
 export const expertSpecialtyLabels: Record<ExpertSpecialty, string> = {
   PSYCHOLOGY: 'Tâm lý',
   OBSTETRICS: 'Sản khoa',

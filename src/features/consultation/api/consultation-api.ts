@@ -1,7 +1,7 @@
 import { apiClient } from '@/core/api/api-client'
-import type { ConsultationPageDto, ConsultationRequestDto, ConsultationReviewDto, ConsultationSlotDto, ConsultationExpertDto } from '../model/consultation-dto'
-import { mapConsultationExpert, mapConsultationPage, mapConsultationRequest, mapConsultationSlot, serializeConsultationReview, serializeDirectConsultation, serializeRandomConsultation } from '../model/consultation-mappers'
-import { buildConsultationListQuery, buildExpertSlotsQuery } from '../model/consultation-query'
+import type { ConsultationPageDto, ConsultationRequestDto, ConsultationReviewDto, ConsultationExpertDto, DayAvailabilityDto } from '../model/consultation-dto'
+import { mapConsultationExpert, mapConsultationPage, mapConsultationRequest, mapDayAvailability, serializeConsultationReview, serializeDirectConsultation, serializeRandomConsultation } from '../model/consultation-mappers'
+import { buildAvailabilityQuery, buildConsultationListQuery } from '../model/consultation-query'
 import type { ConsultationReviewInput, DirectConsultationInput, RandomConsultationInput } from '../model/consultation-types'
 
 export const consultationApi = {
@@ -9,9 +9,9 @@ export const consultationApi = {
     const dto = await apiClient.request<ConsultationExpertDto>(`/experts/${encodeURIComponent(userId)}`, { signal })
     return mapConsultationExpert(dto)
   },
-  async slots(userId: string, date: string, signal?: AbortSignal) {
-    const dto = await apiClient.request<ConsultationSlotDto[]>(`/experts/${encodeURIComponent(userId)}/slots${buildExpertSlotsQuery(date)}`, { signal })
-    return dto.map(mapConsultationSlot)
+  async availability(userId: string, date: string, signal?: AbortSignal) {
+    const dto = await apiClient.request<DayAvailabilityDto>(`/experts/${encodeURIComponent(userId)}/availability${buildAvailabilityQuery(date)}`, { signal })
+    return mapDayAvailability(dto)
   },
   async createDirect(input: DirectConsultationInput) {
     const dto = await apiClient.request<ConsultationRequestDto>('/consultation-requests', {

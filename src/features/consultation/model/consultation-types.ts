@@ -1,7 +1,7 @@
 export type ConsultationSpecialty = 'PSYCHOLOGY' | 'OBSTETRICS' | 'HEALTH'
 export type ConsultationAssignmentType = 'DIRECT' | 'RANDOM'
 export type ConsultationStatus = 'PENDING_EXPERT' | 'PENDING_CONSULTATION' | 'COMPLETED' | 'CANCELLED'
-export type ConsultationSlotStatus = 'OPEN' | 'BOOKED'
+import type { UnavailableReason } from './slot-grid'
 
 export interface ConsultationExpert {
   userId: string
@@ -16,13 +16,17 @@ export interface ConsultationExpert {
   ratingCount: number
 }
 
-export interface ConsultationSlot {
-  id: string
-  expertUserId: string
-  date: string
+export interface AvailabilitySlot {
   startTime: string
   endTime: string
-  status: ConsultationSlotStatus
+  available: boolean
+  reason?: UnavailableReason
+}
+
+export interface DayAvailability {
+  date: string
+  dayOff: boolean
+  slots: AvailabilitySlot[]
 }
 
 export interface ConsultationSlotInfo {
@@ -61,7 +65,8 @@ export interface ConsultationPage {
 
 export interface DirectConsultationInput {
   expertUserId: string
-  slotId: string
+  date: string
+  startTime: string
   note?: string
 }
 

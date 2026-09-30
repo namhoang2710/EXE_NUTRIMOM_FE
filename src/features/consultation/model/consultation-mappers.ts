@@ -2,7 +2,7 @@ import type {
   ConsultationExpertDto,
   ConsultationPageDto,
   ConsultationRequestDto,
-  ConsultationSlotDto,
+  DayAvailabilityDto,
   CreateConsultationReviewDto,
   CreateDirectConsultationDto,
   CreateRandomConsultationDto,
@@ -12,10 +12,11 @@ import type {
   ConsultationPage,
   ConsultationRequest,
   ConsultationReviewInput,
-  ConsultationSlot,
+  DayAvailability,
   DirectConsultationInput,
   RandomConsultationInput,
 } from './consultation-types'
+import { normalizeSlotTime, toApiSlotTime } from './slot-grid.ts'
 
 function optionalText(value: string | null | undefined) {
   const normalized = value?.trim()
@@ -42,14 +43,16 @@ export function mapConsultationExpert(dto: ConsultationExpertDto): ConsultationE
   }
 }
 
-export function mapConsultationSlot(dto: ConsultationSlotDto): ConsultationSlot {
+export function mapDayAvailability(dto: DayAvailabilityDto): DayAvailability {
   return {
-    id: dto.id,
-    expertUserId: dto.expert_user_id,
-    date: dto.slot_date,
-    startTime: dto.start_time,
-    endTime: dto.end_time,
-    status: dto.status,
+    date: dto.date,
+    dayOff: dto.day_off,
+    slots: dto.slots.map((slot) => ({
+      startTime: normalizeSlotTime(slot.start_time),
+      endTime: normalizeSlotTime(slot.end_time),
+      available: slot.available,
+      ...(slot.reason ? { reason: slot.reason } : {}),
+    })),
   }
 }
 
@@ -93,7 +96,8 @@ export function serializeDirectConsultation(input: DirectConsultationInput): Cre
   return {
     assignment_type: 'DIRECT',
     expert_user_id: input.expertUserId,
-    slot_id: input.slotId,
+    slot_date: input.date,
+    start_time: toApiSlotTime(input.startTime),
     ...(optionalPayloadText(input.note) ? { note: optionalPayloadText(input.note) } : {}),
   }
 }

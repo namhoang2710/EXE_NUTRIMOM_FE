@@ -11,3 +11,7 @@ export interface ExpertSummaryDto {
   average_rating: number | null
   rating_count: number | null
 }
+
+export interface ExpertDetailDto extends ExpertSummaryDto {
+  bio: string | null
+}

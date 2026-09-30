@@ -1,9 +1,13 @@
-import { ArrowRight, Briefcase, CalendarBlank, Clock, MapPin, Star, UserCircle } from '@phosphor-icons/react'
+import { ArrowRight, Briefcase, CalendarBlank, MapPin, Star, UserCircle, WarningCircle } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { formatConsultationTime, isPastConsultationSlot, isSelectableConsultationSlot } from '../model/consultation-formatters'
-import type { ConsultationExpert, ConsultationSlot, ConsultationSpecialty } from '../model/consultation-types'
+import { StatefulButton } from '@/components/ui/stateful-button'
+import { DateStrip } from './DateStrip'
+import { TimeSlotGrid, type TimeSlotCell } from './TimeSlotGrid'
+import { formatConsultationDate } from '../model/consultation-formatters'
+import { SLOT_START_TIMES, slotEndTime } from '../model/slot-grid'
+import type { ConsultationExpert, ConsultationSpecialty, DayAvailability } from '../model/consultation-types'
 import { consultationSpecialtyLabels } from '../model/consultation-types'
 
 type BookingTab = 'direct' | 'random'
@@ -17,26 +21,26 @@ interface BookingPanelProps {
   expertError: string | null
   onRetryExpert: () => void
   date: string
-  minDate: string
   onDateChange: (date: string) => void
-  slots: ConsultationSlot[]
-  slotsLoading: boolean
-  slotsError: string | null
-  onRetrySlots: () => void
-  selectedSlotId: string | null
-  onSelectSlot: (id: string) => void
+  availability: DayAvailability | null
+  availabilityLoading: boolean
+  availabilityError: string | null
+  onRetryAvailability: () => void
+  selectedStartTime: string | null
+  onSelectTime: (startTime: string) => void
+  onClearSelection: () => void
   directNote: string
   onDirectNoteChange: (note: string) => void
   directError: string | null
   directBusy: boolean
-  onDirectSubmit: () => void
+  onDirectSubmit: () => Promise<boolean>
   specialty: ConsultationSpecialty | null
   onSpecialtyChange: (specialty: ConsultationSpecialty) => void
   randomNote: string
   onRandomNoteChange: (note: string) => void
   randomError: string | null
   randomBusy: boolean
-  onRandomSubmit: () => void
+  onRandomSubmit: () => Promise<boolean>
 }
 
 const specialties: Array<{ value: ConsultationSpecialty; description: string }> = [
@@ -56,12 +60,33 @@ function NoteField({ id, value, onChange, label = 'Ghi chú cho chuyên gia' }: 
   </div>
 }
 
+function AvailabilitySkeleton() {
+  return <div className="consultation-time-grid consultation-time-grid--skeleton" aria-busy="true" aria-label="Đang tải khung giờ">
+    {SLOT_START_TIMES.map((time) => <span key={time} />)}
+  </div>
+}
+
 export function BookingPanel(props: BookingPanelProps) {
   const reduceMotion = useReducedMotion()
   const directTabRef = useRef<HTMLButtonElement>(null)
   const randomTabRef = useRef<HTMLButtonElement>(null)
-  const selectedSlot = props.slots.find((slot) => slot.id === props.selectedSlotId)
-  const directReady = Boolean(props.expert && selectedSlot && isSelectableConsultationSlot(selectedSlot))
+  const cells = useMemo<TimeSlotCell[]>(() => {
+    const slotsByTime = new Map(props.availability?.slots.map((slot) => [slot.startTime, slot]))
+    return SLOT_START_TIMES.map((startTime) => {
+      const slot = slotsByTime.get(startTime)
+      if (!slot) return { startTime, endTime: slotEndTime(startTime), selectable: false, state: 'CLOSED', reason: props.availability?.dayOff ? 'DAY_OFF' : 'CLOSED' }
+      return {
+        startTime,
+        endTime: slot.endTime,
+        selectable: slot.available && !props.availability?.dayOff,
+        state: slot.available ? 'OPEN' : slot.reason === 'BOOKED' ? 'BOOKED' : 'CLOSED',
+        ...(props.availability?.dayOff ? { reason: 'DAY_OFF' as const } : slot.reason ? { reason: slot.reason } : {}),
+      }
+    })
+  }, [props.availability])
+  const selectedCell = cells.find((cell) => cell.startTime === props.selectedStartTime && cell.selectable)
+  const directReady = Boolean(props.expert && selectedCell && !props.availabilityLoading && !props.directBusy)
+
   function onTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
     event.preventDefault()
@@ -69,6 +94,7 @@ export function BookingPanel(props: BookingPanelProps) {
     props.onTabChange(next)
     ;(next === 'direct' ? directTabRef : randomTabRef).current?.focus()
   }
+
   return <section className="consultation-booking" aria-labelledby="booking-heading">
     <div className="consultation-section-heading">
       <div><h2 id="booking-heading" tabIndex={-1}>Đặt lịch tư vấn</h2></div>
@@ -98,27 +124,28 @@ export function BookingPanel(props: BookingPanelProps) {
                   <Link to="/app/experts">Chọn chuyên gia khác</Link>
                 </div>}
 
-          {props.expert && <div className="consultation-direct-grid">
-            <div className="consultation-slot-column">
-              <div className="consultation-field consultation-date-field"><label htmlFor="consultation-date">Ngày tư vấn</label><div><CalendarBlank size={19} aria-hidden="true" /><input id="consultation-date" type="date" min={props.minDate} value={props.date} onChange={(event) => props.onDateChange(event.target.value)} /></div></div>
-              <div className="consultation-slot-block"><div className="consultation-slot-heading"><h3>Khung giờ</h3><span>{props.slots.length} khung giờ</span></div>
-                {props.slotsLoading ? <div className="consultation-slot-skeleton" aria-busy="true" aria-label="Đang tải khung giờ">{[0, 1, 2, 3].map((key) => <span key={key} />)}</div>
-                  : props.slotsError ? <div className="consultation-inline-state is-error" role="alert"><p>{props.slotsError}</p><button type="button" onClick={props.onRetrySlots}>Thử lại</button></div>
-                    : props.slots.length === 0 ? <div className="consultation-inline-state"><Clock size={24} aria-hidden="true" /><p>Chuyên gia chưa có khung giờ trong ngày này.</p></div>
-                      : <div className="consultation-slots" role="group" aria-label="Chọn khung giờ tư vấn">{props.slots.map((slot) => {
-                        const past = isPastConsultationSlot(slot)
-                        const selectable = isSelectableConsultationSlot(slot)
-                        const selected = slot.id === props.selectedSlotId
-                        return <motion.button key={slot.id} type="button" disabled={!selectable || props.directBusy} aria-pressed={selected} className={selected ? 'is-selected' : ''} onClick={() => props.onSelectSlot(slot.id)} whileTap={reduceMotion || !selectable ? undefined : { scale: 0.98 }} transition={{ type: 'spring', stiffness: 420, damping: 30 }}>
-                          <span>{formatConsultationTime(slot.startTime)} - {formatConsultationTime(slot.endTime)}</span>
-                          {!selectable && <small>{slot.status === 'BOOKED' ? 'Đã đặt' : past ? 'Đã qua' : 'Không khả dụng'}</small>}
-                        </motion.button>
-                      })}</div>}
+          {props.expert && <div className="consultation-direct-flow">
+            <div className="consultation-slot-block">
+              <div className="consultation-slot-heading"><h3><CalendarBlank size={18} aria-hidden="true" /> Chọn ngày</h3><span>Tối đa 30 ngày tới</span></div>
+              <DateStrip selectedDate={props.date} onSelect={props.onDateChange} disabled={props.directBusy} />
+            </div>
+            {props.availability?.dayOff && <div className="consultation-day-off-banner" role="status"><WarningCircle size={20} weight="fill" aria-hidden="true" /><div><strong>Chuyên gia nghỉ ngày này</strong><span>Vui lòng chọn ngày khác để tiếp tục đặt lịch.</span></div></div>}
+            <div className="consultation-direct-grid">
+              <div className="consultation-slot-column">
+                <div className="consultation-slot-heading"><h3>Khung giờ 30 phút</h3><span>08:00 - 20:00</span></div>
+                {props.availabilityLoading ? <AvailabilitySkeleton />
+                  : props.availabilityError ? <div className="consultation-inline-state is-error" role="alert"><p>{props.availabilityError}</p><button type="button" onClick={props.onRetryAvailability}>Thử lại</button></div>
+                    : <TimeSlotGrid cells={cells} selectedStartTime={props.selectedStartTime} onSelect={props.onSelectTime} disabled={props.directBusy} />}
+              </div>
+              <div className="consultation-note-column"><NoteField id="direct-note" value={props.directNote} onChange={props.onDirectNoteChange} />
+                {props.directError && <p className="consultation-form-error" role="alert">{props.directError}</p>}
               </div>
             </div>
-            <div className="consultation-note-column"><NoteField id="direct-note" value={props.directNote} onChange={props.onDirectNoteChange} />
-              {props.directError && <p className="consultation-form-error" role="alert">{props.directError}</p>}
-              <button className="consultation-primary-button" type="button" disabled={!directReady || props.directBusy} onClick={props.onDirectSubmit}>{props.directBusy ? 'Đang đặt lịch...' : 'Xác nhận đặt lịch'}</button>
+            <div className="consultation-booking-bar">
+              <div><span>Ngày tư vấn</span><strong>{formatConsultationDate(props.date)}</strong></div>
+              <div><span>Khung giờ</span><strong>{selectedCell ? `${selectedCell.startTime} - ${selectedCell.endTime}` : 'Chưa chọn'}</strong></div>
+              {selectedCell && <button className="consultation-clear-selection" type="button" disabled={props.directBusy} onClick={props.onClearSelection}>Bỏ chọn</button>}
+              <StatefulButton className="consultation-stateful-button" type="button" disabled={!directReady} onAction={props.onDirectSubmit}>Xác nhận đặt lịch</StatefulButton>
             </div>
           </div>}
         </motion.div>
@@ -128,7 +155,7 @@ export function BookingPanel(props: BookingPanelProps) {
           <div className="consultation-specialty-options" role="radiogroup" aria-label="Chuyên khoa tư vấn">{specialties.map((option) => <button key={option.value} type="button" role="radio" aria-checked={props.specialty === option.value} className={props.specialty === option.value ? 'is-selected' : ''} onClick={() => props.onSpecialtyChange(option.value)}><span>{consultationSpecialtyLabels[option.value]}</span><small>{option.description}</small></button>)}</div>
           <NoteField id="random-note" value={props.randomNote} onChange={props.onRandomNoteChange} />
           {props.randomError && <p className="consultation-form-error" role="alert">{props.randomError}</p>}
-          <div className="consultation-random-actions"><button className="consultation-primary-button" type="button" disabled={!props.specialty || props.randomBusy} onClick={props.onRandomSubmit}>{props.randomBusy ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu tư vấn'}</button></div>
+          <div className="consultation-random-actions"><StatefulButton className="consultation-stateful-button" type="button" disabled={!props.specialty || props.randomBusy} onAction={props.onRandomSubmit}>Gửi yêu cầu tư vấn</StatefulButton></div>
         </motion.div>
       )}
     </AnimatePresence>
