@@ -8,6 +8,7 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { ConsultationsPage } from '@/features/consultation/pages/ConsultationsPage'
+import { ConsultationHistoryPage } from '@/features/consultation/pages/ConsultationHistoryPage'
 import { ExpertsPage } from '@/features/experts/pages/ExpertsPage'
 import { BlogArticlePage } from '@/features/knowledge/pages/BlogArticlePage'
 import { BlogPage } from '@/features/knowledge/pages/BlogPage'
@@ -88,6 +89,10 @@ export function AppRouter() {
         <Route path="support" element={<Suspense fallback={<UserRouteFallback />}><SupportRequestsPage /></Suspense>} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
+      </Route>
+
+      <Route path="app/consultations/history" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
+        <Route index element={<ConsultationHistoryPage />} />
       </Route>
 
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

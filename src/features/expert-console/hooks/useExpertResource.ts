@@ -15,8 +15,10 @@ export function useExpertResource<T>(loader: (signal: AbortSignal) => Promise<T>
     try {
       const result = await loader(controller.signal)
       if (!controller.signal.aborted) setData(result)
+      return controller.signal.aborted ? undefined : result
     } catch (requestError) {
       if (!controller.signal.aborted) setError(requestError instanceof Error ? requestError.message : 'Không thể tải dữ liệu. Vui lòng thử lại.')
+      return undefined
     } finally {
       if (!controller.signal.aborted) setLoading(false)
     }

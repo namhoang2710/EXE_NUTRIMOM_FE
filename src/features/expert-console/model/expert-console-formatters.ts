@@ -5,16 +5,10 @@ export function formatDate(date: string) {
 
 export function formatDateTime(value: string) {
   const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(parsed)
+  return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(parsed)
 }
 
 export function formatTime(value: string) {
   return value.slice(0, 5)
-}
-
-export function todayIso() {
-  const today = new Date()
-  const offset = today.getTimezoneOffset() * 60_000
-  return new Date(today.getTime() - offset).toISOString().slice(0, 10)
 }
 

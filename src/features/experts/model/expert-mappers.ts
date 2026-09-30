@@ -1,5 +1,5 @@
-import type { ExpertSummaryDto } from './expert-dto'
-import type { Expert } from './expert-types'
+import type { ExpertDetailDto, ExpertSummaryDto } from './expert-dto'
+import type { Expert, ExpertDetail } from './expert-types'
 
 function safeText(value: string | null, fallback: string) {
   const normalized = value?.trim()
@@ -22,4 +22,8 @@ export function mapExpertSummary(dto: ExpertSummaryDto): Expert {
     averageRating: Math.min(5, safeNonNegativeNumber(dto.average_rating)),
     ratingCount: Math.round(safeNonNegativeNumber(dto.rating_count)),
   }
+}
+
+export function mapExpertDetail(dto: ExpertDetailDto): ExpertDetail {
+  return { ...mapExpertSummary(dto), bio: dto.bio?.trim() || null }
 }

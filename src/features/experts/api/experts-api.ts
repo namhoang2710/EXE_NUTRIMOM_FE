@@ -1,7 +1,7 @@
 import { apiClient } from '@/core/api/api-client'
-import type { ExpertSummaryDto } from '../model/expert-dto'
-import { mapExpertSummary } from '../model/expert-mappers'
-import type { Expert, ExpertSpecialty } from '../model/expert-types'
+import type { ExpertDetailDto, ExpertSummaryDto } from '../model/expert-dto'
+import { mapExpertDetail, mapExpertSummary } from '../model/expert-mappers'
+import type { Expert, ExpertDetail, ExpertSpecialty } from '../model/expert-types'
 
 async function list(specialty: ExpertSpecialty | null, signal?: AbortSignal): Promise<Expert[]> {
   const query = specialty ? `?specialty=${encodeURIComponent(specialty)}` : ''
@@ -13,4 +13,13 @@ async function list(specialty: ExpertSpecialty | null, signal?: AbortSignal): Pr
   return response.map(mapExpertSummary)
 }
 
-export const expertsApi = { list }
+async function detail(userId: string, signal?: AbortSignal): Promise<ExpertDetail> {
+  const response = await apiClient.request<ExpertDetailDto>(`/experts/${encodeURIComponent(userId)}`, {
+    method: 'GET',
+    authenticated: false,
+    signal,
+  })
+  return mapExpertDetail(response)
+}
+
+export const expertsApi = { list, detail }

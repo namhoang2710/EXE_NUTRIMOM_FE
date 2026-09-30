@@ -1,6 +1,6 @@
 import type { ExpertSpecialty, ExpertStatus } from '@/features/admin/model/admin-experts'
 
-export type SlotStatus = 'OPEN' | 'BOOKED'
+export type ScheduleSlotState = 'OPEN' | 'BOOKED' | 'CLOSED'
 export type ConsultationStatus = 'PENDING_EXPERT' | 'PENDING_CONSULTATION' | 'COMPLETED' | 'CANCELLED'
 export type ConsultationType = 'assigned' | 'pool'
 export type ReviewSort = 'newest' | 'rating_desc' | 'rating_asc'
@@ -20,22 +20,42 @@ export interface ExpertProfile {
   ratingCount: number
 }
 
-export interface ExpertSlot {
-  id: string
-  date: string
+export interface BookingBrief {
+  requestId: string
+  userDisplayName: string | null
+}
+
+export interface ScheduleSlot {
   startTime: string
   endTime: string
-  status: SlotStatus
+  state: ScheduleSlotState
+  past: boolean
+  booking: BookingBrief | null
+}
+
+export interface DaySchedule {
+  date: string
+  dayOff: boolean
+  hasBookings: boolean
+  slots: ScheduleSlot[]
+}
+
+export interface DaySummary {
+  date: string
+  openCount: number
+  bookedCount: number
+  closedCount: number
+  dayOff: boolean
 }
 
 export interface Consultation {
   id: string
   userId: string
-  userDisplayName: string
+  userDisplayName: string | null
   specialty: ExpertSpecialty
   assignmentType: 'DIRECT' | 'RANDOM'
   status: ConsultationStatus
-  slot: Omit<ExpertSlot, 'status'> | null
+  slot: { id: string; date: string; startTime: string; endTime: string } | null
   note: string | null
   completedAt: string | null
   createdAt: string
@@ -45,6 +65,7 @@ export interface ExpertReview {
   id: string
   requestId: string
   userId: string
+  userDisplayName: string | null
   rating: number
   comment: string | null
   createdAt: string
@@ -61,11 +82,6 @@ export interface Page<T> {
 export interface DateRangeQuery {
   from?: string
   to?: string
-}
-
-export interface SlotQuery extends DateRangeQuery {
-  date?: string
-  status?: SlotStatus
 }
 
 export interface ConsultationQuery extends DateRangeQuery {
@@ -87,7 +103,8 @@ export interface ReviewQuery extends DateRangeQuery {
 export interface ExpertOverview {
   upcomingConsultations: number
   pendingRequests: number
-  openSlots: number
+  openToday: number
+  today: string
 }
 
 export const specialtyLabels: Record<ExpertSpecialty, string> = {

@@ -3,10 +3,12 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { ApiClientError } from '../src/core/api/api-error.ts'
 import { runConsultationSubmission } from '../src/features/consultation/model/consultation-flow.ts'
-import { canCancelConsultation, canReviewConsultation, isSelectableConsultationSlot } from '../src/features/consultation/model/consultation-formatters.ts'
-import { mapConsultationRequest, serializeConsultationReview, serializeDirectConsultation, serializeRandomConsultation } from '../src/features/consultation/model/consultation-mappers.ts'
-import { buildConsultationListQuery } from '../src/features/consultation/model/consultation-query.ts'
-import type { ConsultationSlot } from '../src/features/consultation/model/consultation-types.ts'
+import { canCancelConsultation, canReviewConsultation } from '../src/features/consultation/model/consultation-formatters.ts'
+import { mapConsultationRequest, mapDayAvailability, serializeConsultationReview, serializeDirectConsultation, serializeRandomConsultation } from '../src/features/consultation/model/consultation-mappers.ts'
+import { buildAvailabilityQuery, buildConsultationListQuery } from '../src/features/consultation/model/consultation-query.ts'
+import { consultationHorizon, generateSlotStartTimes, normalizeSlotTime, slotEndTime, toApiSlotTime, unavailableReasonLabel, vietnamToday } from '../src/features/consultation/model/slot-grid.ts'
+import { normalizeConsultationRating } from '../src/features/consultation/model/consultation-rating.ts'
+import { mapExpertDetail } from '../src/features/experts/model/expert-mappers.ts'
 
 const baseDto = {
   id: 'request-1',
@@ -45,8 +47,8 @@ test('uses pageSize, never page_size, in the consultation list query', () => {
 })
 
 test('serializes exact direct, random, and review payload contracts', () => {
-  assert.deepEqual(serializeDirectConsultation({ expertUserId: 'expert-1', slotId: 'slot-1', note: '  Cần tư vấn  ' }), {
-    assignment_type: 'DIRECT', expert_user_id: 'expert-1', slot_id: 'slot-1', note: 'Cần tư vấn',
+  assert.deepEqual(serializeDirectConsultation({ expertUserId: 'expert-1', date: '2026-10-05', startTime: '09:00', note: '  Cần tư vấn  ' }), {
+    assignment_type: 'DIRECT', expert_user_id: 'expert-1', slot_date: '2026-10-05', start_time: '09:00:00', note: 'Cần tư vấn',
   })
   assert.deepEqual(serializeRandomConsultation({ specialty: 'HEALTH', note: '  ' }), {
     assignment_type: 'RANDOM', specialty: 'HEALTH',
@@ -56,12 +58,86 @@ test('serializes exact direct, random, and review payload contracts', () => {
   })
 })
 
-test('BOOKED and elapsed slots cannot be selected', () => {
-  const future = new Date('2026-09-28T00:00:00Z')
-  const open: ConsultationSlot = { id: '1', expertUserId: 'e', date: '2026-09-28', startTime: '09:00:00', endTime: '09:30:00', status: 'OPEN' }
-  assert.equal(isSelectableConsultationSlot(open, future), true)
-  assert.equal(isSelectableConsultationSlot({ ...open, status: 'BOOKED' }, future), false)
-  assert.equal(isSelectableConsultationSlot({ ...open, date: '2026-09-27', startTime: '06:00:00' }, new Date('2026-09-27T01:00:01Z')), false)
+test('maps full-day availability and preserves unavailable reasons', () => {
+  const result = mapDayAvailability({
+    date: '2026-10-05',
+    day_off: false,
+    slots: [
+      { start_time: '08:00:00', end_time: '08:30:00', available: true },
+      { start_time: '08:30:00', end_time: '09:00:00', available: false, reason: 'BOOKED' },
+    ],
+  })
+  assert.deepEqual(result, {
+    date: '2026-10-05',
+    dayOff: false,
+    slots: [
+      { startTime: '08:00', endTime: '08:30', available: true },
+      { startTime: '08:30', endTime: '09:00', available: false, reason: 'BOOKED' },
+    ],
+  })
+})
+
+test('shared slot grid creates the exact 30-minute Vietnam booking horizon', () => {
+  const slots = generateSlotStartTimes()
+  assert.equal(slots.length, 24)
+  assert.equal(slots[0], '08:00')
+  assert.equal(slots.at(-1), '19:30')
+  assert.equal(slotEndTime('19:30'), '20:00')
+  assert.equal(normalizeSlotTime('08:00:00'), '08:00')
+  assert.equal(toApiSlotTime('08:00'), '08:00:00')
+  assert.equal(unavailableReasonLabel('PAST'), 'Đã qua')
+  assert.equal(unavailableReasonLabel('DAY_OFF'), 'Nghỉ cả ngày')
+  assert.equal(unavailableReasonLabel('BOOKED'), 'Đã kín')
+  assert.equal(unavailableReasonLabel('CLOSED'), 'Đã đóng')
+  const now = new Date('2026-09-28T17:30:00.000Z')
+  assert.equal(vietnamToday(now), '2026-09-29')
+  assert.deepEqual(consultationHorizon(now), { minDate: '2026-09-29', maxDate: '2026-10-29' })
+  assert.equal(slots.every((start, index) => index === slots.length - 1 || slotEndTime(start) === slots[index + 1]), true)
+  assert.equal(buildAvailabilityQuery('2026-10-05'), '?date=2026-10-05')
+})
+
+test('user booking uses availability and date-time input without legacy slot IDs', async () => {
+  const [api, page, booking, grid] = await Promise.all([
+    readFile(new URL('../src/features/consultation/api/consultation-api.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/pages/ConsultationsPage.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/components/BookingPanel.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/components/TimeSlotGrid.tsx', import.meta.url), 'utf8'),
+  ])
+  assert.match(api, /\/availability\$\{buildAvailabilityQuery\(date\)\}/)
+  assert.doesNotMatch(api, /\/slots|slot_id/)
+  assert.match(page, /createDirect\(\{ expertUserId: expertId, date, startTime: selected\.startTime/)
+  assert.match(page, /setSelectedStartTime\(null\)[^]*setDirectError\(SLOT_CONFLICT_MESSAGE\)[^]*loadAvailability\(\)/)
+  assert.match(booking, /<DateStrip/)
+  assert.match(booking, /<TimeSlotGrid/)
+  assert.match(booking, /props\.availability\?\.dayOff/)
+  assert.match(booking, /consultation-booking-bar/)
+  assert.match(grid, /disabled=\{disabled \|\| !cell\.selectable\}/)
+  assert.match(grid, /aria-pressed=\{selected\}/)
+})
+
+test('direct and random booking use the shared stateful button without false success', async () => {
+  const [button, booking, page, styles, consultationStyles] = await Promise.all([
+    readFile(new URL('../src/components/ui/stateful-button.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/components/BookingPanel.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/pages/ConsultationsPage.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/shared/styles/product-ui.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/styles/consultation.css', import.meta.url), 'utf8'),
+  ])
+  assert.match(booking, /import \{ StatefulButton \} from '@\/components\/ui\/stateful-button'/)
+  assert.match(booking, /onAction=\{props\.onDirectSubmit\}>Xác nhận đặt lịch<\/StatefulButton>/)
+  assert.match(booking, /onAction=\{props\.onRandomSubmit\}>Gửi yêu cầu tư vấn<\/StatefulButton>/)
+  assert.match(page, /const succeeded = await runConsultationSubmission/)
+  assert.match(page, /onDirectSubmit=\{submitDirect\}/)
+  assert.match(page, /onRandomSubmit=\{submitRandom\}/)
+  assert.match(button, /succeeded = await onAction\(\) !== false/)
+  assert.match(button, /if \(!succeeded\)[^]*setState\('idle'\)[^]*return/)
+  assert.match(button, /setState\('success'\)[^]*setState\('idle'\)/)
+  assert.match(button, /width: 20/)
+  assert.match(styles, /\.nm-stateful-button[^}]*border-radius: 999px/)
+  assert.match(styles, /\.nm-stateful-button[^}]*color: #fff[^}]*background: #22c55e/)
+  assert.match(styles, /\.nm-stateful-button-content, \.nm-stateful-button-content > span \{ color: inherit; font-size: inherit; \}/)
+  assert.match(consultationStyles, /\.consultation-booking-bar > div > span/)
+  assert.doesNotMatch(consultationStyles, /\.consultation-booking-bar span \{/)
 })
 
 test('success is emitted only after the create API resolves', async () => {
@@ -117,19 +193,23 @@ test('cancel and review actions are exposed only by backend-approved state', () 
   assert.equal(canReviewConsultation({ canReview: false }), false)
 })
 
-test('cancel and review reload the list, while direct cancel can refresh matching slots', async () => {
-  const page = await readFile(new URL('../src/features/consultation/pages/ConsultationsPage.tsx', import.meta.url), 'utf8')
-  assert.match(page, /await consultationApi\.cancel\(cancelItem\.id\)[^]*loadConsultations\(pageNumber\)/)
-  assert.match(page, /cancelItem\.expertUserId === expertId[^]*refreshes\.push\(loadSlots\(\)\)/)
-  assert.match(page, /await consultationApi\.review\(reviewItem\.id[^]*await loadConsultations\(pageNumber\)/)
+test('cancel and review reload the list, while direct cancel refreshes matching availability', async () => {
+  const [page, history] = await Promise.all([
+    readFile(new URL('../src/features/consultation/pages/ConsultationsPage.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/hooks/useConsultationHistory.ts', import.meta.url), 'utf8'),
+  ])
+  assert.match(history, /await consultationApi\.cancel\(item\.id\)[^]*load\(pageNumber\)/)
+  assert.match(page, /item\.expertUserId === expertId && item\.slot\?\.date === date[^]*loadAvailability\(\)/)
+  assert.match(history, /await consultationApi\.review\(reviewItem\.id[^]*await load\(pageNumber\)/)
 })
 
 test('navbar keeps consultations inside the expert booking flow', async () => {
   const navbar = await readFile(new URL('../src/shared/layouts/AuthenticatedNavbar.tsx', import.meta.url), 'utf8')
   assert.doesNotMatch(navbar, /<NavLink to="\/app\/consultations"/)
-  assert.match(navbar, /location\.pathname === '\/app\/consultations'/)
+  assert.match(navbar, /location\.pathname\.startsWith\('\/app\/consultations'\)/)
   assert.match(navbar, /Hướng dẫn khách hàng/)
   assert.match(navbar, /to="\/app\/experts"[^>]*>Tìm bác sĩ<\/Link>/)
+  assert.match(navbar, /to="\/app\/consultations\/history"[^>]*>Lịch sử tư vấn<\/Link>/)
 })
 
 test('app navigation opens a new page at the top while preserving intentional hash targets', async () => {
@@ -186,15 +266,17 @@ test('experts page replaces its old hero with the shared consultation banner', a
 })
 
 test('selected expert rating uses the same gold as the expert directory', async () => {
-  const [booking, consultationStyles, expertStyles] = await Promise.all([
+  const [booking, consultationStyles, expertStyles, globalStyles] = await Promise.all([
     readFile(new URL('../src/features/consultation/components/BookingPanel.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/consultation/styles/consultation.css', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/experts/pages/experts.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/index.css', import.meta.url), 'utf8'),
   ])
   assert.match(booking, /className="consultation-expert-rating"><Star[^>]*weight="fill"/)
-  assert.match(consultationStyles, /--consultation-rating-gold: #e7a93f/)
+  assert.match(globalStyles, /--rating-gold: #e7a93f/)
+  assert.match(consultationStyles, /--consultation-rating-gold: var\(--rating-gold\)/)
   assert.match(consultationStyles, /\.consultation-expert-meta \.consultation-expert-rating > svg \{\s*color: var\(--consultation-rating-gold\)/)
-  assert.match(expertStyles, /--experts-gold: #e7a93f/)
+  assert.match(expertStyles, /--experts-gold: var\(--rating-gold\)/)
 })
 
 test('gold consultation action has a reduced-motion-safe border animation', async () => {
@@ -213,18 +295,20 @@ test('consultation banner aligns with the responsive app header without extra to
 })
 
 test('dialogs and toasts expose accessible semantics', async () => {
-  const [dialog, cancel, review, toast, booking] = await Promise.all([
+  const [dialog, cancel, review, ratingSource, toast, booking] = await Promise.all([
     readFile(new URL('../src/shared/components/AccessibleDialog.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/consultation/components/CancelConsultationDialog.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/consultation/components/ReviewConsultationDialog.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/reui/rating.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/consultation/components/ConsultationToast.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/consultation/components/BookingPanel.tsx', import.meta.url), 'utf8'),
   ])
   assert.match(dialog, /role="dialog"/)
   assert.match(dialog, /aria-modal="true"/)
   assert.match(cancel, /<AccessibleDialog/)
-  assert.match(review, /role="radiogroup"/)
-  assert.match(review, /aria-label=\{`\$\{value\} sao`\}/)
+  assert.match(review, /<Rating rating=\{rating\}[^>]*editable/)
+  assert.match(ratingSource, /role=\{editable \? 'radiogroup' : undefined\}/)
+  assert.match(ratingSource, /aria-label=\{`\$\{i\} sao`\}/)
   assert.match(toast, /aria-live="polite"/)
   assert.match(toast, /role=\{toast\.tone === 'error' \? 'alert' : 'status'\}/)
   assert.match(booking, /role="tablist"/)
@@ -232,7 +316,80 @@ test('dialogs and toasts expose accessible semantics', async () => {
 })
 
 test('ApiClientError preserves the original server message without changing the friendly message', () => {
-  const error = new ApiClientError(400, { code: 'VALIDATION_ERROR', message: 'slot_id không hợp lệ' })
-  assert.equal(error.serverMessage, 'slot_id không hợp lệ')
+  const error = new ApiClientError(400, { code: 'VALIDATION_ERROR', message: 'start_time không hợp lệ' })
+  assert.equal(error.serverMessage, 'start_time không hợp lệ')
   assert.notEqual(error.message, error.serverMessage)
+})
+
+test('maps public expert detail and keeps bio out of the summary contract', () => {
+  const detail = mapExpertDetail({
+    user_id: 'expert/one', full_name: 'BS An', specialty: 'OBSTETRICS', title: 'Bác sĩ', workplace: 'Bệnh viện A',
+    years_of_experience: 9, bio: '  Kinh nghiệm chăm sóc thai kỳ  ', avatar_url: null, average_rating: 4.7, rating_count: 18,
+  })
+  assert.equal(detail.userId, 'expert/one')
+  assert.equal(detail.bio, 'Kinh nghiệm chăm sóc thai kỳ')
+  assert.equal(detail.averageRating, 4.7)
+  assert.equal(detail.ratingCount, 18)
+})
+
+test('public expert detail API is anonymous and encodes the user id', async () => {
+  const api = await readFile(new URL('../src/features/experts/api/experts-api.ts', import.meta.url), 'utf8')
+  assert.match(api, /`\/experts\/\$\{encodeURIComponent\(userId\)\}`/)
+  assert.match(api, /async function detail[^]*authenticated: false/)
+})
+
+test('expert cards separate detail and booking actions for anonymous and authenticated sessions', async () => {
+  const [page, card, dialog] = await Promise.all([
+    readFile(new URL('../src/features/experts/pages/ExpertsPage.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/experts/components/ExpertCard.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/experts/components/ExpertDetailDialog.tsx', import.meta.url), 'utf8'),
+  ])
+  assert.match(card, /className="expert-card__detail-trigger"[^>]*type="button"[^>]*onClick=\{\(\) => onOpen\(expert\.userId\)\}/)
+  assert.match(card, /event\.stopPropagation\(\); onBook\(expert\.userId\)/)
+  assert.match(page, /if \(status === 'loading'\) return/)
+  assert.match(page, /if \(status === 'anonymous'\)[^]*navigate\('\/login', \{ state: \{ from: bookingPath, expertUserId \} \}\)/)
+  assert.match(page, /navigate\(bookingPath, \{ state: \{ expertUserId \} \}\)/)
+  assert.match(dialog, /<AccessibleDialog/)
+  assert.match(dialog, /onClick=\{onBook\}/)
+})
+
+test('selected time can be toggled off and cleared from the booking bar', async () => {
+  const [page, booking] = await Promise.all([
+    readFile(new URL('../src/features/consultation/pages/ConsultationsPage.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/components/BookingPanel.tsx', import.meta.url), 'utf8'),
+  ])
+  assert.match(page, /setSelectedStartTime\(\(current\) => current === startTime \? null : startTime\)/)
+  assert.match(booking, /className="consultation-clear-selection"[^>]*onClick=\{props\.onClearSelection\}>Bỏ chọn<\/button>/)
+  assert.match(page, /onClearSelection=\{\(\) => \{ setSelectedStartTime\(null\)/)
+})
+
+test('history has a protected route and shared controller links in header and account sidebar', async () => {
+  const [router, navbar, account, bookingPage, historyPage] = await Promise.all([
+    readFile(new URL('../src/app/router.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/shared/layouts/AuthenticatedNavbar.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/user/layouts/AccountWorkspace.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/pages/ConsultationsPage.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/pages/ConsultationHistoryPage.tsx', import.meta.url), 'utf8'),
+  ])
+  assert.match(router, /path="app\/consultations\/history" element=\{<ProtectedRoute><AccountWorkspace \/><\/ProtectedRoute>\}[^]*<Route index element=\{<ConsultationHistoryPage \/>\}/)
+  assert.match(navbar, /to="\/app\/consultations\/history"/)
+  assert.match(account, /to: '\/app\/consultations\/history'[^]*label: 'Lịch sử tư vấn'/)
+  assert.match(bookingPage, /<ConsultationHistorySection/)
+  assert.match(historyPage, /<ConsultationHistorySection \/>/)
+  assert.doesNotMatch(historyPage, /<BookingPanel/)
+})
+
+test('ReUI rating is normalized to integer 1 through 5 and reviewed badge is gold', async () => {
+  assert.equal(normalizeConsultationRating(4.6), 5)
+  assert.equal(normalizeConsultationRating(0.2), 1)
+  assert.equal(normalizeConsultationRating(12), 5)
+  const [hook, dialog, styles] = await Promise.all([
+    readFile(new URL('../src/features/consultation/hooks/useConsultationHistory.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/components/ReviewConsultationDialog.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/styles/consultation.css', import.meta.url), 'utf8'),
+  ])
+  assert.match(dialog, /<Rating rating=\{rating\} onRatingChange=\{onRatingChange\} editable/)
+  assert.match(hook, /rating: normalizeConsultationRating\(rating\)/)
+  assert.match(styles, /\.consultation-reviewed \{[^}]*color: var\(--rating-gold\)/)
+  assert.match(dialog, /<Rating rating=\{rating\} onRatingChange=\{onRatingChange\} editable/)
 })

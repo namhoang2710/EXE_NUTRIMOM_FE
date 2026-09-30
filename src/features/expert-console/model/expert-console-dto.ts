@@ -1,5 +1,5 @@
 import type { ExpertSpecialty, ExpertStatus } from '@/features/admin/model/admin-experts'
-import type { ConsultationStatus, SlotStatus } from './expert-console-types'
+import type { ConsultationStatus, ScheduleSlotState } from './expert-console-types'
 
 export interface ExpertProfileDto {
   user_id: string
@@ -20,13 +20,32 @@ export interface ExpertProfileDto {
   updated_at: string
 }
 
-export interface SlotDto {
-  id: string
-  expert_user_id: string
-  slot_date: string
+export interface BookingBriefDto {
+  request_id: string
+  user_display_name: string | null
+}
+
+export interface ScheduleSlotDto {
   start_time: string
   end_time: string
-  status: SlotStatus
+  state: ScheduleSlotState
+  past: boolean
+  booking?: BookingBriefDto
+}
+
+export interface DayScheduleDto {
+  date: string
+  day_off: boolean
+  has_bookings: boolean
+  slots: ScheduleSlotDto[]
+}
+
+export interface DaySummaryDto {
+  date: string
+  open_count: number
+  booked_count: number
+  closed_count: number
+  day_off: boolean
 }
 
 export interface SlotInfoDto {
@@ -39,7 +58,7 @@ export interface SlotInfoDto {
 export interface ConsultationDto {
   id: string
   user_id: string
-  user_display_name: string
+  user_display_name: string | null
   expert_user_id: string | null
   expert_name: string | null
   specialty: ExpertSpecialty
@@ -59,6 +78,7 @@ export interface ReviewDto {
   id: string
   request_id: string
   user_id: string
+  user_display_name?: string | null
   expert_user_id: string
   rating: number
   comment: string | null
@@ -71,11 +91,5 @@ export interface PageDto<T> {
   page_size: number
   total_items: number
   total_pages: number
-}
-
-export interface CreateSlotDto {
-  slot_date: string
-  start_time: string
-  end_time: string
 }
 

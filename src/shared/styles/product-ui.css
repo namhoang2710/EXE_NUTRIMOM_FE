@@ -59,23 +59,25 @@ body { overflow-x: hidden; }
   align-items: center;
   justify-content: center;
   gap: 9px;
-  border: 1px solid color-mix(in srgb, var(--success) 78%, #1c5038);
-  border-radius: 12px;
+  border: 1px solid #22c55e;
+  border-radius: 999px;
   padding: 12px 18px;
-  color: #f8fffb;
-  background: color-mix(in srgb, var(--success) 86%, #1d563a);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--success) 18%, transparent);
+  color: #fff;
+  background: #22c55e;
+  box-shadow: 0 10px 24px rgba(34, 197, 94, .2);
   font: inherit;
   font-size: .95rem;
   font-weight: 750;
   cursor: pointer;
-  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, opacity 200ms ease, transform 200ms ease;
 }
-.nm-stateful-button:hover:not(:disabled) { background: color-mix(in srgb, var(--success) 74%, #16462f); box-shadow: 0 13px 28px color-mix(in srgb, var(--success) 24%, transparent); }
-[data-theme="dark"] .nm-stateful-button { border-color: #3d8a69; background: #2f7356; }
-[data-theme="dark"] .nm-stateful-button:hover:not(:disabled) { background: #286249; }
+.nm-stateful-button:hover:not(:disabled) { border-color: #16a34a; background: #16a34a; box-shadow: 0 0 0 2px rgba(34, 197, 94, .32), 0 13px 28px rgba(34, 197, 94, .26); transform: translateY(-1px); }
+[data-theme="dark"] .nm-stateful-button { border-color: #22c55e; color: #fff; background: #22c55e; }
+[data-theme="dark"] .nm-stateful-button:hover:not(:disabled) { border-color: #4ade80; background: #16a34a; }
 .nm-stateful-button:disabled { cursor: not-allowed; opacity: .78; }
-.nm-stateful-button-icon { display: inline-grid; place-items: center; }
+.nm-stateful-button-content { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.nm-stateful-button-content, .nm-stateful-button-content > span { color: inherit; font-size: inherit; }
+.nm-stateful-button-icon { display: inline-grid; flex: 0 0 auto; place-items: center; overflow: hidden; }
 
 .pregnancy-journey-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; overflow: hidden; border: 1px solid rgba(255,210,204,.22); border-radius: 24px; margin-bottom: 18px; padding: clamp(24px, 5vw, 42px); color: #fffdfd; background: radial-gradient(circle at 83% 47%, rgba(255,203,174,.34) 0%, rgba(224,116,124,.2) 25%, transparent 49%), linear-gradient(112deg, #4d467c 0%, #655080 38%, #92566f 69%, #c96d62 100%); box-shadow: 0 22px 58px rgba(96,55,89,.22); }
 .pregnancy-journey-hero h2 { margin: 6px 0 8px; color: #fff; font-size: clamp(1.65rem, 4vw, 2.45rem); letter-spacing: -.035em; }
