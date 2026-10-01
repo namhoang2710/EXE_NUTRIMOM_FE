@@ -1,5 +1,5 @@
 import { DotsThree, FileText } from '@phosphor-icons/react'
-import type { AdminAppointment, AdminConsultation, AdminReport, AdminUser } from '../model/admin-types'
+import type { AdminAppointment, AdminReport, AdminUser } from '../model/admin-types'
 import { formatAdminDate, getInitials } from '../model/admin-formatters'
 import { StatusBadge } from './AdminUI'
 
@@ -39,28 +39,6 @@ export function AppointmentsTable({ appointments }: { appointments: AdminAppoint
               <td><span className="admin-table-primary">{formatAdminDate(appointment.scheduledAt, true)}</span><span className="admin-cell-subtitle">{appointment.durationMinutes} minutes</span></td>
               <td><StatusBadge value={appointment.status} /></td>
               <td><button className="admin-row-action" type="button" aria-label={`Actions for ${appointment.id}`}><DotsThree size={21} weight="bold" /></button></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-export function ConsultationsTable({ consultations }: { consultations: AdminConsultation[] }) {
-  return (
-    <div className="admin-table-scroll">
-      <table className="admin-table">
-        <thead><tr><th>Consultation</th><th>Patient</th><th>Consultant</th><th>Channel</th><th>Start time</th><th>Status</th></tr></thead>
-        <tbody>
-          {consultations.map((consultation) => (
-            <tr key={consultation.id}>
-              <td><strong className="admin-id">{consultation.id}</strong><span className="admin-cell-subtitle">{consultation.topic}</span></td>
-              <td><span className="admin-table-primary">{consultation.patientName}</span></td>
-              <td>{consultation.consultantName}</td>
-              <td><span className="admin-channel">{consultation.channel.replace('_', ' ')}</span></td>
-              <td>{formatAdminDate(consultation.startedAt, true)}</td>
-              <td><StatusBadge value={consultation.status} /></td>
             </tr>
           ))}
         </tbody>
