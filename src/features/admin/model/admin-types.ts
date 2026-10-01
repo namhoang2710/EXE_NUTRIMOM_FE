@@ -1,7 +1,6 @@
 export type AdminTrend = 'up' | 'down' | 'neutral'
 export type UserStatus = 'ACTIVE' | 'PENDING' | 'SUSPENDED'
 export type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'COMPLETED' | 'CANCELLED'
-export type ConsultationStatus = 'IN_PROGRESS' | 'SCHEDULED' | 'COMPLETED'
 export type ReportStatus = 'READY' | 'PROCESSING' | 'REVIEW_REQUIRED'
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH'
 
@@ -34,16 +33,6 @@ export interface AdminAppointment {
   scheduledAt: string
   durationMinutes: number
   status: AppointmentStatus
-}
-
-export interface AdminConsultation {
-  id: string
-  patientName: string
-  consultantName: string
-  channel: 'VIDEO' | 'CHAT' | 'IN_PERSON'
-  topic: string
-  startedAt: string
-  status: ConsultationStatus
 }
 
 export interface AdminReport {

@@ -1,7 +1,6 @@
 import type {
   AdminActivity,
   AdminAppointment,
-  AdminConsultation,
   AdminDashboardData,
   AdminHealthAlert,
   AdminMetric,
@@ -33,13 +32,6 @@ export const adminAppointments: AdminAppointment[] = [
   { id: 'APT-8289', patientName: 'Le Ngoc Han', specialistName: 'Dr. Vu Hai Nam', specialty: 'Prenatal care', scheduledAt: '2026-09-11T08:30:00+07:00', durationMinutes: 45, status: 'COMPLETED' },
   { id: 'APT-8297', patientName: 'Do My Linh', specialistName: 'Dr. Nguyen Yen', specialty: 'Mental wellness', scheduledAt: '2026-09-11T14:00:00+07:00', durationMinutes: 60, status: 'CONFIRMED' },
   { id: 'APT-8298', patientName: 'Vo Thanh Truc', specialistName: 'Pham Thu Ha', specialty: 'Nutrition', scheduledAt: '2026-09-12T09:00:00+07:00', durationMinutes: 30, status: 'CANCELLED' },
-]
-
-export const adminConsultations: AdminConsultation[] = [
-  { id: 'CON-6391', patientName: 'Nguyen Minh Anh', consultantName: 'Dr. Le Hoang Phat', channel: 'VIDEO', topic: 'Week 28 prenatal follow-up', startedAt: '2026-09-11T09:15:00+07:00', status: 'IN_PROGRESS' },
-  { id: 'CON-6390', patientName: 'Bui Kim Ngan', consultantName: 'Pham Thu Ha', channel: 'CHAT', topic: 'Gestational nutrition review', startedAt: '2026-09-11T08:40:00+07:00', status: 'COMPLETED' },
-  { id: 'CON-6394', patientName: 'Tran Bao Chau', consultantName: 'Dr. Nguyen Yen', channel: 'VIDEO', topic: 'Sleep and anxiety support', startedAt: '2026-09-11T13:30:00+07:00', status: 'SCHEDULED' },
-  { id: 'CON-6388', patientName: 'Do My Linh', consultantName: 'Dr. Vu Hai Nam', channel: 'IN_PERSON', topic: 'Routine prenatal assessment', startedAt: '2026-09-10T15:00:00+07:00', status: 'COMPLETED' },
 ]
 
 export const adminReports: AdminReport[] = [
