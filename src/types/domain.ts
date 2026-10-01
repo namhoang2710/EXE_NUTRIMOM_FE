@@ -106,7 +106,15 @@ export interface BirthPlan { id: string; pregnancy_id: string; companion?: strin
 export interface Guidance { id: string; week?: number | null; topic?: string | null; locale?: string | null; title: string; summary?: string | null; source?: string | null; source_url?: string | null; reviewer?: string | null; reviewed_at?: string | null; next_review_at?: string | null; evidence_level?: string | null; disclaimer?: string | null }
 
 export interface CursorPage<T> { items: T[]; next_cursor?: string | null; has_more?: boolean }
-export interface PartnerDashboard { membership_role: string; pregnancy_overview?: { id: string; status: string; gestational_week: number; gestational_day: number; trimester: number; estimated_due_date?: string | null; days_until_due: number; care_facility_name?: string | null } | null; assigned_tasks?: Array<{ id: string; title: string; description?: string | null; priority: string; due_at?: string | null; status: string }> }
+export interface PartnerActivityEvent {
+  id: string
+  type: 'CONSULTATION_ACCEPTED' | 'CONSULTATION_COMPLETED' | 'CONSULTATION_CANCELLED' | 'CONTACT_COMPLETED' | 'FAMILY_TASK_ASSIGNED' | 'FAMILY_TASK_COMPLETED'
+  title: string
+  actor_user_id?: string
+  pregnancy_id?: string
+  created_at: string
+}
+export interface PartnerDashboard { membership_role: string; pregnancy_overview?: { id: string; status: string; gestational_week: number; gestational_day: number; trimester: number; estimated_due_date?: string | null; days_until_due: number; care_facility_name?: string | null } | null; assigned_tasks?: Array<{ id: string; title: string; description?: string | null; priority: string; due_at?: string | null; status: string }>; activity_feed?: PartnerActivityEvent[] }
 export interface MedicalRecord {
   id: string; pregnancy_id: string; category: string; title: string; occurred_at: string; facility_name?: string | null; clinician_name?: string | null; summary?: string | null; note?: string | null; attachment_count: number; attachments?: Array<{ id: string; file_name: string; mime_type: string; size_bytes: number; status: string }>; version: number
 }

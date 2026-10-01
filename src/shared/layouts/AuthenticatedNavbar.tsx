@@ -70,6 +70,7 @@ export function AuthenticatedNavbar() {
   return <header className={`nm-app-header${headerVisible ? '' : ' is-hidden'}`}><nav className="nm-floating-nav" aria-label="Điều hướng ứng dụng"><Link className="nm-app-brand" to="/app"><img src="/nutrimom-logo.png" alt="" width="39" height="39" /><span>NutriMom</span></Link>
     <div className={`nm-app-links${menuOpen ? ' is-open' : ''}`} id="nm-app-links-mobile">
       <NavLink to="/app" end onClick={closeNavigation}>Trang chủ</NavLink>
+      <NavLink to="/app/family" onClick={closeNavigation}>Gia đình</NavLink>
       <NavLink to="/app/knowledge" onClick={closeNavigation}>Kiến thức</NavLink>
       <NavLink to="/app/community" onClick={closeNavigation}>Cộng đồng</NavLink>
       <NavLink to="/app/pricing#pricing" onClick={closeNavigation}>Bảng giá</NavLink>
