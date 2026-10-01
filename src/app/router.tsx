@@ -50,6 +50,7 @@ const ExpertDashboardPage = lazy(() => import('@/features/expert-console/pages/E
 const AccountHealthPage = lazy(() => import('@/features/user/pages/AccountHealthPage').then((module) => ({ default: module.AccountHealthPage })))
 const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecordsPage').then((module) => ({ default: module.AccountRecordsPage })))
 const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
+const FamilyPage = lazy(() => import('@/features/family/pages/FamilyPage').then((module) => ({ default: module.FamilyPage })))
 
 function AdminRouteFallback() {
   return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
@@ -98,6 +99,7 @@ export function AppRouter() {
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="family" element={<Suspense fallback={<UserRouteFallback />}><FamilyPage /></Suspense>} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
         <Route path="health" element={<Navigate to="/app/profile/health" replace />} />
         <Route path="care" element={<Navigate to="/app/profile/care" replace />} />

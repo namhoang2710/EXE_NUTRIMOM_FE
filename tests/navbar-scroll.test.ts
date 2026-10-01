@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { nextNavbarScrollState } from '../src/shared/layouts/navbar-scroll.ts'
 
@@ -18,4 +19,16 @@ test('always shows near the top and while a menu is open', () => {
   const hidden = { lastY: 200, movement: 0, visible: false }
   assert.equal(nextNavbarScrollState(hidden, 20, false).visible, true)
   assert.equal(nextNavbarScrollState(hidden, 230, true).visible, true)
+})
+
+test('user header uses a responsive clip-path animation without replacing real navigation links', async () => {
+  const tabs = await readFile(new URL('../src/components/ui/animated-tabs.tsx', import.meta.url), 'utf8')
+  const navbar = await readFile(new URL('../src/shared/layouts/AuthenticatedNavbar.tsx', import.meta.url), 'utf8')
+  const styles = await readFile(new URL('../src/shared/styles/authenticated.css', import.meta.url), 'utf8')
+  assert.match(tabs, /clipElement\.style\.clipPath/)
+  assert.match(tabs, /ResizeObserver/)
+  assert.match(navbar, /<AnimatedTabs tabs=\{animatedTabs\}/)
+  assert.match(navbar, /<NavLink to="\/app"/)
+  assert.match(styles, /transition: clip-path 360ms/)
+  assert.match(styles, /@media \(max-width: 1100px\).*\.nm-animated-tabs-clip \{ display: none; \}/)
 })
