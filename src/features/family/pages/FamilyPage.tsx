@@ -1,15 +1,17 @@
 import { ClipboardText, Plus, UsersThree, Waveform } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Tabs } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { StatusMessage } from '@/shared/components/StatusMessage'
-import { FeaturePage } from '@/shared/layouts/FeaturePage'
 import { familyApi } from '../api/family-api'
 import { ActivityTimeline } from '../components/ActivityTimeline'
 import { FamilyGroupPanel } from '../components/FamilyGroupPanel'
+import { FamilyLoadingState } from '../components/FamilyLoadingState'
 import { FamilyTasksPanel } from '../components/FamilyTasksPanel'
 import { AcceptInvitationDialog } from '../components/InvitationDialogs'
 import { familyErrorMessage, isFamilyError } from '../model/family-errors'
+import { waitForFamilyLoading } from '../model/family-loading'
 import type { FamilyGroup, FamilyMember } from '../model/family-types'
 import '../styles/family.css'
 
@@ -41,12 +43,16 @@ export function FamilyPage() {
   const alive = useRef(true)
 
   const load = useCallback(async () => {
+    const startedAt = Date.now()
     setLoading(true); setError('')
     try {
       const result = await loadFamilyBootstrap()
       if (alive.current) { setGroups(result.groups); setMembers(result.members) }
     } catch (reason) { if (alive.current) setError(familyErrorMessage(reason)) }
-    finally { if (alive.current) setLoading(false) }
+    finally {
+      await waitForFamilyLoading(startedAt)
+      if (alive.current) setLoading(false)
+    }
   }, [])
 
   useEffect(() => { alive.current = true; void load(); return () => { alive.current = false } }, [load])
@@ -77,15 +83,42 @@ export function FamilyPage() {
     catch (reason) { setError(familyErrorMessage(reason)) }
   }
 
-  return <FeaturePage><main className="family-page">
-    <header className="family-page-heading"><div><p className="welcome-kicker">Gia đình đồng hành</p><h1>Family Hub</h1><p>Chia sẻ đúng thông tin, phối hợp công việc và theo dõi hoạt động của gia đình.</p></div>{group && <div className="family-role-badge"><UsersThree size={20} weight="duotone" aria-hidden="true" />{isOwner ? 'Chủ nhóm' : 'Thành viên'}</div>}</header>
-    <div className="family-announcer" aria-live="polite">{success && <StatusMessage tone="success">{success}</StatusMessage>}</div>
-    {loading ? <div className="family-page-skeleton" aria-busy="true" aria-label="Đang tải Family Hub"><span /><span /><span /></div> : !group ? <section className="family-onboarding" aria-labelledby="family-empty-title"><div><UsersThree size={44} weight="duotone" aria-hidden="true" /><h2 id="family-empty-title">Bắt đầu cùng gia đình</h2><p>Bạn có thể tạo nhóm cho thai kỳ đang hoạt động hoặc tham gia bằng token được mời.</p></div><div className="family-onboarding-actions"><article><Plus size={28} weight="duotone" aria-hidden="true" /><h3>Tạo nhóm gia đình</h3><p>Dành cho chủ thai kỳ đang hoạt động.</p><button className="primary-button" type="button" disabled={creating} onClick={() => void createGroup()}>{creating ? 'Đang tạo...' : 'Tạo nhóm'}</button></article><article><Waveform size={28} weight="duotone" aria-hidden="true" /><h3>Nhập token lời mời</h3><p>Dành cho tài khoản được người thân mời.</p><button className="secondary-button" type="button" onClick={() => setAcceptOpen(true)}>Nhập token</button></article></div>{error && <StatusMessage tone="error">{error}</StatusMessage>}{createErrorCode === 'ACTIVE_PREGNANCY_NOT_FOUND' && <Link className="text-link" to="/app/profile/health">Tạo hồ sơ thai kỳ</Link>}<AcceptInvitationDialog open={acceptOpen} onClose={() => setAcceptOpen(false)} onAccepted={() => { setSuccess('Bạn đã tham gia nhóm gia đình.'); void load() }} /></section> : <>
-      <nav className="family-tabs" aria-label="Khu vực Family Hub">{([{ id: 'group', label: 'Nhóm gia đình', icon: UsersThree }, { id: 'tasks', label: 'Việc cần làm', icon: ClipboardText }, { id: 'activity', label: 'Hoạt động', icon: Waveform }] as const).map(({ id, label, icon: Icon }) => <button key={id} type="button" className={activeTab === id ? 'is-active' : ''} aria-current={activeTab === id ? 'page' : undefined} onClick={() => chooseTab(id)}><Icon size={19} weight="duotone" aria-hidden="true" />{label}</button>)}</nav>
-      {activeTab === 'group' && <FamilyGroupPanel group={group} members={members} currentUserId={currentUserId} loading={false} error={error} onReload={() => void reloadMembers()} onMembersChange={setMembers} />}
-      {activeTab === 'tasks' && <FamilyTasksPanel isOwner={isOwner} canUseTasks={canUseTasks} members={members} />}
-      {activeTab === 'activity' && <ActivityTimeline enabled={canViewActivity} members={members} />}
-    </>}
-  </main></FeaturePage>
+  const tabs = [
+    {
+      value: 'group',
+      label: 'Nhóm gia đình',
+      icon: <UsersThree size={19} weight="duotone" aria-hidden="true" />,
+      content: <FamilyGroupPanel group={group!} members={members} currentUserId={currentUserId} loading={false} error={error} onReload={() => void reloadMembers()} onMembersChange={setMembers} />,
+    },
+    {
+      value: 'tasks',
+      label: 'Việc cần làm',
+      icon: <ClipboardText size={19} weight="duotone" aria-hidden="true" />,
+      content: <FamilyTasksPanel isOwner={isOwner} canUseTasks={activeTab === 'tasks' && canUseTasks} members={members} />,
+    },
+    {
+      value: 'activity',
+      label: 'Hoạt động',
+      icon: <Waveform size={19} weight="duotone" aria-hidden="true" />,
+      content: <ActivityTimeline enabled={activeTab === 'activity' && canViewActivity} members={members} />,
+    },
+  ] as const
+
+  return <main className="family-page">
+    <header className="family-hero">
+      <div className="family-hero-inner">
+        <h1 className="sr-only">Family Hub</h1>
+        <img src="/banner_logos_family_hubs.png" width="570" height="165" alt="Nutri Mom Family Hubs" fetchPriority="high" />
+        <div className="family-hero-caption">
+          <p>Chia sẻ đúng thông tin, phối hợp công việc và theo dõi hoạt động của gia đình.</p>
+          {group && <div className="family-role-badge"><UsersThree size={20} weight="duotone" aria-hidden="true" />{isOwner ? 'Chủ nhóm' : 'Thành viên'}</div>}
+        </div>
+      </div>
+    </header>
+    <div className="family-page-body">
+      <div className="family-announcer" aria-live="polite">{success && <StatusMessage tone="success">{success}</StatusMessage>}</div>
+      {loading ? <FamilyLoadingState label="Đang tải nhóm gia đình" description="NutriMom đang đồng bộ thành viên và quyền chia sẻ." /> : <div className="family-content-ready">{!group ? <section className="family-onboarding" aria-labelledby="family-empty-title"><div><UsersThree size={44} weight="duotone" aria-hidden="true" /><h2 id="family-empty-title">Bắt đầu cùng gia đình</h2><p>Bạn có thể tạo nhóm cho thai kỳ đang hoạt động hoặc tham gia bằng token được mời.</p></div><div className="family-onboarding-actions"><article><Plus size={28} weight="duotone" aria-hidden="true" /><h3>Tạo nhóm gia đình</h3><p>Dành cho chủ thai kỳ đang hoạt động.</p><button className="primary-button" type="button" disabled={creating} onClick={() => void createGroup()}>{creating ? 'Đang tạo...' : 'Tạo nhóm'}</button></article><article><Waveform size={28} weight="duotone" aria-hidden="true" /><h3>Nhập token lời mời</h3><p>Dành cho tài khoản được người thân mời.</p><button className="secondary-button" type="button" onClick={() => setAcceptOpen(true)}>Nhập token</button></article></div>{error && <StatusMessage tone="error">{error}</StatusMessage>}{createErrorCode === 'ACTIVE_PREGNANCY_NOT_FOUND' && <Link className="text-link" to="/app/profile/health">Tạo hồ sơ thai kỳ</Link>}<AcceptInvitationDialog open={acceptOpen} onClose={() => setAcceptOpen(false)} onAccepted={() => { setSuccess('Bạn đã tham gia nhóm gia đình.'); void load() }} /></section> : <Tabs items={tabs} value={activeTab} onValueChange={chooseTab} ariaLabel="Khu vực Family Hub" idPrefix="family" className="family-tabs" />}</div>}
+    </div>
+  </main>
 }
 

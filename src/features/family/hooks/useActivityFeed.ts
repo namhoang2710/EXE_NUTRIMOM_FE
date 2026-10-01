@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { familyApi } from '../api/family-api'
 import { familyErrorMessage, isFamilyError } from '../model/family-errors'
+import { waitForFamilyLoading } from '../model/family-loading'
 import type { ActivityEvent } from '../model/family-types'
 import { activityFeedNextState } from '../model/family-requests'
 
@@ -27,6 +28,7 @@ export function useActivityFeed(enabled: boolean) {
 
   const load = useCallback(async (cursor?: string, reset = false) => {
     if (!enabled || busy.current) return
+    const startedAt = Date.now()
     busy.current = true
     const currentRequest = ++requestId.current
     if (reset) setLoading(true)
@@ -47,11 +49,12 @@ export function useActivityFeed(enabled: boolean) {
       }
       setError(familyErrorMessage(reason))
     } finally {
+      if (reset) await waitForFamilyLoading(startedAt)
       if (requestId.current === currentRequest) {
         setLoading(false)
         setLoadingMore(false)
+        busy.current = false
       }
-      busy.current = false
     }
   }, [enabled])
 

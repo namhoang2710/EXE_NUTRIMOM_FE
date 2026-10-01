@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatedSelect, type AnimatedSelectOption } from '@/components/ui/animated-select'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { familyApi } from '../api/family-api'
 import { familyErrorMessage, isFamilyError } from '../model/family-errors'
 import { memberLabel, taskPriorityLabels, toIsoTimestamp } from '../model/family-formatters'
 import type { FamilyMember, FamilyTask, FamilyTaskPriority } from '../model/family-types'
+
+const priorityOptions: AnimatedSelectOption<FamilyTaskPriority>[] = (Object.keys(taskPriorityLabels) as FamilyTaskPriority[]).map((value) => ({ value, label: taskPriorityLabels[value] }))
 
 interface Props {
   open: boolean
@@ -31,6 +34,10 @@ export function TaskEditorDialog({ open, task, members, onClose, onSaved, onConf
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
+  const assigneeOptions: AnimatedSelectOption<string>[] = [
+    { value: '', label: 'Chưa giao' },
+    ...members.map((member) => ({ value: member.id, label: memberLabel(member) })),
+  ]
 
   useEffect(() => {
     if (!open) return
@@ -72,8 +79,8 @@ export function TaskEditorDialog({ open, task, members, onClose, onSaved, onConf
     <form className="family-form" onSubmit={(event) => void submit(event)}>
       <label className="family-field"><span>Tiêu đề</span><input ref={titleRef} value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} required /><small>{title.length}/200</small></label>
       <label className="family-field"><span>Mô tả</span><textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
-      <div className="family-form-row"><label className="family-field"><span>Ưu tiên</span><select value={priority} onChange={(event) => setPriority(event.target.value as FamilyTaskPriority)}>{(Object.keys(taskPriorityLabels) as FamilyTaskPriority[]).map((value) => <option key={value} value={value}>{taskPriorityLabels[value]}</option>)}</select></label><label className="family-field"><span>Thời hạn</span><input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></label></div>
-      <label className="family-field"><span>Người phụ trách</span><select value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}><option value="">Chưa giao</option>{members.map((member) => <option key={member.id} value={member.id}>{memberLabel(member)}</option>)}</select></label>
+      <div className="family-form-row"><AnimatedSelect className="family-field" label="Ưu tiên" value={priority} options={priorityOptions} onValueChange={setPriority} /><label className="family-field"><span>Thời hạn</span><input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></label></div>
+      <AnimatedSelect className="family-field" label="Người phụ trách" value={assigneeId} options={assigneeOptions} onValueChange={setAssigneeId} />
       {error && <StatusMessage tone="error">{error}</StatusMessage>}
       <div className="family-dialog-actions"><button className="secondary-button" type="button" disabled={busy} onClick={onClose}>Hủy</button><button className="primary-button" type="submit" disabled={busy}>{busy ? 'Đang lưu...' : task ? 'Lưu thay đổi' : 'Tạo việc'}</button></div>
     </form>

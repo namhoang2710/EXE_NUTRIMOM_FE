@@ -1,5 +1,7 @@
 import { CheckCircle, Copy, LinkSimple } from '@phosphor-icons/react'
 import { useRef, useState } from 'react'
+import { AnimatedSelect, type AnimatedSelectOption } from '@/components/ui/animated-select'
+import { AnimatedCardStatusList, type CardStatusItem } from '@/components/ui/card-status-list'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { familyApi } from '../api/family-api'
@@ -8,7 +10,10 @@ import { formatVietnamDateTime, relationshipLabels, scopeLabels } from '../model
 import type { FamilyInvitation, FamilyRelationship, FamilyScope } from '../model/family-types'
 
 const relationships = Object.keys(relationshipLabels) as FamilyRelationship[]
+const relationshipOptions: AnimatedSelectOption<FamilyRelationship>[] = relationships.map((value) => ({ value, label: relationshipLabels[value] }))
 const scopes = Object.keys(scopeLabels) as FamilyScope[]
+const comingSoonScopes = new Set<FamilyScope>(['SHARED_CALENDAR', 'ALERTS', 'MEDICAL_RECORDS'])
+const scopeCards: CardStatusItem<FamilyScope>[] = scopes.map((scope) => ({ id: scope, title: scopeLabels[scope], comingSoon: comingSoonScopes.has(scope) }))
 
 interface InviteDialogProps {
   open: boolean
@@ -56,8 +61,8 @@ export function InviteDialog({ open, onClose }: InviteDialogProps) {
     {result ? <div className="family-token-success" role="status"><CheckCircle size={38} weight="fill" aria-hidden="true" /><div className="family-token-box"><code>{result.token}</code><button type="button" className="secondary-button" onClick={() => void copyToken()}><Copy size={18} aria-hidden="true" />{copied ? 'Đã sao chép' : 'Sao chép'}</button></div><p>Hết hạn: {formatVietnamDateTime(result.expires_at)}</p>{error && <StatusMessage tone="error">{error}</StatusMessage>}</div> : <form className="family-form" onSubmit={(event) => void submit(event)}>
       <fieldset className="family-segmented"><legend>Cách nhận lời mời</legend><label><input type="radio" name="target-type" checked={targetType === 'phone'} onChange={() => { setTargetType('phone'); setTarget('') }} />Số điện thoại</label><label><input type="radio" name="target-type" checked={targetType === 'email'} onChange={() => { setTargetType('email'); setTarget('') }} />Email</label></fieldset>
       <label className="family-field"><span>{targetType === 'phone' ? 'Số điện thoại' : 'Email'}</span><input ref={targetRef} type={targetType === 'phone' ? 'tel' : 'email'} value={target} onChange={(event) => setTarget(event.target.value)} autoComplete={targetType === 'phone' ? 'tel' : 'email'} /></label>
-      <label className="family-field"><span>Mối quan hệ</span><select value={relationship} onChange={(event) => setRelationship(event.target.value as FamilyRelationship)}>{relationships.map((value) => <option key={value} value={value}>{relationshipLabels[value]}</option>)}</select></label>
-      <fieldset className="family-check-grid"><legend>Quyền chia sẻ</legend>{scopes.map((scope) => <label key={scope}><input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => setSelectedScopes((current) => current.includes(scope) ? current.filter((value) => value !== scope) : [...current, scope])} />{scopeLabels[scope]}</label>)}</fieldset>
+      <AnimatedSelect className="family-field" label="Mối quan hệ" value={relationship} options={relationshipOptions} onValueChange={setRelationship} />
+      <AnimatedCardStatusList title="Quyền chia sẻ" cards={scopeCards} selectedIds={selectedScopes} onSelectionChange={setSelectedScopes} disabled={busy} />
       <p className="family-helper">Lịch dùng chung, cảnh báo và chia sẻ hồ sơ y tế đang được hoàn thiện.</p>
       <label className="family-field"><span>Hiệu lực (giờ)</span><input type="number" min={1} max={168} value={expires} onChange={(event) => setExpires(Number(event.target.value))} /></label>
       {error && <StatusMessage tone="error">{error}</StatusMessage>}

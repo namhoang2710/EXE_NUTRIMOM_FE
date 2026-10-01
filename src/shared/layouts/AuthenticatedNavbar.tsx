@@ -1,6 +1,7 @@
 import { CaretDown, List, X } from '@phosphor-icons/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatedTabs, type AnimatedTab } from '@/components/ui/animated-tabs'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { nextNavbarScrollState, type NavbarScrollState } from './navbar-scroll'
 
@@ -66,9 +67,25 @@ export function AuthenticatedNavbar() {
   }
   const name = profile?.display_name || user?.displayName || 'Thành viên NutriMom'
   const guideActive = location.pathname === '/app/contact' || location.pathname === '/app/experts' || location.pathname.startsWith('/app/consultations')
+  const activeNavigation = guideActive ? 'guide'
+    : location.pathname === '/app' ? 'home'
+      : location.pathname.startsWith('/app/family') ? 'family'
+        : location.pathname.startsWith('/app/knowledge') ? 'knowledge'
+          : location.pathname.startsWith('/app/community') ? 'community'
+            : location.pathname.startsWith('/app/pricing') ? 'pricing'
+              : undefined
+  const animatedTabs = useMemo<AnimatedTab[]>(() => [
+    { value: 'home', label: 'Trang chủ' },
+    { value: 'family', label: 'Gia đình' },
+    { value: 'knowledge', label: 'Kiến thức' },
+    { value: 'community', label: 'Cộng đồng' },
+    { value: 'pricing', label: 'Bảng giá' },
+    { value: 'guide', label: 'Hướng dẫn khách hàng', suffix: <CaretDown size={15} className={guideOpen ? 'is-rotated' : ''} /> },
+  ], [guideOpen])
   function closeNavigation() { setMenuOpen(false); setGuideOpen(false) }
   return <header className={`nm-app-header${headerVisible ? '' : ' is-hidden'}`}><nav className="nm-floating-nav" aria-label="Điều hướng ứng dụng"><Link className="nm-app-brand" to="/app"><img src="/nutrimom-logo.png" alt="" width="39" height="39" /><span>NutriMom</span></Link>
     <div className={`nm-app-links${menuOpen ? ' is-open' : ''}`} id="nm-app-links-mobile">
+      <AnimatedTabs tabs={animatedTabs} value={guideOpen ? 'guide' : activeNavigation} />
       <NavLink to="/app" end onClick={closeNavigation}>Trang chủ</NavLink>
       <NavLink to="/app/family" onClick={closeNavigation}>Gia đình</NavLink>
       <NavLink to="/app/knowledge" onClick={closeNavigation}>Kiến thức</NavLink>

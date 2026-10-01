@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AnimatedCardStatusList, type CardStatusItem } from '@/components/ui/card-status-list'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { familyApi } from '../api/family-api'
@@ -7,6 +8,8 @@ import { memberLabel, scopeLabels } from '../model/family-formatters'
 import type { FamilyMember, FamilyScope } from '../model/family-types'
 
 const allScopes = Object.keys(scopeLabels) as FamilyScope[]
+const comingSoonScopes = new Set<FamilyScope>(['SHARED_CALENDAR', 'ALERTS', 'MEDICAL_RECORDS'])
+const scopeCards: CardStatusItem<FamilyScope>[] = allScopes.map((scope) => ({ id: scope, title: scopeLabels[scope], comingSoon: comingSoonScopes.has(scope) }))
 
 interface Props { member: FamilyMember | null; onClose: () => void; onSaved: (member: FamilyMember) => void; onConflict: () => void }
 
@@ -26,6 +29,6 @@ export function MemberScopeDialog({ member, onClose, onSaved, onConflict }: Prop
     } finally { setBusy(false) }
   }
   return <AccessibleDialog open={Boolean(member)} title="Chỉnh quyền thành viên" description={member ? memberLabel(member) : undefined} onClose={onClose} busy={busy} className="family-dialog" footer={<><button className="secondary-button" type="button" disabled={busy} onClick={onClose}>Hủy</button><button className="primary-button" type="button" disabled={busy} onClick={() => void save()}>{busy ? 'Đang lưu...' : 'Lưu quyền'}</button></>}>
-    <fieldset className="family-check-grid"><legend>Phạm vi chia sẻ</legend>{allScopes.map((scope) => <label key={scope}><input type="checkbox" checked={scopes.includes(scope)} onChange={() => setScopes((current) => current.includes(scope) ? current.filter((item) => item !== scope) : [...current, scope])} />{scopeLabels[scope]}</label>)}</fieldset><p className="family-helper">Một số quyền dành cho tính năng đang được hoàn thiện.</p>{error && <StatusMessage tone="error">{error}</StatusMessage>}
+    <AnimatedCardStatusList title="Phạm vi chia sẻ" cards={scopeCards} selectedIds={scopes} onSelectionChange={setScopes} disabled={busy} /><p className="family-helper">Một số quyền dành cho tính năng đang được hoàn thiện.</p>{error && <StatusMessage tone="error">{error}</StatusMessage>}
   </AccessibleDialog>
 }
