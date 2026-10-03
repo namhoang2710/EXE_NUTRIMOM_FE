@@ -1,6 +1,7 @@
 import { CalendarBlank, CheckCircle, CircleNotch, Clock, UserCircle } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRef, useState } from 'react'
+import { VideoRoomLink } from '@/features/consultation-video/components/VideoRoomLink'
 import { runAsyncAction } from '@/shared/model/async-action'
 import { expertConsoleApi } from '../api/expert-console-api'
 import { useExpertResource } from '../hooks/useExpertResource'
@@ -106,7 +107,7 @@ export function SchedulePanel({ search, setParams, notify, onMutate, refreshToke
                   <small>{specialtyLabels[item.specialty]} | {item.assignmentType === 'DIRECT' ? 'Đặt trực tiếp' : 'Yêu cầu ngẫu nhiên'}{item.slot ? ` | ${formatTime(item.slot.startTime)} - ${formatTime(item.slot.endTime)}` : ''}</small>
                 </div>
                 {item.status === 'PENDING_CONSULTATION'
-                  ? <button className="expert-button expert-complete-trigger" type="button" disabled={completingId === item.id} onClick={() => setConfirming(item)}><CheckCircle size={17} /> {completingId === item.id ? 'Đang hoàn tất...' : 'Hoàn tất'}</button>
+                  ? <div className="expert-video-actions"><VideoRoomLink id={item.id} expert className="expert-button" /><button className="expert-button expert-complete-trigger" type="button" disabled={completingId === item.id} onClick={() => setConfirming(item)}><CheckCircle size={17} /> {completingId === item.id ? 'Đang hoàn tất...' : 'Hoàn tất'}</button></div>
                   : <Clock className="expert-row-icon" size={20} />}
               </motion.article>
             ))}

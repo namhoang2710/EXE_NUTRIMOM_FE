@@ -9,7 +9,7 @@ export function AssistantWidget() {
   const assistant = useAssistant()
   const { pathname } = useLocation()
   const launcher = useRef<HTMLButtonElement>(null)
-  if (!assistant.enabled || !pathname.startsWith('/app') || pathname.startsWith('/app/assistant')) return null
+  if (!assistant.enabled || !pathname.startsWith('/app') || pathname.startsWith('/app/assistant') || /^\/app\/consultations\/[^/]+\/call\/?$/.test(pathname)) return null
   function close() { assistant.setOpen(false); launcher.current?.focus() }
   return <div className="nm-assistant-widget">
     {assistant.open && <div id="nutrimom-assistant-window" className="nm-assistant-window" role="dialog" aria-modal="false" aria-label="Trợ lý NutriMom" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}><AssistantPanel onClose={close} /></div>}

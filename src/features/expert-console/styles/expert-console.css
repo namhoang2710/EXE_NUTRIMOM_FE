@@ -315,6 +315,9 @@
   .expert-profile-dialog-facts { grid-template-columns: 1fr; }
 }
 
+.expert-video-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.expert-video-actions a { text-decoration: none; white-space: nowrap; }
+
 @media (prefers-reduced-motion: reduce) {
   .expert-sidebar-profile { transition: none; }
   .expert-shell *, .expert-shell *::before, .expert-shell *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }

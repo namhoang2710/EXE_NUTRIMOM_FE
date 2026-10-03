@@ -56,6 +56,7 @@ const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecor
 const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
 const FamilyPage = lazy(() => import('@/features/family/pages/FamilyPage').then((module) => ({ default: module.FamilyPage })))
 const AssistantPage = lazy(() => import('@/features/assistant/pages/AssistantPage').then((module) => ({ default: module.AssistantPage })))
+const ConsultationCallPage = lazy(() => import('@/features/consultation-video/pages/ConsultationCallPage').then((module) => ({ default: module.ConsultationCallPage })))
 
 function AdminRouteFallback() {
   return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
@@ -87,6 +88,8 @@ export function AppRouter() {
 
       <Route path="payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
       <Route path="payment/cancel" element={<ProtectedRoute><PaymentCancelPage /></ProtectedRoute>} />
+      <Route path="app/consultations/:requestId/call" element={<ProtectedRoute><Suspense fallback={<UserRouteFallback />}><ConsultationCallPage /></Suspense></ProtectedRoute>} />
+      <Route path="expert/consultations/:requestId/call" element={<ExpertOnly><Suspense fallback={<UserRouteFallback />}><ConsultationCallPage /></Suspense></ExpertOnly>} />
 
       <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
       <Route path="onboarding/pregnancy" element={<Navigate to="/app/profile/health" replace />} />
