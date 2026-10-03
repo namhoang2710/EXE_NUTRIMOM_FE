@@ -72,8 +72,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return { newUser: result.newUser, user: result.session.user }
   }, [acceptSession])
   const requestMagicLink = useCallback((email: string) => authApi.requestMagicLink(email), [])
-  const verifyMagicLink = useCallback(async (token: string) => {
-    const session = await authApi.verifyMagicLink(token)
+  const verifyMagicLink = useCallback(async (tokenOrCode: string, email?: string) => {
+    const session = await authApi.verifyMagicLink(tokenOrCode, undefined, email)
     return acceptSession(session.user)
   }, [acceptSession])
   const refresh = useCallback(async () => { await acceptSession((await authApi.refresh()).user) }, [acceptSession])

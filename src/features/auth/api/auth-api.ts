@@ -149,7 +149,7 @@ async function logout() {
 }
 
 async function requestMagicLink(email: string, deviceId?: string) {
-  return apiClient.request<{ sent: boolean; message: string; debug_link?: string }>('/auth/magic-link/request', {
+  return apiClient.request<{ sent: boolean; message: string; debug_link?: string; debug_code?: string }>('/auth/magic-link/request', {
     method: 'POST',
     authenticated: false,
     body: JSON.stringify({
@@ -159,12 +159,14 @@ async function requestMagicLink(email: string, deviceId?: string) {
   })
 }
 
-async function verifyMagicLink(token: string, deviceId?: string) {
+async function verifyMagicLink(tokenOrCode: string, deviceId?: string, email?: string) {
   const response = await apiClient.request<AuthResponseDto>('/auth/magic-link/verify', {
     method: 'POST',
     authenticated: false,
     body: JSON.stringify({
-      token: token.trim(),
+      token: tokenOrCode.trim(),
+      code: tokenOrCode.trim(),
+      email: email ? email.trim() : undefined,
       device_id: deviceId || getDeviceId(),
     }),
   })
