@@ -173,12 +173,13 @@ async function verifyMagicLink(tokenOrCode: string, deviceId?: string, email?: s
   return saveApiSession(response)
 }
 
-async function activateAccount(token: string, deviceId?: string) {
+async function activateAccount(token: string, email?: string, deviceId?: string) {
   const response = await apiClient.request<AuthResponseDto>('/auth/activate', {
     method: 'POST',
     authenticated: false,
     body: JSON.stringify({
       token: token.trim(),
+      email: email ? email.trim() : undefined,
       device_id: deviceId || getDeviceId(),
     }),
   })

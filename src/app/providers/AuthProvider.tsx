@@ -60,8 +60,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       await acceptSession(session.user)
     }
   }, [acceptSession])
-  const activateAccount = useCallback(async (token: string) => {
-    const session = await authApi.activateAccount(token)
+  const activateAccount = useCallback(async (token: string, email?: string) => {
+    const session = await authApi.activateAccount(token, email)
     return acceptSession(session.user)
   }, [acceptSession])
   const resendActivation = useCallback((email: string) => authApi.resendActivation(email), [])

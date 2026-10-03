@@ -1,14 +1,16 @@
 import { ArrowRight, EnvelopeSimple, Phone, User } from '@phosphor-icons/react'
-import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
 import { StatusMessage } from '@/shared/components/StatusMessage'
+import { OtpInput } from '@/shared/components/OtpInput'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
 import { isValidEmail, isValidPhone, isValidRegisterPassword } from '../model/auth-validation'
+import { authenticatedDestination } from '../model/role-routing'
 
 interface RegisterForm {
   displayName: string
@@ -34,20 +36,56 @@ export function RegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [registeredSuccess, setRegisteredSuccess] = useState(false)
+
+  // Activation OTP state
+  const [otpCode, setOtpCode] = useState('')
+  const [activating, setActivating] = useState(false)
+  const [activationError, setActivationError] = useState('')
+  const [countdown, setCountdown] = useState(0)
   const [resending, setResending] = useState(false)
   const [resendStatus, setResendStatus] = useState<string | null>(null)
-  const { register, resendActivation } = useAuth()
+
+  const { register, resendActivation, activateAccount } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (countdown <= 0) return
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [countdown])
 
   async function handleResend() {
-    if (!form.email || resending) return
+    if (!form.email || resending || countdown > 0) return
     setResending(true)
+    setActivationError('')
     try {
       const res = await resendActivation(form.email.trim())
-      setResendStatus(res.message || 'Đã gửi lại email kích hoạt thành công!')
+      setResendStatus(res.message || 'Đã gửi lại mã kích hoạt thành công!')
+      setCountdown(45)
     } catch {
-      setResendStatus('Không thể gửi lại email. Vui lòng thử lại sau.')
+      setResendStatus('Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
     } finally {
       setResending(false)
+    }
+  }
+
+  async function handleActivate(codeToVerify: string) {
+    if (codeToVerify.length < 6 || activating) return
+    setActivating(true)
+    setActivationError('')
+    try {
+      const user = await activateAccount(codeToVerify, form.email.trim())
+      navigate(authenticatedDestination(user), { replace: true })
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setActivationError(err.message || 'Mã xác thực kích hoạt không chính xác hoặc đã hết hạn.')
+      } else {
+        setActivationError('Kích hoạt tài khoản thất bại. Vui lòng thử lại.')
+      }
+    } finally {
+      setActivating(false)
     }
   }
 
@@ -99,6 +137,8 @@ export function RegisterPage() {
         acceptedTerms: form.accepted,
       })
       setRegisteredSuccess(true)
+      setCountdown(45)
+      setOtpCode('')
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
         ? requestError.message
@@ -115,7 +155,7 @@ export function RegisterPage() {
     return (
       <AuthLayout
         title="Kích hoạt tài khoản"
-        subtitle="Vui lòng kiểm tra email để hoàn tất kích hoạt"
+        subtitle="Nhập mã xác thực 6 chữ số đã gửi về email để hoàn tất kích hoạt"
         panelVariant="register"
         showHomeLink
       >
@@ -133,22 +173,66 @@ export function RegisterPage() {
           }}>
             <EnvelopeSimple size={36} weight="duotone" />
           </div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>
-            Vui lòng kích hoạt tài khoản
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
+            Xác thực tài khoản NutriMom
           </h3>
-          <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, marginBottom: 24 }}>
-            Chúng tôi đã gửi liên kết kích hoạt đến email <strong>{form.email}</strong>.<br />
-            Bạn <strong>cần nhấp vào liên kết trong email</strong> để kích hoạt tài khoản thì mới có thể đăng nhập vào hệ thống.
+          <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 6px' }}>
+            Mã kích hoạt gồm 6 chữ số đã được gửi tới:
           </p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+            <span style={{ fontWeight: 600, color: '#0f172a', fontSize: 15 }}>{form.email}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setRegisteredSuccess(false)
+                setOtpCode('')
+                setActivationError('')
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#0d9488',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: 0,
+              }}
+            >
+              Đổi thông tin
+            </button>
+          </div>
 
-          <Link
-            to="/login"
-            className="primary-button"
-            style={{ width: '100%', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+          {activationError && (
+            <div style={{ marginBottom: 16 }}>
+              <StatusMessage tone="error">{activationError}</StatusMessage>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <OtpInput
+              value={otpCode}
+              onChange={(val) => {
+                setOtpCode(val)
+                setActivationError('')
+                if (val.length === 6) {
+                  void handleActivate(val)
+                }
+              }}
+              disabled={activating}
+            />
+          </div>
+
+          <button
+            className={`primary-button${activating ? ' is-loading' : ''}`}
+            type="button"
+            onClick={() => void handleActivate(otpCode)}
+            disabled={activating || otpCode.length < 6}
+            style={{ width: '100%' }}
           >
-            <span>Đến trang Đăng nhập</span>
-            <ArrowRight size={20} weight="bold" />
-          </Link>
+            <span>{activating ? 'Đang kích hoạt...' : 'Kích hoạt & Đăng nhập'}</span>
+            {!activating && <ArrowRight size={20} weight="bold" />}
+          </button>
 
           <div style={{ marginTop: 20 }}>
             {resendStatus && (
@@ -156,15 +240,21 @@ export function RegisterPage() {
                 {resendStatus}
               </p>
             )}
-            <button
-              type="button"
-              className="text-button"
-              onClick={handleResend}
-              disabled={resending}
-              style={{ fontSize: 13, color: '#64748b' }}
-            >
-              {resending ? 'Đang gửi lại...' : 'Chưa nhận được email? Bấm để gửi lại'}
-            </button>
+            {countdown > 0 ? (
+              <span style={{ fontSize: 13, color: '#64748b' }}>
+                Gửi lại mã sau <strong>{countdown}s</strong>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="text-button"
+                onClick={handleResend}
+                disabled={resending}
+                style={{ fontSize: 13, color: '#0d9488', fontWeight: 600, textDecoration: 'underline' }}
+              >
+                {resending ? 'Đang gửi lại...' : 'Chưa nhận được mã? Gửi lại mã kích hoạt'}
+              </button>
+            )}
           </div>
         </div>
       </AuthLayout>
