@@ -48,7 +48,7 @@ export function LoginPage() {
           state: { authorizationError: 'Bạn không có quyền truy cập khu vực này.' },
         })
       } else {
-        navigate(requestedPath || '/app', { replace: true })
+        navigate(authenticatedDestination(authenticatedUser, undefined, requestedPath), { replace: true })
       }
     } catch (requestError) {
       setError(requestError instanceof ApiClientError

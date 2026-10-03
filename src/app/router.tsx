@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { AssistantPage } from '@/features/assistant/pages/AssistantPage'
 import { AppointmentQuestionsPage } from '@/features/appointment-questions/pages/AppointmentQuestionsPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { OtpPage } from '@/features/auth/pages/OtpPage'
@@ -19,6 +18,9 @@ import { ContactPage } from '@/features/landing/pages/ContactPage'
 import { HomePage } from '@/features/landing/pages/HomePage'
 import { ServiceDetailPage } from '@/features/landing/pages/ServiceDetailPage'
 import { ServicesPage } from '@/features/landing/pages/ServicesPage'
+import { PaymentSuccessPage } from '@/features/payment/pages/PaymentSuccessPage'
+import { PaymentCancelPage } from '@/features/payment/pages/PaymentCancelPage'
+import { PricingPage } from '@/features/payment/pages/PricingPage'
 import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
 import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
@@ -51,6 +53,7 @@ const AccountHealthPage = lazy(() => import('@/features/user/pages/AccountHealth
 const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecordsPage').then((module) => ({ default: module.AccountRecordsPage })))
 const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
 const FamilyPage = lazy(() => import('@/features/family/pages/FamilyPage').then((module) => ({ default: module.FamilyPage })))
+const AssistantPage = lazy(() => import('@/features/assistant/pages/AssistantPage').then((module) => ({ default: module.AssistantPage })))
 
 function AdminRouteFallback() {
   return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
@@ -77,6 +80,9 @@ export function AppRouter() {
       <Route path="login" element={<GuestOnly><LoginPage /></GuestOnly>} />
       <Route path="register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
+
+      <Route path="payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
+      <Route path="payment/cancel" element={<ProtectedRoute><PaymentCancelPage /></ProtectedRoute>} />
 
       <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
       <Route path="onboarding/pregnancy" element={<Navigate to="/app/profile/health" replace />} />
@@ -109,13 +115,13 @@ export function AppRouter() {
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="knowledge/:articleSlug" element={<BlogArticlePage />} />
         <Route path="community" element={<CommunityPage />} />
-        <Route path="pricing" element={<ServicesPage />} />
+        <Route path="pricing" element={<PricingPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="experts" element={<ExpertsPage />} />
         <Route path="consultations" element={<ConsultationsPage />} />
         <Route path="chat" element={<ChatPage />} />
-        <Route path="assistant" element={<AssistantPage />} />
+        <Route path="assistant" element={<Suspense fallback={<UserRouteFallback />}><AssistantPage /></Suspense>} />
         <Route path="account" element={<Navigate to="/app/profile" replace />} />
       </Route>
 

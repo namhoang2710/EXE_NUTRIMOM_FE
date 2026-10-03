@@ -11,10 +11,11 @@ export function isExpertUser(user: User | null | undefined) {
   return Boolean(user?.roles.some((role) => expertRoles.includes(role as (typeof expertRoles)[number])))
 }
 
-export function authenticatedDestination(user: User | null | undefined, onboardingStatus?: OnboardingStatus) {
+export function authenticatedDestination(user: User | null | undefined, onboardingStatus?: OnboardingStatus, requestedPath?: unknown) {
   if (isAdminUser(user)) return '/admin'
   if (isExpertUser(user)) return '/expert'
   if (onboardingStatus === 'PROFILE_REQUIRED') return '/onboarding/profile'
+  if (typeof requestedPath === 'string' && /^\/(?:app(?:[/?#]|$)|payment\/(?:success|cancel)(?:[/?#]|$))/.test(requestedPath)) return requestedPath
   return '/app'
 }
 
