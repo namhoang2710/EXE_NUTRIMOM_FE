@@ -27,7 +27,11 @@ export interface LoginInput {
   deviceId: string
 }
 
-export interface RegisterInput extends LoginInput {
+export interface RegisterInput {
+  phone?: string
+  email?: string
+  password: string
+  deviceId: string
   displayName: string
   acceptedTerms: boolean
 }

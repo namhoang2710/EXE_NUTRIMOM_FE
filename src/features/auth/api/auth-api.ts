@@ -77,6 +77,7 @@ async function login(payload: LoginInput) {
 async function register(payload: RegisterInput) {
   const request: RegisterRequestDto = {
     phone: payload.phone,
+    email: payload.email,
     password: payload.password,
     device_id: payload.deviceId,
     display_name: payload.displayName,
