@@ -7,3 +7,7 @@ export function isValidPhone(value: string) {
 export function isValidRegisterPassword(value: string) {
   return value.length >= 8 && value.length <= 72 && /[A-Za-z]/.test(value) && /\d/.test(value)
 }
+
+export function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}

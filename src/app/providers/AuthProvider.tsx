@@ -61,13 +61,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await acceptSession(result.session.user)
     return { newUser: result.newUser, user: result.session.user }
   }, [acceptSession])
+  const requestMagicLink = useCallback((email: string) => authApi.requestMagicLink(email), [])
+  const verifyMagicLink = useCallback(async (token: string) => {
+    const session = await authApi.verifyMagicLink(token)
+    return acceptSession(session.user)
+  }, [acceptSession])
   const refresh = useCallback(async () => { await acceptSession((await authApi.refresh()).user) }, [acceptSession])
   const logout = useCallback(async () => {
     try { await authApi.logout() } finally { setUser(null); setProfile(null); setProfileError(null); setStatus('anonymous') }
   }, [])
 
   const value = useMemo<AuthContextValue>(() => ({
-    status, user, profile, profileError, reloadProfile, login, register, requestOtp, verifyOtp, refresh, logout,
-  }), [status, user, profile, profileError, reloadProfile, login, register, requestOtp, verifyOtp, refresh, logout])
+    status, user, profile, profileError, reloadProfile, login, register, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout,
+  }), [status, user, profile, profileError, reloadProfile, login, register, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

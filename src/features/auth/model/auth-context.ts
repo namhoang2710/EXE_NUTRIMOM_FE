@@ -14,6 +14,8 @@ export interface AuthContextValue {
   register: (payload: RegisterInput) => Promise<void>
   requestOtp: (payload: RequestOtpInput) => Promise<OtpChallenge>
   verifyOtp: (payload: VerifyOtpInput) => Promise<{ newUser: boolean; user: User }>
+  requestMagicLink: (email: string) => Promise<{ sent: boolean; message: string; debug_link?: string }>
+  verifyMagicLink: (token: string) => Promise<User>
   refresh: () => Promise<void>
   logout: () => Promise<void>
 }

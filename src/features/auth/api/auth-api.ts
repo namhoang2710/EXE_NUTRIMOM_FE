@@ -144,11 +144,36 @@ async function logout() {
   }
 }
 
+async function requestMagicLink(email: string, deviceId?: string) {
+  return apiClient.request<{ sent: boolean; message: string; debug_link?: string }>('/auth/magic-link/request', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      email: email.trim(),
+      device_id: deviceId || getDeviceId(),
+    }),
+  })
+}
+
+async function verifyMagicLink(token: string, deviceId?: string) {
+  const response = await apiClient.request<AuthResponseDto>('/auth/magic-link/verify', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      token: token.trim(),
+      device_id: deviceId || getDeviceId(),
+    }),
+  })
+  return saveApiSession(response)
+}
+
 export const authApi = {
   login,
   register,
   requestOtp,
   verifyOtp,
+  requestMagicLink,
+  verifyMagicLink,
   me,
   logout,
   refresh: refreshSession,

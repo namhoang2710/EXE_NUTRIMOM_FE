@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppointmentQuestionsPage } from '@/features/appointment-questions/pages/AppointmentQuestionsPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { MagicLinkVerifyPage } from '@/features/auth/pages/MagicLinkVerifyPage'
 import { OtpPage } from '@/features/auth/pages/OtpPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage'
@@ -80,6 +81,7 @@ export function AppRouter() {
       <Route path="login" element={<GuestOnly><LoginPage /></GuestOnly>} />
       <Route path="register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
+      <Route path="auth/verify" element={<MagicLinkVerifyPage />} />
 
       <Route path="payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
       <Route path="payment/cancel" element={<ProtectedRoute><PaymentCancelPage /></ProtectedRoute>} />
