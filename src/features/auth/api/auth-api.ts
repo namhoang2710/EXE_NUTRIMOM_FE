@@ -88,7 +88,10 @@ async function register(payload: RegisterInput) {
     authenticated: false,
     body: JSON.stringify(request),
   })
-  return saveApiSession(response)
+  if (response.access_token) {
+    return saveApiSession(response)
+  }
+  return null
 }
 
 async function requestOtp(payload: RequestOtpInput) {
@@ -168,9 +171,33 @@ async function verifyMagicLink(token: string, deviceId?: string) {
   return saveApiSession(response)
 }
 
+async function activateAccount(token: string, deviceId?: string) {
+  const response = await apiClient.request<AuthResponseDto>('/auth/activate', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      token: token.trim(),
+      device_id: deviceId || getDeviceId(),
+    }),
+  })
+  return saveApiSession(response)
+}
+
+async function resendActivation(email: string) {
+  return apiClient.request<{ sent: boolean; message: string }>('/auth/resend-activation', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      email: email.trim(),
+    }),
+  })
+}
+
 export const authApi = {
   login,
   register,
+  activateAccount,
+  resendActivation,
   requestOtp,
   verifyOtp,
   requestMagicLink,

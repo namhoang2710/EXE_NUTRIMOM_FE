@@ -1,6 +1,6 @@
-import { ArrowRight, CheckCircle, EnvelopeSimple, Phone, User } from '@phosphor-icons/react'
+import { ArrowRight, EnvelopeSimple, Phone, User } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
@@ -34,8 +34,22 @@ export function RegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [registeredSuccess, setRegisteredSuccess] = useState(false)
-  const { register } = useAuth()
-  const navigate = useNavigate()
+  const [resending, setResending] = useState(false)
+  const [resendStatus, setResendStatus] = useState<string | null>(null)
+  const { register, resendActivation } = useAuth()
+
+  async function handleResend() {
+    if (!form.email || resending) return
+    setResending(true)
+    try {
+      const res = await resendActivation(form.email.trim())
+      setResendStatus(res.message || 'Đã gửi lại email kích hoạt thành công!')
+    } catch {
+      setResendStatus('Không thể gửi lại email. Vui lòng thử lại sau.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   function update<K extends keyof RegisterForm>(key: K, value: RegisterForm[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -100,8 +114,8 @@ export function RegisterPage() {
   if (registeredSuccess) {
     return (
       <AuthLayout
-        title="Đăng ký thành công!"
-        subtitle="Chào mừng bạn đến với NutriMom."
+        title="Kích hoạt tài khoản"
+        subtitle="Vui lòng kiểm tra email để hoàn tất kích hoạt"
         panelVariant="register"
         showHomeLink
       >
@@ -117,24 +131,41 @@ export function RegisterPage() {
             justifyContent: 'center',
             margin: '0 auto 16px',
           }}>
-            <CheckCircle size={36} weight="fill" />
+            <EnvelopeSimple size={36} weight="duotone" />
           </div>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>
-            Tài khoản đã được tạo thành công
+            Vui lòng kích hoạt tài khoản
           </h3>
           <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, marginBottom: 24 }}>
-            Hệ thống đã gửi một email xác nhận đến <strong>{form.email}</strong>. Vui lòng kiểm tra hộp thư của bạn.
+            Chúng tôi đã gửi liên kết kích hoạt đến email <strong>{form.email}</strong>.<br />
+            Bạn <strong>cần nhấp vào liên kết trong email</strong> để kích hoạt tài khoản thì mới có thể đăng nhập vào hệ thống.
           </p>
 
-          <button
-            type="button"
+          <Link
+            to="/login"
             className="primary-button"
-            onClick={() => navigate('/app', { replace: true })}
-            style={{ width: '100%' }}
+            style={{ width: '100%', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}
           >
-            <span>Bắt đầu sử dụng ngay</span>
+            <span>Đến trang Đăng nhập</span>
             <ArrowRight size={20} weight="bold" />
-          </button>
+          </Link>
+
+          <div style={{ marginTop: 20 }}>
+            {resendStatus && (
+              <p style={{ fontSize: 13, color: '#0d9488', marginBottom: 8, fontWeight: 500 }}>
+                {resendStatus}
+              </p>
+            )}
+            <button
+              type="button"
+              className="text-button"
+              onClick={handleResend}
+              disabled={resending}
+              style={{ fontSize: 13, color: '#64748b' }}
+            >
+              {resending ? 'Đang gửi lại...' : 'Chưa nhận được email? Bấm để gửi lại'}
+            </button>
+          </div>
         </div>
       </AuthLayout>
     )

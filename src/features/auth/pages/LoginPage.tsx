@@ -17,14 +17,32 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ identifier?: string; password?: string }>({})
   const [submitting, setSubmitting] = useState(false)
+  const [showResend, setShowResend] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendStatus, setResendStatus] = useState<string | null>(null)
 
-  const { login } = useAuth()
+  const { login, resendActivation } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  async function handleResendActivation() {
+    if (!identifier.includes('@') || resending) return
+    setResending(true)
+    try {
+      const res = await resendActivation(identifier.trim())
+      setResendStatus(res.message || 'Đã gửi lại email kích hoạt thành công!')
+    } catch {
+      setResendStatus('Không thể gửi lại email kích hoạt. Vui lòng thử lại sau.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
+    setShowResend(false)
+    setResendStatus(null)
     const trimmed = identifier.trim()
 
     let identifierError: string | undefined
@@ -58,6 +76,12 @@ export function LoginPage() {
         navigate(authenticatedDestination(authenticatedUser, undefined, requestedPath), { replace: true })
       }
     } catch (requestError) {
+      const isActivationPending = requestError instanceof ApiClientError && (
+        requestError.code === 'ACCOUNT_PENDING_ACTIVATION' || requestError.message.includes('kích hoạt')
+      )
+      if (isActivationPending && trimmed.includes('@')) {
+        setShowResend(true)
+      }
       setError(requestError instanceof ApiClientError ? requestError.message : 'Tài khoản hoặc mật khẩu không chính xác.')
       if (requestError instanceof ApiClientError && requestError.fields) {
         setFieldErrors({
@@ -79,7 +103,28 @@ export function LoginPage() {
       showHomeLink
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
-        {error && <StatusMessage tone="error">{error}</StatusMessage>}
+        {error && (
+          <div style={{ marginBottom: 12 }}>
+            <StatusMessage tone="error">{error}</StatusMessage>
+            {showResend && (
+              <div style={{ marginTop: 8, textAlign: 'center' }}>
+                {resendStatus ? (
+                  <p style={{ fontSize: 13, color: '#0d9488', fontWeight: 500 }}>{resendStatus}</p>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={handleResendActivation}
+                    disabled={resending}
+                    style={{ fontSize: 13, color: '#0d9488', fontWeight: 600, textDecoration: 'underline' }}
+                  >
+                    {resending ? 'Đang gửi lại...' : '👉 Bấm vào đây để gửi lại email kích hoạt'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <FormField
           label="Email hoặc Số điện thoại"
