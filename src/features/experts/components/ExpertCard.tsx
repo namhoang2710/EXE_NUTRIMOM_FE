@@ -7,6 +7,8 @@ interface ExpertCardProps {
   expert: Expert
   index: number
   onBook: (expertUserId: string) => void
+  onOpen: (expertUserId: string) => void
+  bookingDisabled?: boolean
 }
 
 function getInitials(fullName: string) {
@@ -14,7 +16,7 @@ function getInitials(fullName: string) {
   return words.slice(-2).map((word) => word[0]?.toLocaleUpperCase('vi')).join('') || 'NM'
 }
 
-export function ExpertCard({ expert, index, onBook }: ExpertCardProps) {
+export function ExpertCard({ expert, index, onBook, onOpen, bookingDisabled = false }: ExpertCardProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const ratingWidth = `${Math.min(100, Math.max(0, expert.averageRating / 5 * 100))}%`
   const animationStyle = { '--expert-card-index': index } as CSSProperties
@@ -23,6 +25,7 @@ export function ExpertCard({ expert, index, onBook }: ExpertCardProps) {
 
   return (
     <article className="expert-card" style={animationStyle}>
+      <button className="expert-card__detail-trigger" type="button" aria-label={`Xem hồ sơ ${expert.fullName}`} onClick={() => onOpen(expert.userId)} />
       <div className="expert-card__portrait">
         {expert.avatarUrl && !imageFailed ? (
           <img
@@ -73,7 +76,7 @@ export function ExpertCard({ expert, index, onBook }: ExpertCardProps) {
 
         <div className="expert-card__footer">
           <p><span className="expert-card__status-dot" aria-hidden="true" />Đang nhận lịch tư vấn</p>
-          <button type="button" onClick={() => onBook(expert.userId)}>
+          <button type="button" disabled={bookingDisabled} onClick={(event) => { event.stopPropagation(); onBook(expert.userId) }} onKeyDown={(event) => event.stopPropagation()}>
             <CalendarCheck size={20} weight="bold" aria-hidden="true" />
             Đặt lịch khám
           </button>

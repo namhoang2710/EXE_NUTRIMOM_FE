@@ -971,6 +971,75 @@
   .admin-progress-mini-chart > span { transition: none; }
 }
 
+/* Admin completed consultations ----------------------------------------- */
+.admin-consultations-list-card { overflow: hidden; }
+.admin-consultations-heading { display: grid; grid-template-columns: minmax(0,1fr) minmax(360px,420px); }
+.admin-consultations-heading .admin-users-search { width: 100%; }
+.admin-consultations-heading .admin-users-search button { display: grid; width: 27px; height: 27px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 7px; padding: 0; color: var(--admin-subtle); background: transparent; cursor: pointer; }
+.admin-consultations-heading .admin-users-search button:hover { color: var(--admin-ink); background: var(--admin-card-muted); }
+.admin-consultations-heading .admin-users-search button:focus-visible { outline: 2px solid var(--admin-accent); outline-offset: 1px; }
+.admin-consultations-data-warning { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid color-mix(in srgb,#b57a25 25%,var(--admin-border)); padding: 10px 18px; color: #8b6722; background: color-mix(in srgb,#e9bd57 10%,var(--admin-card)); font-size: 10px; line-height: 1.5; }
+.admin-consultations-data-warning svg { flex: 0 0 auto; }
+.admin-consultations-results { position: relative; min-height: 280px; }
+.admin-consultations-results-content { min-height: inherit; transition: opacity 160ms ease, filter 160ms ease; }
+.admin-consultations-results.is-loading .admin-consultations-results-content { opacity: .3; filter: saturate(.7); pointer-events: none; user-select: none; }
+.admin-consultations-loading { position: absolute; inset: 0; z-index: 2; display: grid; align-content: center; justify-items: center; gap: 10px; min-height: 280px; color: var(--admin-accent-strong); background: color-mix(in srgb,var(--admin-card) 76%,transparent); backdrop-filter: blur(1.5px); font-size: 11px; font-weight: 750; }
+.admin-consultations-loading-icon { width: 34px; height: 34px; }
+.admin-consultations-table { min-width: 1050px; table-layout: fixed; }
+.admin-consultations-table th:nth-child(1) { width: 15%; }
+.admin-consultations-table th:nth-child(2) { width: 15%; }
+.admin-consultations-table th:nth-child(3) { width: 13%; }
+.admin-consultations-table th:nth-child(4) { width: 17%; }
+.admin-consultations-table th:nth-child(5) { width: 18%; }
+.admin-consultations-table th:nth-child(6) { width: 22%; }
+.admin-consultations-table td { height: 88px; vertical-align: top; white-space: normal; }
+.admin-consultation-person { color: var(--admin-ink); font-size: 10.5px; line-height: 1.45; }
+.admin-consultation-schedule, .admin-consultation-completed, .admin-consultation-review { display: grid; gap: 5px; }
+.admin-consultation-schedule strong { color: var(--admin-ink); font-size: 10.5px; }
+.admin-consultation-schedule > span { color: var(--admin-muted); font-size: 9.5px; }
+.admin-consultation-specialty { display: inline-flex; width: max-content; max-width: 100%; align-items: center; border: 1px solid; border-radius: 999px; padding: 5px 8px; font-size: 9px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.admin-consultation-specialty.psychology { border-color: #d9caef; color: #684a91; background: #f1eafb; }
+.admin-consultation-specialty.obstetrics { border-color: #efc8d4; color: #944864; background: #fceaf0; }
+.admin-consultation-specialty.health { border-color: #bddbc9; color: #397359; background: #e8f4ec; }
+:root[data-theme="dark"] .admin-consultation-specialty.psychology { border-color: #604d7c; color: #d7c3f1; background: #392e4b; }
+:root[data-theme="dark"] .admin-consultation-specialty.obstetrics { border-color: #744457; color: #f0b8ca; background: #472b36; }
+:root[data-theme="dark"] .admin-consultation-specialty.health { border-color: #3f6952; color: #a9d7ba; background: #293f32; }
+.admin-consultation-completed time { color: var(--admin-ink); font-size: 10px; font-weight: 650; }
+.admin-consultation-fallback { color: var(--admin-subtle); font-size: 9.5px; font-style: italic; }
+.admin-consultation-fallback.warning { color: #a15a35; }
+.admin-consultation-rating { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.admin-consultation-rating > span { display: inline-flex; gap: 1px; }
+.admin-consultation-rating .is-filled { color: var(--rating-gold); fill: var(--rating-gold); }
+.admin-consultation-rating .is-empty { color: color-mix(in srgb,var(--rating-gold) 38%,transparent); fill: transparent; }
+.admin-consultation-rating strong { color: var(--admin-ink); font-size: 9.5px; }
+.admin-consultation-review p { display: -webkit-box; max-width: 320px; overflow: hidden; margin: 0; color: var(--admin-muted); font-size: 9.5px; line-height: 1.45; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.admin-consultation-cards { display: none; }
+
+@media (max-width: 760px) {
+  .admin-consultations-heading { grid-template-columns: minmax(0,1fr); }
+  .admin-consultations-heading .admin-users-search { width: 100%; }
+  .admin-consultations-results, .admin-consultations-loading { min-height: 320px; }
+  .admin-consultations-table-wrap { display: none; }
+  .admin-consultation-cards { display: grid; gap: 12px; padding: 14px; }
+  .admin-consultation-card { min-width: 0; border: 1px solid var(--admin-border); border-radius: 12px; padding: 14px; background: var(--admin-card-muted); }
+  .admin-consultation-card dl { display: grid; gap: 0; margin: 0; }
+  .admin-consultation-card dl > div { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 12px; border-top: 1px solid var(--admin-border); padding: 10px 0; }
+  .admin-consultation-card dl > div:first-child { border-top: 0; padding-top: 0; }
+  .admin-consultation-card dl > div:last-child { padding-bottom: 0; }
+  .admin-consultation-card dt { color: var(--admin-subtle); font-size: 9px; }
+  .admin-consultation-card dd { min-width: 0; margin: 0; color: var(--admin-ink); font-size: 10px; }
+  .admin-consultation-card dd > strong { font-size: 11px; }
+  .admin-consultation-card .admin-consultation-review p { max-width: none; }
+}
+
+@media (max-width: 420px) {
+  .admin-consultation-card dl > div { grid-template-columns: 1fr; gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-consultations-results-content { transition: none; }
+}
+
 /* Admin expert management ------------------------------------------------ */
 .admin-management-tabs { display: inline-flex; width: max-content; gap: 4px; border: 1px solid var(--admin-border); border-radius: 12px; padding: 4px; background: var(--admin-card); box-shadow: 0 7px 22px rgba(53,40,78,.04); }
 .admin-management-tabs button { position: relative; display: inline-flex; min-width: 112px; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 9px; padding: 8px 16px; color: var(--admin-muted); background: transparent; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; transition: color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }

@@ -11,7 +11,6 @@ export function ScrollProgressButton() {
 
   useEffect(() => {
     let animationFrame = 0
-    let heroObserver: IntersectionObserver | undefined
     const hero = document.querySelector<HTMLElement>('.home-hero')
 
     const updateScrollState = () => {
@@ -26,7 +25,17 @@ export function ScrollProgressButton() {
 
       setProgress(nextProgress)
 
-      if (!hero) {
+      if (hero) {
+        const headerHeight = document.querySelector<HTMLElement>('.landing-header')?.offsetHeight ?? 0
+        const rect = hero.getBoundingClientRect()
+        const viewportHeight = Math.max(window.innerHeight - headerHeight, 1)
+        const visibleHeight = Math.max(
+          0,
+          Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, headerHeight),
+        )
+
+        setVisible(visibleHeight < viewportHeight * 0.5)
+      } else {
         setVisible(scrollableDistance > 0 && window.scrollY >= SCROLL_REVEAL_DISTANCE)
       }
     }
@@ -37,23 +46,11 @@ export function ScrollProgressButton() {
       }
     }
 
-    if (hero) {
-      const headerHeight = document.querySelector<HTMLElement>('.landing-header')?.offsetHeight ?? 0
-      heroObserver = new IntersectionObserver(([entry]) => {
-        setVisible(entry.intersectionRatio < 0.5)
-      }, {
-        rootMargin: `-${headerHeight}px 0px 0px 0px`,
-        threshold: [0, 0.5, 1],
-      })
-      heroObserver.observe(hero)
-    }
-
     updateScrollState()
     window.addEventListener('scroll', requestScrollUpdate, { passive: true })
     window.addEventListener('resize', requestScrollUpdate)
 
     return () => {
-      heroObserver?.disconnect()
       window.removeEventListener('scroll', requestScrollUpdate)
       window.removeEventListener('resize', requestScrollUpdate)
       if (animationFrame) window.cancelAnimationFrame(animationFrame)

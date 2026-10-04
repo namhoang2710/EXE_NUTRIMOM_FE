@@ -1,5 +1,6 @@
-import type { ConsultationDto, ExpertProfileDto, PageDto, ReviewDto, SlotDto, SlotInfoDto } from './expert-console-dto'
-import type { Consultation, ExpertProfile, ExpertReview, ExpertSlot, Page } from './expert-console-types'
+import type { ConsultationDto, DayScheduleDto, DaySummaryDto, ExpertProfileDto, PageDto, ReviewDto, ScheduleSlotDto, SlotInfoDto } from './expert-console-dto'
+import type { Consultation, DaySchedule, DaySummary, ExpertProfile, ExpertReview, Page, ScheduleSlot } from './expert-console-types'
+import { normalizeSlotTime } from '../../consultation/model/slot-grid.ts'
 
 export function mapExpertProfile(dto: ExpertProfileDto): ExpertProfile {
   return {
@@ -18,8 +19,22 @@ export function mapExpertProfile(dto: ExpertProfileDto): ExpertProfile {
   }
 }
 
-export function mapSlot(dto: SlotDto): ExpertSlot {
-  return { id: dto.id, date: dto.slot_date, startTime: dto.start_time, endTime: dto.end_time, status: dto.status }
+export function mapScheduleSlot(dto: ScheduleSlotDto): ScheduleSlot {
+  return {
+    startTime: normalizeSlotTime(dto.start_time),
+    endTime: normalizeSlotTime(dto.end_time),
+    state: dto.state,
+    past: dto.past,
+    booking: dto.booking ? { requestId: dto.booking.request_id, userDisplayName: dto.booking.user_display_name ?? null } : null,
+  }
+}
+
+export function mapDaySchedule(dto: DayScheduleDto): DaySchedule {
+  return { date: dto.date, dayOff: dto.day_off, hasBookings: dto.has_bookings, slots: dto.slots.map(mapScheduleSlot) }
+}
+
+export function mapDaySummary(dto: DaySummaryDto): DaySummary {
+  return { date: dto.date, openCount: dto.open_count, bookedCount: dto.booked_count, closedCount: dto.closed_count, dayOff: dto.day_off }
 }
 
 function mapSlotInfo(dto: SlotInfoDto | null): Consultation['slot'] {
@@ -42,7 +57,7 @@ export function mapConsultation(dto: ConsultationDto): Consultation {
 }
 
 export function mapReview(dto: ReviewDto): ExpertReview {
-  return { id: dto.id, requestId: dto.request_id, userId: dto.user_id, rating: dto.rating, comment: dto.comment, createdAt: dto.created_at }
+  return { id: dto.id, requestId: dto.request_id, userId: dto.user_id, userDisplayName: dto.user_display_name?.trim() || null, rating: dto.rating, comment: dto.comment, createdAt: dto.created_at }
 }
 
 export function mapPage<TDto, T>(dto: PageDto<TDto>, mapper: (item: TDto) => T): Page<T> {

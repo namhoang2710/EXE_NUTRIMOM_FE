@@ -10,6 +10,9 @@ import {
 import { useEffect } from 'react'
 import type { MouseEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useSubscription } from '@/features/payment/hooks/useSubscription'
+import type { PlanTier } from '@/features/payment/model/payment-types'
 import { ServiceIcon } from '../components/ServiceIcon'
 import { services, type ServiceContent } from '../model/service-content'
 import './services-premium.css'
@@ -18,9 +21,18 @@ function includesSearch(values: string[], search: string) {
   return values.join(' ').toLocaleLowerCase('vi-VN').includes(search)
 }
 
-const pricingPlans = [
+const pricingPlans: Array<{
+  name: string
+  tier: PlanTier
+  price: string
+  cadence: string
+  description: string
+  featured: boolean
+  features: Array<{ label: string; included: boolean }>
+}> = [
   {
     name: 'Free',
+    tier: 'FREE',
     price: '0đ',
     cadence: 'mãi mãi',
     description: 'Đủ để mẹ bắt đầu lưu lại hành trình của mình.',
@@ -34,6 +46,7 @@ const pricingPlans = [
   },
   {
     name: '99K',
+    tier: 'PLAN_99K',
     price: '99.000đ',
     cadence: 'mỗi tháng',
     description: 'Thêm công cụ chủ động cho hành trình thai kỳ.',
@@ -47,6 +60,7 @@ const pricingPlans = [
   },
   {
     name: '399K',
+    tier: 'PLAN_399K',
     price: '399.000đ',
     cadence: 'mỗi tháng',
     description: 'Trọn vẹn trải nghiệm chăm sóc cho cả gia đình.',
@@ -60,7 +74,7 @@ const pricingPlans = [
       { label: 'Gợi ý cá nhân hóa toàn diện', included: true },
     ],
   },
-] as const
+]
 
 function ServiceCard({ service, featured = false }: { service: ServiceContent; featured?: boolean }) {
   return (
@@ -94,6 +108,9 @@ function ServiceCard({ service, featured = false }: { service: ServiceContent; f
 }
 
 export function ServicesPage() {
+  const { status } = useAuth()
+  const { subscription } = useSubscription(status === 'authenticated')
+
   const [searchParams] = useSearchParams()
   const searchTerm = searchParams.get('search')?.trim() || ''
   const normalizedSearch = searchTerm.toLocaleLowerCase('vi-VN')
@@ -219,34 +236,55 @@ export function ServicesPage() {
           </div>
 
           <div className="premiumPricing__grid">
-            {pricingPlans.map((plan) => (
-              <article className={`premiumPlan${plan.featured ? ' premiumPlan--featured' : ''}`} key={plan.name}>
-                {plan.featured && <span className="premiumPlan__badge"><Sparkle size={13} weight="fill" /> TOÀN DIỆN NHẤT</span>}
-                <div className="premiumPlan__nameRow">
-                  <h3>{plan.name}</h3>
-                  {plan.featured ? <Heart size={24} weight="fill" /> : <ShieldCheck size={24} weight="duotone" />}
-                </div>
-                <p className="premiumPlan__description">{plan.description}</p>
-                <div className="premiumPlan__price"><strong>{plan.price}</strong><span>/ {plan.cadence}</span></div>
-                <div className="premiumPlan__divider" />
-                <ul>
-                  {plan.features.map((feature) => (
-                    <li className={feature.included ? '' : 'is-muted'} key={feature.label}>
-                      {feature.included ? <Check size={17} weight="bold" /> : <X size={17} weight="bold" />}
-                      <span>{feature.label}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link className="premiumPlan__button" to="/register">
-                  {plan.name === 'Free' ? 'Bắt đầu miễn phí' : `Chọn gói ${plan.name}`}
-                  <ArrowRight size={17} weight="bold" />
-                </Link>
-              </article>
-            ))}
+            {pricingPlans.map((plan) => {
+              const isCurrentPlan = subscription?.active && subscription.plan_tier === plan.tier
+              return (
+                <article className={`premiumPlan${plan.featured ? ' premiumPlan--featured' : ''}`} key={plan.name}>
+                  {plan.featured && <span className="premiumPlan__badge"><Sparkle size={13} weight="fill" /> TOÀN DIỆN NHẤT</span>}
+                  <div className="premiumPlan__nameRow">
+                    <h3>{plan.name}</h3>
+                    {plan.featured ? <Heart size={24} weight="fill" /> : <ShieldCheck size={24} weight="duotone" />}
+                  </div>
+                  <p className="premiumPlan__description">{plan.description}</p>
+                  <div className="premiumPlan__price"><strong>{plan.price}</strong><span>/ {plan.cadence}</span></div>
+                  <div className="premiumPlan__divider" />
+                  <ul>
+                    {plan.features.map((feature) => (
+                      <li className={feature.included ? '' : 'is-muted'} key={feature.label}>
+                        {feature.included ? <Check size={17} weight="bold" /> : <X size={17} weight="bold" />}
+                        <span>{feature.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {isCurrentPlan ? (
+                    <span className="premiumPlan__button is-active-plan" style={{ background: '#10b981', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <CheckCircle size={17} weight="fill" /> Gói hiện tại của bạn
+                    </span>
+                  ) : plan.tier === 'FREE' ? (
+                    <Link className="premiumPlan__button" to={status === 'authenticated' ? '/app' : '/register'}>
+                      {status === 'authenticated' ? 'Vào không gian của bạn' : 'Bắt đầu miễn phí'}
+                      <ArrowRight size={17} weight="bold" />
+                    </Link>
+                  ) : status === 'authenticated' ? (
+                    <Link className="premiumPlan__button" to={`/app/pricing?plan=${plan.tier}&step=review#pricing`}>
+                      Chọn gói {plan.name}
+                      <ArrowRight size={17} weight="bold" />
+                    </Link>
+                  ) : (
+                    <Link className="premiumPlan__button" to="/login" state={{ from: `/app/pricing?plan=${plan.tier}&step=review#pricing` }}>
+                      Đăng nhập để chọn gói {plan.name}
+                      <ArrowRight size={17} weight="bold" />
+                    </Link>
+                  )}
+                </article>
+              )
+            })}
           </div>
           <p className="premiumPricing__note"><ShieldCheck size={17} weight="fill" /> Thông tin sức khỏe được quản lý riêng tư và minh bạch theo lựa chọn của bạn.</p>
         </div>
       </section>
+
     </main>
   )
 }

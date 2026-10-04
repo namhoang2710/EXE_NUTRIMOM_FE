@@ -54,12 +54,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [reloadProfile])
 
   const login = useCallback(async (payload: LoginInput) => acceptSession((await authApi.login(payload)).user), [acceptSession])
-  const register = useCallback(async (payload: RegisterInput) => { await acceptSession((await authApi.register(payload)).user) }, [acceptSession])
+  const register = useCallback(async (payload: RegisterInput) => {
+    const session = await authApi.register(payload)
+    if (session) {
+      await acceptSession(session.user)
+    }
+  }, [acceptSession])
+  const activateAccount = useCallback(async (token: string, email?: string) => {
+    const session = await authApi.activateAccount(token, email)
+    return acceptSession(session.user)
+  }, [acceptSession])
+  const resendActivation = useCallback((email: string) => authApi.resendActivation(email), [])
   const requestOtp = useCallback((payload: RequestOtpInput) => authApi.requestOtp(payload), [])
   const verifyOtp = useCallback(async (payload: VerifyOtpInput) => {
     const result = await authApi.verifyOtp(payload)
     await acceptSession(result.session.user)
     return { newUser: result.newUser, user: result.session.user }
+  }, [acceptSession])
+  const requestMagicLink = useCallback((email: string) => authApi.requestMagicLink(email), [])
+  const verifyMagicLink = useCallback(async (tokenOrCode: string, email?: string) => {
+    const session = await authApi.verifyMagicLink(tokenOrCode, undefined, email)
+    return acceptSession(session.user)
   }, [acceptSession])
   const refresh = useCallback(async () => { await acceptSession((await authApi.refresh()).user) }, [acceptSession])
   const logout = useCallback(async () => {
@@ -67,7 +82,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [])
 
   const value = useMemo<AuthContextValue>(() => ({
-    status, user, profile, profileError, reloadProfile, login, register, requestOtp, verifyOtp, refresh, logout,
-  }), [status, user, profile, profileError, reloadProfile, login, register, requestOtp, verifyOtp, refresh, logout])
+    status, user, profile, profileError, reloadProfile, login, register, activateAccount, resendActivation, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout,
+  }), [status, user, profile, profileError, reloadProfile, login, register, activateAccount, resendActivation, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

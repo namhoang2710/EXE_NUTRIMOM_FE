@@ -1,13 +1,15 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { AssistantPage } from '@/features/assistant/pages/AssistantPage'
 import { AppointmentQuestionsPage } from '@/features/appointment-questions/pages/AppointmentQuestionsPage'
+import { ActivateAccountPage } from '@/features/auth/pages/ActivateAccountPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { MagicLinkVerifyPage } from '@/features/auth/pages/MagicLinkVerifyPage'
 import { OtpPage } from '@/features/auth/pages/OtpPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { ConsultationsPage } from '@/features/consultation/pages/ConsultationsPage'
+import { ConsultationHistoryPage } from '@/features/consultation/pages/ConsultationHistoryPage'
 import { ExpertsPage } from '@/features/experts/pages/ExpertsPage'
 import { BlogArticlePage } from '@/features/knowledge/pages/BlogArticlePage'
 import { BlogPage } from '@/features/knowledge/pages/BlogPage'
@@ -18,16 +20,16 @@ import { ContactPage } from '@/features/landing/pages/ContactPage'
 import { HomePage } from '@/features/landing/pages/HomePage'
 import { ServiceDetailPage } from '@/features/landing/pages/ServiceDetailPage'
 import { ServicesPage } from '@/features/landing/pages/ServicesPage'
+import { PaymentSuccessPage } from '@/features/payment/pages/PaymentSuccessPage'
+import { PaymentCancelPage } from '@/features/payment/pages/PaymentCancelPage'
+import { PricingPage } from '@/features/payment/pages/PricingPage'
 import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
 import { AppHomePage } from '@/features/user/pages/AppHomePage'
 import { ProfilePage } from '@/features/user/pages/ProfilePage'
 import { SettingsPage } from '@/features/user/pages/SettingsPage'
-import { SupportRequestsPage } from '@/features/contact/pages/SupportRequestsPage'
 import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
 import { AccountCarePage } from '@/features/user/pages/AccountCarePage'
-import { AccountHealthPage } from '@/features/user/pages/AccountHealthPage'
 import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
-import { AccountRecordsPage } from '@/features/user/pages/AccountRecordsPage'
 import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
 import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
 import { DashboardPage } from '@/features/user/pages/DashboardPage'
@@ -49,9 +51,19 @@ const AdminSettingsPage = lazy(() => import('@/features/admin/pages/AdminSetting
 const AdminContactInboxPage = lazy(() => import('@/features/contact/pages/AdminContactInboxPage').then((module) => ({ default: module.AdminContactInboxPage })))
 const AdminContactDetailPage = lazy(() => import('@/features/contact/pages/AdminContactDetailPage').then((module) => ({ default: module.AdminContactDetailPage })))
 const ExpertDashboardPage = lazy(() => import('@/features/expert-console/pages/ExpertDashboardPage').then((module) => ({ default: module.ExpertDashboardPage })))
+const AccountHealthPage = lazy(() => import('@/features/user/pages/AccountHealthPage').then((module) => ({ default: module.AccountHealthPage })))
+const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecordsPage').then((module) => ({ default: module.AccountRecordsPage })))
+const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
+const FamilyPage = lazy(() => import('@/features/family/pages/FamilyPage').then((module) => ({ default: module.FamilyPage })))
+const AssistantPage = lazy(() => import('@/features/assistant/pages/AssistantPage').then((module) => ({ default: module.AssistantPage })))
+const ConsultationCallPage = lazy(() => import('@/features/consultation-video/pages/ConsultationCallPage').then((module) => ({ default: module.ConsultationCallPage })))
 
 function AdminRouteFallback() {
   return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
+}
+
+function UserRouteFallback() {
+  return <main className="nm-product-page" aria-label="Đang tải trang"><div className="dashboard-grid skeleton-grid"><div /><div /></div></main>
 }
 
 export function AppRouter() {
@@ -71,24 +83,36 @@ export function AppRouter() {
       <Route path="login" element={<GuestOnly><LoginPage /></GuestOnly>} />
       <Route path="register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
+      <Route path="auth/activate" element={<ActivateAccountPage />} />
+      <Route path="auth/verify" element={<MagicLinkVerifyPage />} />
+
+      <Route path="payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
+      <Route path="payment/cancel" element={<ProtectedRoute><PaymentCancelPage /></ProtectedRoute>} />
+      <Route path="app/consultations/:requestId/call" element={<ProtectedRoute><Suspense fallback={<UserRouteFallback />}><ConsultationCallPage /></Suspense></ProtectedRoute>} />
+      <Route path="expert/consultations/:requestId/call" element={<ExpertOnly><Suspense fallback={<UserRouteFallback />}><ConsultationCallPage /></Suspense></ExpertOnly>} />
 
       <Route path="onboarding/profile" element={<OnboardingRoute step="PROFILE_REQUIRED"><ProfilePage onboarding /></OnboardingRoute>} />
       <Route path="onboarding/pregnancy" element={<Navigate to="/app/profile/health" replace />} />
 
       <Route path="app/profile" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ProfilePage />} />
-        <Route path="health" element={<AccountHealthPage />} />
+        <Route path="health" element={<Suspense fallback={<UserRouteFallback />}><AccountHealthPage /></Suspense>} />
         <Route path="care" element={<AccountCarePage />} />
-        <Route path="records" element={<AccountRecordsPage />} />
+        <Route path="records" element={<Suspense fallback={<UserRouteFallback />}><AccountRecordsPage /></Suspense>} />
         <Route path="saved" element={<SavedArticlesPage />} />
-        <Route path="support" element={<SupportRequestsPage />} />
+        <Route path="support" element={<Suspense fallback={<UserRouteFallback />}><SupportRequestsPage /></Suspense>} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
+      </Route>
+
+      <Route path="app/consultations/history" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
+        <Route index element={<ConsultationHistoryPage />} />
       </Route>
 
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="family" element={<Suspense fallback={<UserRouteFallback />}><FamilyPage /></Suspense>} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
         <Route path="health" element={<Navigate to="/app/profile/health" replace />} />
         <Route path="care" element={<Navigate to="/app/profile/care" replace />} />
@@ -98,13 +122,13 @@ export function AppRouter() {
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="knowledge/:articleSlug" element={<BlogArticlePage />} />
         <Route path="community" element={<CommunityPage />} />
-        <Route path="pricing" element={<ServicesPage />} />
+        <Route path="pricing" element={<PricingPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="experts" element={<ExpertsPage />} />
         <Route path="consultations" element={<ConsultationsPage />} />
         <Route path="chat" element={<ChatPage />} />
-        <Route path="assistant" element={<AssistantPage />} />
+        <Route path="assistant" element={<Suspense fallback={<UserRouteFallback />}><AssistantPage /></Suspense>} />
         <Route path="account" element={<Navigate to="/app/profile" replace />} />
       </Route>
 

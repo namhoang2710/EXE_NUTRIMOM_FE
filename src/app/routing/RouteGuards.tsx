@@ -20,8 +20,9 @@ function ProfileUnavailable() {
 
 export function GuestOnly({ children }: PropsWithChildren) {
   const { status, user, profile } = useAuth()
+  const location = useLocation()
   if (status === 'loading') return <PageSkeleton />
-  if (status === 'authenticated') return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
+  if (status === 'authenticated') return <Navigate to={authenticatedDestination(user, profile?.onboarding_status, (location.state as { from?: unknown } | null)?.from)} replace />
   return children
 }
 

@@ -1,4 +1,4 @@
-import { ArrowRight, Key, Phone } from '@phosphor-icons/react'
+import { ArrowRight, User } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
@@ -8,37 +8,62 @@ import { StatusMessage } from '@/shared/components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
-import { isValidPhone } from '../model/auth-validation'
+import { isValidEmail, isValidPhone } from '../model/auth-validation'
 import { authenticatedDestination, isAdminUser, isExpertUser } from '../model/role-routing'
 
-const DEMO_PHONE = '0901234567'
-const DEMO_PASSWORD = 'NutriMom@123'
-
 export function LoginPage() {
-  const [phone, setPhone] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<{ phone?: string; password?: string }>({})
+  const [fieldErrors, setFieldErrors] = useState<{ identifier?: string; password?: string }>({})
   const [submitting, setSubmitting] = useState(false)
-  const { login } = useAuth()
+  const [showResend, setShowResend] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendStatus, setResendStatus] = useState<string | null>(null)
+
+  const { login, resendActivation } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  async function handleResendActivation() {
+    if (!identifier.includes('@') || resending) return
+    setResending(true)
+    try {
+      const res = await resendActivation(identifier.trim())
+      setResendStatus(res.message || 'Đã gửi lại mã kích hoạt vào email thành công!')
+    } catch {
+      setResendStatus('Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
-    const nextErrors = { phone: isValidPhone(phone.trim()) ? undefined : 'Số điện thoại Việt Nam chưa hợp lệ.', password: password && password.length <= 72 ? undefined : 'Vui lòng nhập mật khẩu (tối đa 72 ký tự).' }
-    setFieldErrors(nextErrors)
-    if (nextErrors.phone || nextErrors.password) return
+    setShowResend(false)
+    setResendStatus(null)
+    const trimmed = identifier.trim()
 
-    if (!phone.trim() || !password) {
-      setError('Vui lòng nhập số điện thoại và mật khẩu.')
-      return
+    let identifierError: string | undefined
+    if (!trimmed) {
+      identifierError = 'Vui lòng nhập email hoặc số điện thoại.'
+    } else if (trimmed.includes('@')) {
+      if (!isValidEmail(trimmed)) identifierError = 'Địa chỉ email chưa đúng định dạng.'
+    } else {
+      if (!isValidPhone(trimmed)) identifierError = 'Số điện thoại Việt Nam chưa hợp lệ.'
     }
+
+    const nextErrors = {
+      identifier: identifierError,
+      password: password && password.length <= 72 ? undefined : 'Vui lòng nhập mật khẩu.',
+    }
+    setFieldErrors(nextErrors)
+    if (nextErrors.identifier || nextErrors.password) return
 
     setSubmitting(true)
     try {
-      const authenticatedUser = await login({ phone: phone.trim(), password, deviceId: getDeviceId() })
+      const authenticatedUser = await login({ phone: trimmed, password, deviceId: getDeviceId() })
       const requestedPath = (location.state as { from?: string } | null)?.from
       if (isAdminUser(authenticatedUser) || isExpertUser(authenticatedUser)) {
         navigate(authenticatedDestination(authenticatedUser), { replace: true })
@@ -48,56 +73,95 @@ export function LoginPage() {
           state: { authorizationError: 'Bạn không có quyền truy cập khu vực này.' },
         })
       } else {
-        navigate(requestedPath || '/app', { replace: true })
+        navigate(authenticatedDestination(authenticatedUser, undefined, requestedPath), { replace: true })
       }
     } catch (requestError) {
-      setError(requestError instanceof ApiClientError
-        ? requestError.message
-        : 'Không thể đăng nhập. Vui lòng thử lại.')
-      if (requestError instanceof ApiClientError) setFieldErrors(requestError.fields)
+      const isActivationPending = requestError instanceof ApiClientError && (
+        requestError.code === 'ACCOUNT_PENDING_ACTIVATION' || requestError.message.includes('kích hoạt')
+      )
+      if (isActivationPending && trimmed.includes('@')) {
+        setShowResend(true)
+      }
+      setError(requestError instanceof ApiClientError ? requestError.message : 'Tài khoản hoặc mật khẩu không chính xác.')
+      if (requestError instanceof ApiClientError && requestError.fields) {
+        setFieldErrors({
+          identifier: requestError.fields.phone || requestError.fields.email,
+          password: requestError.fields.password,
+        })
+      }
     } finally {
       setSubmitting(false)
     }
   }
 
-  function fillDemoAccount() {
-    setPhone(DEMO_PHONE)
-    setPassword(DEMO_PASSWORD)
-    setError('')
-  }
-
   return (
     <AuthLayout
-      title="Chào mừng bạn trở lại"
-      subtitle="Đăng nhập để tiếp tục theo dõi hành trình chăm sóc mẹ và bé."
+      title="Đăng nhập NutriMom"
+      subtitle="Đăng nhập bằng Email hoặc Số điện thoại của bạn."
       footer={<p>Chưa có tài khoản? <Link to="/register">Tạo tài khoản</Link></p>}
+      panelVariant="login"
       showHomeLink
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
-        {error && <StatusMessage tone="error">{error}</StatusMessage>}
+        {error && (
+          <div style={{ marginBottom: 12 }}>
+            <StatusMessage tone="error">{error}</StatusMessage>
+            {showResend && (
+              <div style={{ marginTop: 10, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Link
+                  to={`/auth/activate?email=${encodeURIComponent(identifier.trim())}`}
+                  style={{ fontSize: 13, color: '#0d9488', fontWeight: 600, textDecoration: 'underline' }}
+                >
+                  👉 Bấm vào đây để nhập mã kích hoạt 6 chữ số
+                </Link>
+                {resendStatus ? (
+                  <p style={{ fontSize: 13, color: '#0d9488', fontWeight: 500, margin: 0 }}>{resendStatus}</p>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={handleResendActivation}
+                    disabled={resending}
+                    style={{ fontSize: 12, color: '#64748b' }}
+                  >
+                    {resending ? 'Đang gửi lại...' : 'Chưa nhận được mã? Gửi lại mã vào email'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <FormField
-          label="Số điện thoại"
-          name="phone"
-          error={fieldErrors.phone}
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="Ví dụ: 0901 234 567"
-          value={phone}
-          onChange={(event) => { setPhone(event.target.value); setFieldErrors((current) => ({ ...current, phone: undefined })) }}
-          icon={<Phone size={20} />}
+          label="Email hoặc Số điện thoại"
+          name="identifier"
+          type="text"
+          autoComplete="username"
+          placeholder="Nhập email hoặc số điện thoại"
+          value={identifier}
+          onChange={(e) => {
+            setIdentifier(e.target.value)
+            setError('')
+            setFieldErrors((prev) => ({ ...prev, identifier: undefined }))
+          }}
+          error={fieldErrors.identifier}
+          icon={<User size={20} />}
           disabled={submitting}
+          autoFocus
         />
 
         <PasswordField
           label="Mật khẩu"
           name="password"
-          error={fieldErrors.password}
           autoComplete="current-password"
-          placeholder="Nhập mật khẩu của bạn"
+          placeholder="Nhập mật khẩu"
           value={password}
-          onChange={(event) => { setPassword(event.target.value); setFieldErrors((current) => ({ ...current, password: undefined })) }}
+          onChange={(e) => {
+            setPassword(e.target.value)
+            setError('')
+            setFieldErrors((prev) => ({ ...prev, password: undefined }))
+          }}
+          error={fieldErrors.password}
           disabled={submitting}
         />
 
@@ -105,23 +169,6 @@ export function LoginPage() {
           <span>{submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}</span>
           {!submitting && <ArrowRight size={20} weight="bold" aria-hidden="true" />}
         </button>
-
-        <div className="auth-divider"><span>hoặc</span></div>
-
-        <Link className="secondary-button" to="/otp?mode=login">
-          <Key size={20} aria-hidden="true" />
-          Đăng nhập bằng OTP
-        </Link>
-
-        {import.meta.env.DEV && (
-          <div className="demo-account">
-            <div>
-              <strong>Tài khoản thử local</strong>
-              <span>{DEMO_PHONE} / {DEMO_PASSWORD}</span>
-            </div>
-            <button type="button" onClick={fillDemoAccount}>Điền nhanh</button>
-          </div>
-        )}
       </form>
     </AuthLayout>
   )

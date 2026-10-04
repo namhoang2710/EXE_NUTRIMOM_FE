@@ -77,6 +77,7 @@ async function login(payload: LoginInput) {
 async function register(payload: RegisterInput) {
   const request: RegisterRequestDto = {
     phone: payload.phone,
+    email: payload.email,
     password: payload.password,
     device_id: payload.deviceId,
     display_name: payload.displayName,
@@ -87,7 +88,10 @@ async function register(payload: RegisterInput) {
     authenticated: false,
     body: JSON.stringify(request),
   })
-  return saveApiSession(response)
+  if (response.access_token) {
+    return saveApiSession(response)
+  }
+  return null
 }
 
 async function requestOtp(payload: RequestOtpInput) {
@@ -144,11 +148,63 @@ async function logout() {
   }
 }
 
+async function requestMagicLink(email: string, deviceId?: string) {
+  return apiClient.request<{ sent: boolean; message: string; debug_link?: string; debug_code?: string }>('/auth/magic-link/request', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      email: email.trim(),
+      device_id: deviceId || getDeviceId(),
+    }),
+  })
+}
+
+async function verifyMagicLink(tokenOrCode: string, deviceId?: string, email?: string) {
+  const response = await apiClient.request<AuthResponseDto>('/auth/magic-link/verify', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      token: tokenOrCode.trim(),
+      code: tokenOrCode.trim(),
+      email: email ? email.trim() : undefined,
+      device_id: deviceId || getDeviceId(),
+    }),
+  })
+  return saveApiSession(response)
+}
+
+async function activateAccount(token: string, email?: string, deviceId?: string) {
+  const response = await apiClient.request<AuthResponseDto>('/auth/activate', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      token: token.trim(),
+      email: email ? email.trim() : undefined,
+      device_id: deviceId || getDeviceId(),
+    }),
+  })
+  return saveApiSession(response)
+}
+
+async function resendActivation(email: string) {
+  return apiClient.request<{ sent: boolean; message: string }>('/auth/resend-activation', {
+    method: 'POST',
+    authenticated: false,
+    body: JSON.stringify({
+      email: email.trim(),
+    }),
+  })
+}
+
 export const authApi = {
   login,
   register,
+  activateAccount,
+  resendActivation,
   requestOtp,
   verifyOtp,
+  requestMagicLink,
+  verifyMagicLink,
   me,
   logout,
   refresh: refreshSession,

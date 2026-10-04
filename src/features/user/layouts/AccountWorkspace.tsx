@@ -1,26 +1,49 @@
-import { BookmarkSimple, CaretDown, FileText, FirstAidKit, GearSix, Headset, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
-import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { BookmarkSimple, CaretDown, ClockCounterClockwise, FileText, FirstAidKit, GearSix, Headset, Heartbeat, House, List, LockKey, SignOut, Sparkle, UserCircle, X } from '@phosphor-icons/react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useSubscription } from '@/features/payment/hooks/useSubscription'
+import { ThemeToggle } from '@/shared/components/ThemeToggle'
+import { focusTargetForTab, getFocusableElements } from '@/shared/model/dialog-focus'
 import './account-workspace.css'
 
 export function AccountWorkspace() {
   const { profile, logout } = useAuth()
+  const { subscription } = useSubscription()
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(() => location.pathname.startsWith('/app/profile/account/'))
   const [loggingOut, setLoggingOut] = useState(false)
+  const sidebarRef = useRef<HTMLElement>(null)
+  const mobileToggleRef = useRef<HTMLButtonElement>(null)
+  const mobileCloseRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     setMobileOpen(false)
     if (location.pathname.startsWith('/app/profile/account/')) setSettingsOpen(true)
   }, [location.pathname])
   useEffect(() => {
-    function onEscape(event: KeyboardEvent) { if (event.key === 'Escape') setMobileOpen(false) }
-    document.addEventListener('keydown', onEscape)
-    return () => document.removeEventListener('keydown', onEscape)
-  }, [])
+    if (!mobileOpen) return
+    const previousOverflow = document.body.style.overflow
+    const mobileToggle = mobileToggleRef.current
+    document.body.style.overflow = 'hidden'
+    const frame = window.requestAnimationFrame(() => mobileCloseRef.current?.focus())
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') { setMobileOpen(false); return }
+      if (event.key !== 'Tab' || !sidebarRef.current) return
+      const focusable = getFocusableElements(sidebarRef.current)
+      const target = focusTargetForTab(focusable, document.activeElement, event.shiftKey)
+      if (target) { event.preventDefault(); target.focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      mobileToggle?.focus()
+    }
+  }, [mobileOpen])
 
   async function signOut() {
     setLoggingOut(true)
@@ -36,16 +59,28 @@ export function AccountWorkspace() {
     { to: '/app/profile/health', end: false, label: 'Thai kỳ & sức khỏe', icon: Heartbeat },
     { to: '/app/profile/care', end: false, label: 'Kế hoạch chăm sóc', icon: FirstAidKit },
     { to: '/app/profile/records', end: false, label: 'Hồ sơ y tế', icon: FileText },
+    { to: '/app/consultations/history', end: false, label: 'Lịch sử tư vấn', icon: ClockCounterClockwise },
     { to: '/app/profile/saved', end: false, label: 'Bài viết đã lưu', icon: BookmarkSimple },
     { to: '/app/profile/support', end: false, label: 'Hỗ trợ / Liên hệ', icon: Headset },
   ]
 
   return <div className="nm-account-workspace">
-    <button className="nm-account-mobile-toggle" type="button" onClick={() => setMobileOpen(true)} aria-expanded={mobileOpen} aria-controls="nm-account-sidebar"><List size={20} /> Danh mục tài khoản</button>
-    <aside className={`nm-account-sidebar${mobileOpen ? ' is-open' : ''}`} id="nm-account-sidebar" aria-label="Danh mục tài khoản">
-      <div className="nm-account-sidebar-top"><div className="nm-account-sidebar-avatar" aria-hidden="true">{initial}</div><div><strong>{name}</strong><span>Không gian cá nhân</span></div><button className="nm-account-sidebar-close" type="button" aria-label="Đóng danh mục" onClick={() => setMobileOpen(false)}><X size={20} /></button></div>
+    <button ref={mobileToggleRef} className="nm-account-mobile-toggle" type="button" onClick={() => setMobileOpen(true)} aria-expanded={mobileOpen} aria-controls="nm-account-sidebar"><List size={20} /> Danh mục tài khoản</button>
+    <aside ref={sidebarRef} className={`nm-account-sidebar${mobileOpen ? ' is-open' : ''}`} id="nm-account-sidebar" aria-label="Danh mục tài khoản">
+      <div className="nm-account-sidebar-top"><div className="nm-account-sidebar-avatar" aria-hidden="true">{initial}</div><div><strong>{name}</strong><span>Không gian cá nhân</span></div><div className="nm-account-sidebar-actions"><ThemeToggle /><button ref={mobileCloseRef} className="nm-account-sidebar-close" type="button" aria-label="Đóng danh mục" onClick={() => setMobileOpen(false)}><X size={20} /></button></div></div>
+      <div style={{ margin: '8px 16px 12px', padding: '10px 12px', borderRadius: '12px', background: 'var(--color-surface-subtle, #fff1f2)', border: '1px solid #fecdd3' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+          <span style={{ fontWeight: 700, color: '#e11d48' }}>{subscription?.plan_name || 'Gói Free'}</span>
+          {subscription?.active && subscription.plan_tier !== 'FREE' ? (
+            <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>Còn {subscription.days_remaining} ngày</span>
+          ) : (
+            <Link to="/pricing" style={{ fontSize: '11px', color: '#e11d48', fontWeight: 600, textDecoration: 'underline' }}>Nâng cấp</Link>
+          )}
+        </div>
+      </div>
       <nav className="nm-account-side-nav" aria-label="Điều hướng tài khoản"><p className="nm-account-side-label">Tài khoản của bạn</p>
         {links.map(({ to, end, label, icon: Icon }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><Icon size={20} weight="duotone" aria-hidden="true" />{label}</NavLink>)}
+        <NavLink to="/pricing" className="nm-account-side-link"><Sparkle size={20} weight="duotone" aria-hidden="true" />Gói dịch vụ & Bảng giá</NavLink>
         <button className={`nm-account-side-link nm-account-settings-trigger${accountActive ? ' is-active' : ''}`} type="button" aria-expanded={settingsOpen} aria-controls="nm-account-settings-submenu" onClick={() => setSettingsOpen((open) => !open)}><GearSix size={20} weight="duotone" aria-hidden="true" />Thiết lập tài khoản<CaretDown className={settingsOpen ? 'is-rotated' : ''} size={16} aria-hidden="true" /></button>
         <div className={`nm-account-submenu${settingsOpen ? ' is-open' : ''}`} id="nm-account-settings-submenu" aria-hidden={!settingsOpen}><NavLink to="/app/profile/account/password" tabIndex={settingsOpen ? 0 : -1} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><LockKey size={18} aria-hidden="true" />Mật khẩu</NavLink><NavLink to="/app/profile/account/disable" tabIndex={settingsOpen ? 0 : -1} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><UserCircle size={18} aria-hidden="true" />Vô hiệu hóa tài khoản</NavLink></div>
         <NavLink to="/app" className="nm-account-side-link"><House size={20} weight="duotone" aria-hidden="true" />Về trang chủ</NavLink>

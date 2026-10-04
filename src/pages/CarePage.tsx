@@ -127,7 +127,7 @@ export function CarePage() {
   }
 
   return <AppShell>
-    <div className="page-heading"><p className="welcome-kicker">Chăm sóc trước sinh</p><h1>Kế hoạch chăm sóc</h1><p>Theo dõi mốc khám, chuẩn bị và những lựa chọn quan trọng cho ngày sinh.</p></div>
+    <header className="nm-account-workspace-heading"><span>Chăm sóc trước sinh</span><h1>Kế hoạch chăm sóc</h1><p>Theo dõi mốc khám, chuẩn bị và những lựa chọn quan trọng cho ngày sinh.</p></header>
     {error && <StatusMessage tone="error">{error}</StatusMessage>}
     {message && <StatusMessage tone="success">{message}</StatusMessage>}
     {conflict && <button className="secondary-button" type="button" onClick={() => void load()}>Tải lại dữ liệu mới nhất</button>}

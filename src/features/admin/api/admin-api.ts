@@ -1,12 +1,15 @@
 import { apiClient } from '@/core/api/api-client'
 import {
   adminAppointments,
-  adminConsultations,
   adminDashboardData,
   adminHealthAlerts,
   adminNutritionPlans,
   adminReports,
 } from '../mock/admin-data'
+import { buildAdminConsultationsQueryString } from '../model/admin-consultations'
+import type { AdminConsultationsQuery } from '../model/admin-consultations'
+import { mapAdminConsultationsPage } from '../model/admin-consultations-mappers'
+import type { AdminConsultationPageDto } from '../model/admin-consultations-mappers'
 import { buildAdminUsersQueryString } from '../model/admin-users'
 import type {
   AdminUsersQuery,
@@ -48,7 +51,10 @@ export const adminApi = {
     return mapAdminUsersSummary(response)
   },
   getAppointments: () => fromMock(adminAppointments),
-  getConsultations: () => fromMock(adminConsultations),
+  async getConsultations(params: AdminConsultationsQuery, signal?: AbortSignal) {
+    const response = await apiClient.request<AdminConsultationPageDto>(`/admin/consultation-requests${buildAdminConsultationsQueryString(params)}`, { signal })
+    return mapAdminConsultationsPage(response)
+  },
   getReports: () => fromMock(adminReports),
   getHealthAlerts: () => fromMock(adminHealthAlerts),
   getNutritionPlans: () => fromMock(adminNutritionPlans),

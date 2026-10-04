@@ -38,7 +38,11 @@ export interface LoginRequestDto {
   device_id: string
 }
 
-export interface RegisterRequestDto extends LoginRequestDto {
+export interface RegisterRequestDto {
+  phone?: string
+  email?: string
+  password: string
+  device_id: string
   display_name: string
   accepted_terms: boolean
 }
