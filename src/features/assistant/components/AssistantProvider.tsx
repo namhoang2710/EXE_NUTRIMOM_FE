@@ -6,6 +6,7 @@ import { isAdminUser, isExpertUser } from '@/features/auth/model/role-routing'
 import { assistantApi } from '../api/assistant-api'
 import { AssistantContext } from '../model/assistant-context'
 import type { AssistantConversation, AssistantMessageDto, AssistantPreferences, AssistantSendRequest, AssistantStatus, AssistantUserOverview } from '../model/assistant-dto'
+import { ASSISTANT_RATE_LIMIT_MESSAGE, assistantCanRetry, assistantErrorMessage, assistantRetryAvailableAt, createAssistantSendGate } from '../model/assistant-request'
 import { safeAssistantMessage, safeAssistantOverview } from '../model/assistant-view'
 
 const AssistantWidget = lazy(() => import('./AssistantWidget').then(module => ({ default: module.AssistantWidget })))
@@ -38,11 +39,15 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
   const identity = useRef(accountId)
   const accountEpoch = useRef(0)
   const controllers = useRef(new Set<AbortController>())
+  const viewController = useRef<AbortController | null>(null)
   const loadedRef = useRef(false)
   const loadPromise = useRef<Promise<void> | null>(null)
   const operation = useRef(false)
+  const sendGate = useRef(createAssistantSendGate())
   const viewVersion = useRef(0)
+  const lastOverviewPath = useRef(pathname)
   const retryRequest = useRef<{ id: string; body: AssistantSendRequest } | null>(null)
+  const retryAvailableAt = useRef(0)
 
   useLayoutEffect(() => {
     // Reset only assistant state. Remounting the router here interrupts login redirects.
@@ -50,33 +55,41 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
     identity.current = accountId
     accountEpoch.current++
     viewVersion.current++
-    loadedRef.current = false; loadPromise.current = null; operation.current = false; retryRequest.current = null
+    loadedRef.current = false; loadPromise.current = null; operation.current = false; sendGate.current.reset(); viewController.current = null; retryRequest.current = null; retryAvailableAt.current = 0
     setStateOwner(accountId); setOpen(false); setLoaded(false); setLoading(false); setBusy(false); setSaving(false)
     setError(null); setDraft(''); setStatus(null); setPreferences(null); setOverview(null); setConversations([]); setConversation(null); setMessages([]); setCanRetry(false)
+    const activeMounted = mounted
     const activeControllers = controllers.current
+    const activeLoadPromise = loadPromise
+    const activeSendGate = sendGate.current
     return () => {
-      mounted.current = false
-      activeControllers.forEach(c => c.abort()); activeControllers.clear(); loadPromise.current = null
+      activeMounted.current = false
+      activeControllers.forEach(c => c.abort()); activeControllers.clear(); activeLoadPromise.current = null; activeSendGate.reset()
     }
   }, [accountId])
 
   const isCurrent = useCallback((epoch?: number) => mounted.current && accountId !== null && identity.current === accountId
     && (epoch === undefined || accountEpoch.current === epoch), [accountId])
 
-  const run = useCallback(async <T,>(request: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+  const run = useCallback(async <T,>(request: (signal: AbortSignal) => Promise<T>, scope: 'general' | 'view' = 'general'): Promise<T> => {
     const epoch = accountEpoch.current
     if (!isCurrent(epoch)) throw new DOMException('Aborted', 'AbortError')
+    if (scope === 'view') viewController.current?.abort()
     const controller = new AbortController()
+    if (scope === 'view') viewController.current = controller
     controllers.current.add(controller)
     try {
       const result = await request(controller.signal)
       if (!isCurrent(epoch) || controller.signal.aborted) throw new DOMException('Aborted', 'AbortError')
       return result
-    } finally { controllers.current.delete(controller) }
+    } finally {
+      controllers.current.delete(controller)
+      if (viewController.current === controller) viewController.current = null
+    }
   }, [isCurrent])
   const report = useCallback((cause: unknown) => {
     if (!isCurrent() || (cause instanceof DOMException && cause.name === 'AbortError') || (cause instanceof ApiClientError && cause.code === 'REQUEST_ABORTED')) return
-    setError(cause instanceof Error ? cause.message : 'Không thể tải trợ lý. Vui lòng thử lại.')
+    setError(assistantErrorMessage(cause))
   }, [isCurrent])
   const ensureLoaded = useCallback(async () => {
     if (!enabled || !isCurrent() || loadedRef.current) return
@@ -108,10 +121,13 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
   }, [isCurrent, preferences?.version, run])
 
   useEffect(() => {
-    if (!enabled || !loaded) return
-    const timer = window.setTimeout(() => void refreshOverview(), 250)
+    if (!enabled || !loaded || lastOverviewPath.current === pathname) return
+    const timer = window.setTimeout(() => {
+      lastOverviewPath.current = pathname
+      void refreshOverview()
+    }, 250)
     return () => window.clearTimeout(timer)
-  }, [enabled, loaded, open, pathname, refreshOverview])
+  }, [enabled, loaded, pathname, refreshOverview])
 
   const refreshList = useCallback(async () => {
     const epoch = accountEpoch.current
@@ -122,6 +138,12 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
 
   async function submit(content: string, retry = false) {
     if (!enabled || !isCurrent() || !loadedRef.current || operation.current || conversation?.read_only || !content.trim()) return
+    if (retry && Date.now() < retryAvailableAt.current) {
+      setError(ASSISTANT_RATE_LIMIT_MESSAGE)
+      return
+    }
+    const trimmed = sendGate.current.tryAcquire(content)
+    if (!trimmed) return
     operation.current = true; setBusy(true); setError(null); setCanRetry(false)
     const revision = viewVersion.current
     const epoch = accountEpoch.current
@@ -133,7 +155,7 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
         setConversation(current); setConversations(old => [current!, ...old.filter(c => c.id !== current!.id)])
       }
       const pending = retry && retryRequest.current ? retryRequest.current : {
-        id: current.id, body: { content: content.trim(), client_message_id: crypto.randomUUID(), page_path: pathname },
+        id: current.id, body: { content: trimmed, client_message_id: crypto.randomUUID(), page_path: pathname },
       }
       retryRequest.current = pending
       if (!retry) {
@@ -146,7 +168,7 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
       if (!isCurrent(epoch) || viewVersion.current !== revision) return
       setMessages(old => [...old.filter(m => m.id !== pending.body.client_message_id && m.id !== response.user_message.id && m.id !== response.assistant_message.id), safeAssistantMessage(response.user_message), safeAssistantMessage(response.assistant_message)])
       setStatus(old => old ? { ...old, remaining_ai_messages: response.remaining_ai_messages } : old)
-      retryRequest.current = null
+      retryRequest.current = null; retryAvailableAt.current = 0
       void refreshOverview()
       await refreshList().then(list => {
         if (isCurrent(epoch) && viewVersion.current === revision) setConversation(list.find(c => c.id === response.conversation_id) || current)
@@ -155,7 +177,8 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
       if (!isCurrent(epoch) || viewVersion.current !== revision) return
       report(cause)
       if (isCurrent(epoch)) {
-        setCanRetry(Boolean(retryRequest.current) && !(cause instanceof ApiClientError && !cause.retryable))
+        retryAvailableAt.current = assistantRetryAvailableAt(cause)
+        setCanRetry(Boolean(retryRequest.current) && assistantCanRetry(cause))
         if (cause instanceof ApiClientError && cause.code === 'VERSION_CONFLICT') {
           setConversation(old => old ? { ...old, read_only: true } : old)
           await run(signal => assistantApi.preferences(signal)).then(prefs => {
@@ -163,19 +186,23 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
           }).catch(() => undefined)
         }
       }
-    } finally { if (isCurrent(epoch)) { operation.current = false; setBusy(false) } }
+    } finally {
+      sendGate.current.release()
+      if (isCurrent(epoch)) { operation.current = false; setBusy(false) }
+    }
   }
   function newConversation() {
     if (!isCurrent() || operation.current) return
-    viewVersion.current++; setLoading(false); setConversation(null); setMessages([]); setDraft(''); setError(null); setCanRetry(false); retryRequest.current = null
+    viewController.current?.abort(); viewController.current = null
+    viewVersion.current++; setLoading(false); setConversation(null); setMessages([]); setDraft(''); setError(null); setCanRetry(false); retryRequest.current = null; retryAvailableAt.current = 0
   }
   async function selectConversation(id: string) {
     if (!isCurrent() || operation.current) return
     const revision = ++viewVersion.current
     const epoch = accountEpoch.current
-    setLoading(true); setError(null); setCanRetry(false); retryRequest.current = null
+    setLoading(true); setError(null); setCanRetry(false); retryRequest.current = null; retryAvailableAt.current = 0
     try {
-      const result = await run(signal => assistantApi.detail(id, signal))
+      const result = await run(signal => assistantApi.detail(id, signal), 'view')
       if (!isCurrent(epoch) || revision !== viewVersion.current) return
       setConversation(result.conversation); setMessages(result.messages.map(safeAssistantMessage)); setDraft('')
     } catch (cause) { if (isCurrent(epoch) && revision === viewVersion.current) report(cause) }
@@ -189,7 +216,7 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
     try {
       await run(signal => assistantApi.remove(id, signal))
       if (!isCurrent(epoch)) return
-      if (conversation?.id === id) { viewVersion.current++; setConversation(null); setMessages([]); setDraft(''); retryRequest.current = null; setCanRetry(false) }
+      if (conversation?.id === id) { viewVersion.current++; setConversation(null); setMessages([]); setDraft(''); retryRequest.current = null; retryAvailableAt.current = 0; setCanRetry(false) }
       setConversations(old => old.filter(c => c.id !== id))
     } catch (cause) { if (isCurrent(epoch)) report(cause) }
     finally { if (isCurrent(epoch)) { operation.current = false; setSaving(false) } }
@@ -204,7 +231,7 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
       setPreferences(result)
       if (result.version !== preferences?.version) {
         setOverview(null)
-        viewVersion.current++; setConversation(null); setMessages([]); setDraft(''); setCanRetry(false); retryRequest.current = null
+        viewVersion.current++; setConversation(null); setMessages([]); setDraft(''); setCanRetry(false); retryRequest.current = null; retryAvailableAt.current = 0
         setConversations(old => old.map(c => ({ ...c, read_only: c.context_version !== result.version })))
       }
       return true
@@ -215,7 +242,7 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
         await run(signal => assistantApi.preferences(signal)).then(latest => {
           if (!isCurrent(epoch)) return
           setPreferences(latest); setOverview(null); viewVersion.current++; setLoading(false); setConversation(null); setMessages([]); setDraft('')
-          setCanRetry(false); retryRequest.current = null
+          setCanRetry(false); retryRequest.current = null; retryAvailableAt.current = 0
           setConversations(old => old.map(c => ({ ...c, read_only: c.context_version !== latest.version })))
         }).catch(() => undefined)
       }

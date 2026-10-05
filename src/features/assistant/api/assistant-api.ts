@@ -11,5 +11,5 @@ export const assistantApi = {
   create: (signal?: AbortSignal) => apiClient.request<AssistantConversation>(`${base}/conversations`, { method: 'POST', signal }),
   detail: (id: string, signal?: AbortSignal) => apiClient.request<AssistantConversationDetail>(`${base}/conversations/${encodeURIComponent(id)}`, { signal }),
   remove: (id: string, signal?: AbortSignal) => apiClient.request<void>(`${base}/conversations/${encodeURIComponent(id)}`, { method: 'DELETE', signal }),
-  send: (id: string, body: AssistantSendRequest, signal?: AbortSignal) => apiClient.request<AssistantReply>(`${base}/conversations/${encodeURIComponent(id)}/messages`, { method: 'POST', body: JSON.stringify(body), signal, timeoutMs: 55_000 }),
+  send: (id: string, body: AssistantSendRequest, signal?: AbortSignal) => apiClient.request<AssistantReply>(`${base}/conversations/${encodeURIComponent(id)}/messages`, { method: 'POST', body: JSON.stringify(body), signal, idempotencyKey: body.client_message_id, timeoutMs: 55_000 }),
 }
