@@ -4,6 +4,7 @@ import { CaretDown, Check } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { cn } from '@/lib/utils'
+import './animated-select.css'
 
 export interface AnimatedSelectOption<T extends string = string> {
   value: T

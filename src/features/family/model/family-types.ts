@@ -31,8 +31,40 @@ export interface FamilyInvitation {
   invited_phone?: string
   invited_email?: string
   token: string
+  invite_url: string
   relationship: string
-  scopes: string[]
+  scopes: FamilyScope[]
+  status: FamilyInvitationStatus
+  delivery_status: InvitationDeliveryStatus
+  sent_at?: string
+  expires_at: string
+  created_at: string
+}
+
+export type FamilyInvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
+export type InvitationDeliveryStatus = 'SENT' | 'FAILED' | 'SKIPPED'
+
+export interface FamilyInvitationPreview {
+  inviter_display_name: string
+  relationship: string
+  relationship_label: string
+  scopes: FamilyScope[]
+  scope_labels: string[]
+  target_type: 'EMAIL' | 'PHONE'
+  masked_target: string
+  expires_at: string
+  status: FamilyInvitationStatus
+}
+
+export interface FamilyInvitationSummary {
+  id: string
+  target_type: 'EMAIL' | 'PHONE'
+  masked_target: string
+  relationship: string
+  scopes: FamilyScope[]
+  status: FamilyInvitationStatus
+  delivery_status?: InvitationDeliveryStatus
+  sent_at?: string
   expires_at: string
   created_at: string
 }

@@ -5,7 +5,7 @@ import { canCancelConsultation, canReviewConsultation, formatConsultationDate, f
 import type { ConsultationPage, ConsultationRequest } from '../model/consultation-types'
 import { consultationAssignmentLabels, consultationSpecialtyLabels, consultationStatusLabels } from '../model/consultation-types'
 
-function ConsultationCard({ item, highlighted = false, index = 0, onCancel, onReview }: { item: ConsultationRequest; highlighted?: boolean; index?: number; onCancel?: (item: ConsultationRequest) => void; onReview?: (item: ConsultationRequest) => void }) {
+export function ConsultationCard({ item, highlighted = false, index = 0, onCancel, onReview }: { item: ConsultationRequest; highlighted?: boolean; index?: number; onCancel?: (item: ConsultationRequest) => void; onReview?: (item: ConsultationRequest) => void }) {
   const reduceMotion = useReducedMotion()
   return <motion.article className={`consultation-card status-${item.status.toLowerCase()}${highlighted ? ' is-highlighted' : ''}`} initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : 0.24, delay: reduceMotion ? 0 : Math.min(index * 0.05, 0.25) }}>
     <div className="consultation-card__top"><div className="consultation-card__identity"><span className="consultation-card__avatar" aria-hidden="true"><UserCircle size={26} weight="duotone" /></span><div><h3>{item.expertName || 'Đang chờ chuyên gia'}</h3><p>{consultationSpecialtyLabels[item.specialty]}</p></div></div><span className="consultation-status"><span aria-hidden="true" />{consultationStatusLabels[item.status]}</span></div>

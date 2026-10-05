@@ -1,9 +1,12 @@
-import { FileArrowUp, FileText, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { CalendarPlus, FileArrowUp, FileText, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
 import { formatDate, todayDate } from '@/core/auth/date'
 import { filesApi, pregnancyApi, recordsApi, sha256, uploadContent } from '@/features/maternity/api/domain-api'
 import { MedicalRecordAttachments } from '@/features/maternity/components/MedicalRecordAttachments'
+import { MedicalRecordReminderDialog } from '@/features/calendar/components/MedicalRecordReminderDialog'
+import { CalendarToast, type CalendarToastMessage } from '@/features/calendar/components/CalendarToast'
 import { buildMedicalRecordPayload, createCurrentPregnancyLoader, loadMedicalRecords } from '@/features/maternity/model/records-page-data'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { ActionStateDialog } from '@/shared/components/ActionStateDialog'
@@ -35,6 +38,8 @@ function vietnamDateOnly(value: string) {
 }
 
 export function RecordsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusedRecordId = searchParams.get('record')?.trim() || ''
   const [records, setRecords] = useState<MedicalRecord[]>([])
   const [pregnancy, setPregnancy] = useState<Pregnancy | null>(null)
   const [error, setError] = useState('')
@@ -48,6 +53,8 @@ export function RecordsPage() {
   const [editorError, setEditorError] = useState('')
   const savingRef = useRef(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [calendarToast, setCalendarToast] = useState<CalendarToastMessage>()
+  const calendarToastId = useRef(0)
   const [filterCategory, setFilterCategory] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -59,6 +66,9 @@ export function RecordsPage() {
   const [loading, setLoading] = useState(true)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [reminderRecordId, setReminderRecordId] = useState<string>()
+  const [reminderRecords, setReminderRecords] = useState<MedicalRecord[]>([])
+  const [reminderOpen, setReminderOpen] = useState(false)
   const [pregnancyResolved, setPregnancyResolved] = useState(false)
   const currentPregnancyLoader = useRef<(() => Promise<Pregnancy | null>) | null>(null)
   const pregnancyId = pregnancy?.id
@@ -89,6 +99,31 @@ export function RecordsPage() {
     if (!pregnancyId) { setRecords([]); setNextCursor(null); setLoading(false); return }
     void loadRecords(pregnancyId)
   }, [loadRecords, pregnancyId, pregnancyResolved])
+
+  useEffect(() => {
+    if (!focusedRecordId) return
+    const controller = new AbortController()
+    setLoadingDetail(true); setError('')
+    void recordsApi.get(focusedRecordId, controller.signal).then((detail) => {
+      if (controller.signal.aborted) return
+      setEditing(detail)
+      setCategory(detail.category)
+      setOccurredAt(vietnamDateOnly(detail.occurred_at))
+      setAttachments(detail.attachments?.map((item) => item.id) || [])
+      setOpen(true)
+    }).catch(() => {
+      if (!controller.signal.aborted) setError('Không thể mở hồ sơ y tế này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.')
+    }).finally(() => { if (!controller.signal.aborted) setLoadingDetail(false) })
+    return () => controller.abort()
+  }, [focusedRecordId])
+
+  function closeEditor() {
+    setOpen(false)
+    if (!focusedRecordId) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('record')
+    setSearchParams(next, { replace: true })
+  }
 
   function resetEditorState() {
     setEditorError('')
@@ -152,7 +187,7 @@ export function RecordsPage() {
       const wasEditing = Boolean(editing)
       const saved = editing ? await recordsApi.update(editing.id, { ...payload, version: editing.version }) : await recordsApi.create({ ...payload, pregnancy_id: pregnancy?.id })
       setRecords((current) => editing ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current])
-      setOpen(false); setEditing(null); setAttachments([])
+      closeEditor(); setEditing(null); setAttachments([])
       setSuccessMessage(wasEditing ? 'Đã cập nhật hồ sơ y tế thành công.' : 'Đã lưu hồ sơ y tế thành công.')
     } catch (reason) {
       if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') {
@@ -167,26 +202,41 @@ export function RecordsPage() {
     await recordsApi.remove(pendingDelete)
   }
 
+  async function openRecordReminder(record?: MedicalRecord) {
+    setError('')
+    if (record) { setReminderRecords(records); setReminderRecordId(record.id); setReminderOpen(true); return }
+    if (records.length) { setReminderRecords(records); setReminderRecordId(undefined); setReminderOpen(true); return }
+    if (!pregnancy) { setError('Hãy thêm ít nhất một hồ sơ y tế trước khi tạo lịch nhắc nhở.'); return }
+    setLoadingDetail(true)
+    try {
+      const query = new URLSearchParams({ limit: '12', pregnancy_id: pregnancy.id })
+      const page = await recordsApi.list(`?${query}`)
+      if (!page.items.length) { setError('Hãy thêm ít nhất một hồ sơ y tế trước khi tạo lịch nhắc nhở.'); return }
+      setReminderRecords(page.items); setReminderRecordId(undefined); setReminderOpen(true)
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ để tạo lịch nhắc nhở.') }
+    finally { setLoadingDetail(false) }
+  }
+
   async function download(fileId: string) {
     try { const response = await filesApi.download(fileId); window.open(response.download_url, '_blank', 'noopener') }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể tải tệp.') }
   }
 
   return <AppShell>
-    <header className="nm-account-workspace-heading nm-account-workspace-heading-actions"><div><span>Hồ sơ riêng tư</span><h1>Hồ sơ y tế</h1><p>Lưu kết quả khám, siêu âm và tài liệu quan trọng của bạn.</p></div><button className="primary-button" type="button" onClick={() => void openEditor()}><Plus size={20} />Thêm hồ sơ</button></header>
+    <header className="nm-account-workspace-heading nm-account-workspace-heading-actions"><div><span>Hồ sơ riêng tư</span><h1>Hồ sơ y tế</h1><p>Lưu kết quả khám, siêu âm và tài liệu quan trọng của bạn.</p></div><div className="record-heading-actions"><button className="secondary-button" type="button" disabled={loadingDetail} onClick={() => void openRecordReminder()}><CalendarPlus size={20} />Thêm lịch nhắc nhở</button><button className="primary-button" type="button" onClick={() => void openEditor()}><Plus size={20} />Thêm hồ sơ</button></div></header>
     {error && <StatusMessage tone="error">{error}</StatusMessage>}
     <section className="record-filters"><SelectField label="Lọc hồ sơ" value={filterCategory} options={filterCategories} onChange={setFilterCategory} /><CalendarDatePicker label="Từ ngày" value={from} onChange={setFrom} allowClear yearsBack={30} error={rangeError || undefined} /><CalendarDatePicker label="Đến ngày" value={to} onChange={setTo} allowClear yearsBack={30} /></section>
-    <section className="record-list">{rangeError ? null : loading ? <section className="empty-state"><p>Đang tải hồ sơ y tế...</p></section> : records.map((record) => <article className="app-card record-item" key={record.id}><FileText size={28} weight="duotone" /><div><p className="card-kicker">{categoryLabels[record.category] ?? 'Loại hồ sơ khác'}</p><h2>{record.title}</h2><p>{formatDate(record.occurred_at)} · {record.facility_name || 'Chưa có cơ sở khám'}</p><p>{record.summary}</p><MedicalRecordAttachments recordId={record.id} attachmentCount={record.attachment_count} attachments={record.attachments} onDownload={(fileId) => void download(fileId)} /></div><div className="record-actions"><button className="icon-button" type="button" aria-label="Sửa hồ sơ" onClick={() => void openEditor(record)} disabled={loadingDetail}><PencilSimple size={20} /></button><button className="icon-danger" type="button" aria-label="Xóa hồ sơ" onClick={() => setPendingDelete(record.id)} disabled={loadingDetail}><Trash size={20} /></button></div></article>)}{!rangeError && !loading && records.length === 0 && <section className="empty-state"><FileText size={40} /><h2>Chưa có hồ sơ y tế</h2><p>Thêm lần khám hoặc kết quả siêu âm đầu tiên của bạn.</p></section>}</section>
+    <section className="record-list">{rangeError ? null : loading ? <section className="empty-state"><p>Đang tải hồ sơ y tế...</p></section> : records.map((record) => <article className="app-card record-item" key={record.id}><FileText size={28} weight="duotone" /><div><p className="card-kicker">{categoryLabels[record.category] ?? 'Loại hồ sơ khác'}</p><h2>{record.title}</h2><p>{formatDate(record.occurred_at)} · {record.facility_name || 'Chưa có cơ sở khám'}</p><p>{record.summary}</p><MedicalRecordAttachments recordId={record.id} attachmentCount={record.attachment_count} attachments={record.attachments} onDownload={(fileId) => void download(fileId)} /></div><div className="record-actions"><button className="icon-button" type="button" aria-label={`Thêm lịch nhắc từ ${record.title}`} onClick={() => void openRecordReminder(record)} disabled={loadingDetail}><CalendarPlus size={20} /></button><button className="icon-button" type="button" aria-label="Sửa hồ sơ" onClick={() => void openEditor(record)} disabled={loadingDetail}><PencilSimple size={20} /></button><button className="icon-danger" type="button" aria-label="Xóa hồ sơ" onClick={() => setPendingDelete(record.id)} disabled={loadingDetail}><Trash size={20} /></button></div></article>)}{!rangeError && !loading && records.length === 0 && <section className="empty-state"><FileText size={40} /><h2>Chưa có hồ sơ y tế</h2><p>Thêm hồ sơ đầu tiên để lưu tài liệu và tạo lịch tái khám.</p></section>}</section>
     {nextCursor && pregnancy && <button className="secondary-button load-more" type="button" disabled={loadingMore} onClick={() => { setLoadingMore(true); void loadRecords(pregnancy.id, nextCursor).finally(() => setLoadingMore(false)) }}>{loadingMore ? 'Đang tải...' : 'Tải thêm hồ sơ'}</button>}
 
     <AccessibleDialog
       open={open}
       title={editing ? 'Cập nhật hồ sơ y tế' : 'Thêm hồ sơ y tế'}
       description="Thông tin được lưu riêng tư trong tài khoản của bạn."
-      onClose={() => setOpen(false)}
+      onClose={closeEditor}
       busy={saving || uploading}
       className="medical-record-editor"
-      footer={<><button className="secondary-button" type="button" disabled={saving || uploading} onClick={() => setOpen(false)}>Đóng</button><button className="primary-button" type="submit" form={editorFormId} disabled={saving || uploading}>{saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Lưu hồ sơ'}</button></>}
+      footer={<><button className="secondary-button" type="button" disabled={saving || uploading} onClick={closeEditor}>Đóng</button><button className="primary-button" type="submit" form={editorFormId} disabled={saving || uploading}>{saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Lưu hồ sơ'}</button></>}
     >
       <form id={editorFormId} key={editing?.id || 'new'} className="compact-form medical-record-form" onSubmit={submit}>
         <SelectField label="Loại hồ sơ" value={category} options={categories} onChange={setCategory} />
@@ -204,6 +254,8 @@ export function RecordsPage() {
     </AccessibleDialog>
 
     <SuccessDialog open={Boolean(successMessage)} message={successMessage} onClose={() => setSuccessMessage('')} />
+    <CalendarToast toast={calendarToast} onClose={() => setCalendarToast(undefined)} />
+    <MedicalRecordReminderDialog open={reminderOpen} records={reminderRecords} initialRecordId={reminderRecordId} onClose={() => setReminderOpen(false)} onSaved={() => { setReminderOpen(false); calendarToastId.current += 1; setCalendarToast({ id: calendarToastId.current, message: 'Đã tạo lịch nhắc nhở từ hồ sơ y tế.', tone: 'success' }); window.dispatchEvent(new CustomEvent('nutrimom:calendar-changed')) }} />
     <ActionStateDialog
       open={Boolean(pendingDelete)}
       danger

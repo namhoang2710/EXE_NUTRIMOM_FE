@@ -11,7 +11,7 @@ import type { FamilyMember, FamilyTask, FamilyTaskStatus } from '../model/family
 import { FamilyLoadingState } from './FamilyLoadingState'
 import { TaskEditorDialog } from './TaskEditorDialog'
 
-interface Props { isOwner: boolean; canUseTasks: boolean; members: FamilyMember[] }
+interface Props { isOwner: boolean; canUseTasks: boolean; members: FamilyMember[]; focusedTaskId?: string; onCloseFocusedTask?: () => void }
 
 const taskRequests = new Map<string, Promise<FamilyTask[]>>()
 const taskFilterOptions: AnimatedSelectOption<FamilyTaskStatus | ''>[] = [
@@ -30,7 +30,7 @@ function requestTasks(filters: { status?: FamilyTaskStatus; assignee_id?: string
   return request
 }
 
-export function FamilyTasksPanel({ isOwner, canUseTasks, members }: Props) {
+export function FamilyTasksPanel({ isOwner, canUseTasks, members, focusedTaskId = '', onCloseFocusedTask }: Props) {
   const [tasks, setTasks] = useState<FamilyTask[]>([])
   const [status, setStatus] = useState<FamilyTaskStatus | ''>('')
   const [assigneeId, setAssigneeId] = useState('')
@@ -42,6 +42,7 @@ export function FamilyTasksPanel({ isOwner, canUseTasks, members }: Props) {
   const [deleting, setDeleting] = useState<FamilyTask | null>(null)
   const updating = useRef(new Set<string>())
   const requestId = useRef(0)
+  const focusedRef = useRef<HTMLElement>(null)
   const assigneeOptions: AnimatedSelectOption<string>[] = [
     { value: '', label: 'Tất cả' },
     ...members.map((member) => ({ value: member.id, label: memberLabel(member) })),
@@ -53,19 +54,33 @@ export function FamilyTasksPanel({ isOwner, canUseTasks, members }: Props) {
     const currentRequest = ++requestId.current
     setLoading(true); setError('')
     try {
-      const result = await requestTasks({ status: status || undefined, assignee_id: isOwner ? assigneeId || undefined : undefined })
-      if (requestId.current === currentRequest) setTasks(result)
+      const result = await requestTasks(focusedTaskId ? {} : { status: status || undefined, assignee_id: isOwner ? assigneeId || undefined : undefined })
+      if (requestId.current === currentRequest) {
+        setTasks(result)
+        if (focusedTaskId && !result.some((task) => task.id === focusedTaskId)) setError('Không thể mở việc gia đình này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.')
+      }
     } catch (reason) { if (requestId.current === currentRequest) setError(familyErrorMessage(reason)) }
     finally {
       await waitForFamilyLoading(startedAt)
       if (requestId.current === currentRequest) setLoading(false)
     }
-  }, [assigneeId, canUseTasks, isOwner, status])
+  }, [assigneeId, canUseTasks, focusedTaskId, isOwner, status])
 
   useEffect(() => {
     void load()
     return () => { requestId.current += 1 }
   }, [load])
+  useEffect(() => {
+    if (!focusedTaskId) return
+    setStatus(''); setAssigneeId('')
+  }, [focusedTaskId])
+  useEffect(() => {
+    if (!focusedTaskId || !tasks.some((task) => task.id === focusedTaskId)) return
+    window.requestAnimationFrame(() => {
+      focusedRef.current?.focus({ preventScroll: true })
+      focusedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }, [focusedTaskId, tasks])
 
   async function changeStatus(task: FamilyTask, nextStatus: FamilyTaskStatus) {
     if (updating.current.has(task.id)) return
@@ -84,7 +99,7 @@ export function FamilyTasksPanel({ isOwner, canUseTasks, members }: Props) {
     <div className="family-section-heading"><div><h2 id="family-tasks-title">Việc cần làm</h2><p>Theo dõi công việc chung và chỉ cập nhật sau khi máy chủ xác nhận.</p></div>{isOwner && <button className="primary-button" type="button" onClick={() => { setEditing(null); setEditorOpen(true) }}><Plus size={18} aria-hidden="true" />Tạo việc</button>}</div>
     <div className="family-filters"><AnimatedSelect className="family-filter-select" label="Trạng thái" value={status} options={taskFilterOptions} onValueChange={setStatus} />{isOwner && <AnimatedSelect className="family-filter-select" label="Người phụ trách" value={assigneeId} options={assigneeOptions} onValueChange={setAssigneeId} />}<button className="family-icon-button" type="button" aria-label="Tải lại danh sách việc" onClick={() => void load()}><ArrowClockwise size={20} /></button></div>
     {error && <div className="family-inline-state"><StatusMessage tone="error">{error}</StatusMessage>{conflict && <button className="secondary-button" type="button" onClick={() => { setConflict(false); void load() }}>Tải lại</button>}</div>}
-    {loading ? <FamilyLoadingState label="Đang tải việc cần làm" description="Danh sách công việc đang được cập nhật." /> : <div className="family-content-ready">{tasks.length ? <div className="family-task-list">{tasks.map((task) => <article className="family-task-row" key={task.id}><div className={`family-priority is-${task.priority.toLowerCase()}`}>{taskPriorityLabels[task.priority]}</div><div className="family-task-copy"><h3>{task.title}</h3>{task.description && <p>{task.description}</p>}<div className="family-task-meta"><span><CalendarBlank size={17} aria-hidden="true" />{formatVietnamDateTime(task.due_at)}</span><span>{task.assignee_id ? memberLabel(members.find((member) => member.id === task.assignee_id)) : 'Chưa giao'}</span></div></div><div className="family-task-controls"><AnimatedSelect className="family-task-status-select" label={`Trạng thái của ${task.title}`} labelClassName="sr-only" value={task.status} options={taskStatusOptions} disabled={updating.current.has(task.id)} onValueChange={(value) => void changeStatus(task, value)} />{isOwner && <div className="family-row-actions"><button className="family-icon-button" type="button" aria-label={`Sửa ${task.title}`} onClick={() => { setEditing(task); setEditorOpen(true) }}><PencilSimple size={19} /></button><button className="family-icon-button is-danger" type="button" aria-label={`Xóa ${task.title}`} onClick={() => setDeleting(task)}><Trash size={19} /></button></div>}</div></article>)}</div> : <div className="family-empty"><CheckCircle size={40} weight="duotone" aria-hidden="true" /><h3>Chưa có việc phù hợp</h3><p>{status || assigneeId ? 'Thử thay đổi bộ lọc để xem các việc khác.' : 'Khi có việc gia đình, danh sách sẽ xuất hiện tại đây.'}</p></div>}</div>}
+    {loading ? <FamilyLoadingState label="Đang tải việc cần làm" description="Danh sách công việc đang được cập nhật." /> : <div className="family-content-ready">{tasks.length ? <div className="family-task-list">{tasks.map((task) => { const focused = task.id === focusedTaskId; return <article ref={focused ? focusedRef : undefined} tabIndex={focused ? -1 : undefined} className={`family-task-row${focused ? ' is-highlighted' : ''}`} key={task.id}><div className={`family-priority is-${task.priority.toLowerCase()}`}>{taskPriorityLabels[task.priority]}</div><div className="family-task-copy"><h3>{task.title}</h3>{task.description && <p>{task.description}</p>}<div className="family-task-meta"><span><CalendarBlank size={17} aria-hidden="true" />{formatVietnamDateTime(task.due_at)}</span><span>{task.assignee_id ? memberLabel(members.find((member) => member.id === task.assignee_id)) : 'Chưa giao'}</span></div>{focused && <button className="consultation-text-button" type="button" onClick={onCloseFocusedTask}>Đóng chi tiết</button>}</div><div className="family-task-controls"><AnimatedSelect className="family-task-status-select" label={`Trạng thái của ${task.title}`} labelClassName="sr-only" value={task.status} options={taskStatusOptions} disabled={updating.current.has(task.id)} onValueChange={(value) => void changeStatus(task, value)} />{isOwner && <div className="family-row-actions"><button className="family-icon-button" type="button" aria-label={`Sửa ${task.title}`} onClick={() => { setEditing(task); setEditorOpen(true) }}><PencilSimple size={19} /></button><button className="family-icon-button is-danger" type="button" aria-label={`Xóa ${task.title}`} onClick={() => setDeleting(task)}><Trash size={19} /></button></div>}</div></article> })}</div> : <div className="family-empty"><CheckCircle size={40} weight="duotone" aria-hidden="true" /><h3>Chưa có việc phù hợp</h3><p>{status || assigneeId ? 'Thử thay đổi bộ lọc để xem các việc khác.' : 'Khi có việc gia đình, danh sách sẽ xuất hiện tại đây.'}</p></div>}</div>}
     <TaskEditorDialog open={editorOpen} task={editing} members={members} onClose={() => setEditorOpen(false)} onSaved={(saved) => setTasks((current) => { const exists = current.some((item) => item.id === saved.id); return exists ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current] })} onConflict={() => setConflict(true)} />
     <ActionStateDialog open={Boolean(deleting)} title="Xóa việc này?" description="Việc sẽ được xóa khỏi danh sách gia đình." confirmLabel="Xóa việc" cancelLabel="Giữ lại" busyLabel="Đang xóa..." successMessage="Đã xóa việc khỏi danh sách." danger onAction={async () => { if (deleting) await familyApi.deleteTask(deleting.id) }} onCompleted={() => { if (deleting) setTasks((current) => current.filter((item) => item.id !== deleting.id)) }} onClose={() => setDeleting(null)} errorMessage={familyErrorMessage} />
   </section>

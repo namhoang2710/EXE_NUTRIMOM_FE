@@ -12,8 +12,8 @@ export const pregnancyApi = {
 }
 
 export const dashboardApi = {
-  mom: () => apiClient.request<MomDashboard>('/dashboard/mom'),
-  partner: () => apiClient.request<PartnerDashboard>('/dashboard/partner'),
+  mom: (signal?: AbortSignal) => apiClient.request<MomDashboard>('/dashboard/mom', { signal }),
+  partner: (signal?: AbortSignal) => apiClient.request<PartnerDashboard>('/dashboard/partner', { signal }),
 }
 
 export const careApi = {
@@ -27,7 +27,7 @@ export const careApi = {
 
 export const recordsApi = {
   list: (query = '') => apiClient.request<CursorPage<MedicalRecord>>(`/medical-records${query}`),
-  get: (id: string) => apiClient.request<MedicalRecord>(`/medical-records/${id}`),
+  get: (id: string, signal?: AbortSignal) => apiClient.request<MedicalRecord>(`/medical-records/${encodeURIComponent(id)}`, { signal }),
   create: (body: Record<string, unknown>) => apiClient.request<MedicalRecord>('/medical-records', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: Record<string, unknown>) => apiClient.request<MedicalRecord>(`/medical-records/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   remove: (id: string) => apiClient.request<void>(`/medical-records/${id}`, { method: 'DELETE' }),

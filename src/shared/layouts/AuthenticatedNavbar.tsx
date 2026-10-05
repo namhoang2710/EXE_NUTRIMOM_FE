@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatedTabs, type AnimatedTab } from '@/components/ui/animated-tabs'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { nextNavbarScrollState, type NavbarScrollState } from './navbar-scroll'
 
 export function AuthenticatedNavbar() {
@@ -75,7 +76,7 @@ export function AuthenticatedNavbar() {
             : location.pathname.startsWith('/app/pricing') ? 'pricing'
               : undefined
   const animatedTabs = useMemo<AnimatedTab[]>(() => [
-    { value: 'home', label: 'Trang chủ' },
+    { value: 'home', label: 'Tổng quan' },
     { value: 'family', label: 'Gia đình' },
     { value: 'knowledge', label: 'Kiến thức' },
     { value: 'community', label: 'Cộng đồng' },
@@ -83,10 +84,10 @@ export function AuthenticatedNavbar() {
     { value: 'guide', label: 'Hướng dẫn khách hàng', suffix: <CaretDown size={15} className={guideOpen ? 'is-rotated' : ''} /> },
   ], [guideOpen])
   function closeNavigation() { setMenuOpen(false); setGuideOpen(false) }
-  return <header className={`nm-app-header${headerVisible ? '' : ' is-hidden'}`}><nav className="nm-floating-nav" aria-label="Điều hướng ứng dụng"><Link className="nm-app-brand" to="/app"><img src="/nutrimom-logo.png" alt="" width="39" height="39" /><span>NutriMom</span></Link>
+  return <header className={`nm-app-header${headerVisible ? '' : ' is-hidden'}`}><nav className="nm-floating-nav" aria-label="Điều hướng ứng dụng"><Link className="nm-app-brand" to="/app" aria-label="NutriMom - Tổng quan"><img src="/nutrimom-logo.png" alt="" width="44" height="44" /></Link>
     <div className={`nm-app-links${menuOpen ? ' is-open' : ''}`} id="nm-app-links-mobile">
       <AnimatedTabs tabs={animatedTabs} value={guideOpen ? 'guide' : activeNavigation} />
-      <NavLink to="/app" end onClick={closeNavigation}>Trang chủ</NavLink>
+      <NavLink to="/app" end onClick={closeNavigation}>Tổng quan</NavLink>
       <NavLink to="/app/family" onClick={closeNavigation}>Gia đình</NavLink>
       <NavLink to="/app/knowledge" onClick={closeNavigation}>Kiến thức</NavLink>
       <NavLink to="/app/community" onClick={closeNavigation}>Cộng đồng</NavLink>
@@ -96,6 +97,6 @@ export function AuthenticatedNavbar() {
         <div className={`nm-guide-dropdown${guideOpen ? ' is-open' : ''}`} id="nm-guide-dropdown" aria-hidden={!guideOpen}><Link to="/app/contact" tabIndex={guideOpen ? 0 : -1} onClick={closeNavigation}>Liên hệ với chúng tôi</Link><Link to="/app/experts" tabIndex={guideOpen ? 0 : -1} onClick={closeNavigation}>Tìm bác sĩ</Link><Link to="/app/consultations/history" tabIndex={guideOpen ? 0 : -1} onClick={closeNavigation}>Lịch sử tư vấn</Link></div>
       </div>
     </div>
-    <div className="nm-app-actions"><div className="nm-account-menu" ref={accountRef}><button ref={accountButtonRef} type="button" className="nm-avatar-button" aria-expanded={accountOpen} aria-controls="nm-account-dropdown" onClick={() => { setAccountOpen(!accountOpen); setGuideOpen(false) }}><span className="nm-nav-avatar">{profile?.avatar_url && !avatarFailed ? <img src={profile.avatar_url} alt="" onError={() => setAvatarFailed(true)} /> : name.trim().charAt(0).toUpperCase()}</span><span className="nm-avatar-name">{name}</span></button><div className={`nm-account-dropdown${accountOpen ? ' is-open' : ''}`} id="nm-account-dropdown" aria-hidden={!accountOpen}><Link to="/app/profile" onClick={() => setAccountOpen(false)}>Hồ sơ cá nhân</Link><button type="button" disabled={busy} onClick={() => void signOut()}>{busy ? 'Đang đăng xuất...' : 'Đăng xuất'}</button></div></div><button className="nm-app-menu-toggle" type="button" aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={menuOpen} aria-controls="nm-app-links-mobile" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={22} /> : <List size={22} />}</button></div>
+    <div className="nm-app-actions"><NotificationBell /><div className="nm-account-menu" ref={accountRef}><button ref={accountButtonRef} type="button" className="nm-avatar-button" aria-expanded={accountOpen} aria-controls="nm-account-dropdown" onClick={() => { setAccountOpen(!accountOpen); setGuideOpen(false) }}><span className="nm-nav-avatar">{profile?.avatar_url && !avatarFailed ? <img src={profile.avatar_url} alt="" onError={() => setAvatarFailed(true)} /> : name.trim().charAt(0).toUpperCase()}</span><span className="nm-avatar-name">{name}</span></button><div className={`nm-account-dropdown${accountOpen ? ' is-open' : ''}`} id="nm-account-dropdown" aria-hidden={!accountOpen}><Link to="/app/profile" onClick={() => setAccountOpen(false)}>Hồ sơ cá nhân</Link><button type="button" disabled={busy} onClick={() => void signOut()}>{busy ? 'Đang đăng xuất...' : 'Đăng xuất'}</button></div></div><button className="nm-app-menu-toggle" type="button" aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={menuOpen} aria-controls="nm-app-links-mobile" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={22} /> : <List size={22} />}</button></div>
   </nav></header>
 }

@@ -1,6 +1,6 @@
-import type { AuthResponseDto } from '@/features/auth/model/auth-dto'
-import { normalizeUser } from '@/features/auth/model/auth-mappers'
-import type { AuthSession } from '@/features/auth/model/auth-types'
+import type { AuthResponseDto } from '../../features/auth/model/auth-dto.ts'
+import { normalizeUser } from '../../features/auth/model/auth-mappers.ts'
+import type { AuthSession } from '../../features/auth/model/auth-types.ts'
 
 const SESSION_KEY = 'nutrimom.auth-session'
 

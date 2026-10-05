@@ -81,16 +81,18 @@ export interface WeekContent {
   baby?: { length_cm_range?: number[] | null; weight_g_range?: number[] | null; comparison_label?: string | null } | null
 }
 
+import type { CalendarEventItem } from '@/features/calendar/model/calendar-types'
+
 export interface MomDashboard {
   profile_summary?: { display_name: string; salutation?: string | null; role: string } | null
   pregnancy_summary?: Pregnancy | null
   baby_summary?: { week: number; title?: string | null; summary?: string | null; baby_development?: string | null; disclaimer?: string | null } | null
-  next_appointment?: { title?: string | null; starts_at?: string | null; location?: string | null } | null
+  next_appointment?: CalendarEventItem | null
   health_snapshot?: { title?: string | null; value?: string | number | null; unit?: string | null; trend?: string | null } | null
   care_progress?: { completed: number; total: number } | null
   active_alerts?: Array<{ id?: string; severity?: string | null; title?: string | null; message?: string | null; recommended_action?: string | null }>
   recommended_articles?: Array<{ id?: string; slug?: string; title?: string | null; excerpt?: string | null }>
-  upcoming_reminders?: Array<{ id?: string; title?: string | null; starts_at?: string | null; due_at?: string | null }>
+  upcoming_reminders?: CalendarEventItem[]
   unread_notification_count?: number
 }
 
@@ -114,7 +116,7 @@ export interface PartnerActivityEvent {
   pregnancy_id?: string
   created_at: string
 }
-export interface PartnerDashboard { membership_role: string; pregnancy_overview?: { id: string; status: string; gestational_week: number; gestational_day: number; trimester: number; estimated_due_date?: string | null; days_until_due: number; care_facility_name?: string | null } | null; assigned_tasks?: Array<{ id: string; title: string; description?: string | null; priority: string; due_at?: string | null; status: string }>; activity_feed?: PartnerActivityEvent[] }
+export interface PartnerDashboard { membership_role: string; pregnancy_overview?: { id: string; status: string; gestational_week: number; gestational_day: number; trimester: number; estimated_due_date?: string | null; days_until_due: number; care_facility_name?: string | null } | null; assigned_tasks?: Array<{ id: string; title: string; description?: string | null; priority: string; due_at?: string | null; status: string }>; shared_calendar?: CalendarEventItem[]; allowed_alerts?: unknown[]; activity_feed?: PartnerActivityEvent[] }
 export interface MedicalRecord {
   id: string; pregnancy_id: string; category: string; title: string; occurred_at: string; facility_name?: string | null; clinician_name?: string | null; summary?: string | null; note?: string | null; attachment_count: number; attachments?: Array<{ id: string; file_name: string; mime_type: string; size_bytes: number; status: string }>; version: number
 }

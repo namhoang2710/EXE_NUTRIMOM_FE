@@ -1,8 +1,8 @@
-import { apiClient, setRefreshHandler } from '@/core/api/api-client'
-import { ApiClientError } from '@/core/api/api-error'
-import { ErrorCodes } from '@/core/api/error-code'
-import { getDeviceId } from '@/core/auth/device'
-import { clearSession, getSession, saveApiSession } from '@/core/auth/token-store'
+import { apiClient, setRefreshHandler } from '../../../core/api/api-client.ts'
+import { ApiClientError } from '../../../core/api/api-error.ts'
+import { ErrorCodes } from '../../../core/api/error-code.ts'
+import { getDeviceId } from '../../../core/auth/device.ts'
+import { clearSession, getSession, saveApiSession } from '../../../core/auth/token-store.ts'
 import type {
   AuthResponseDto,
   LoginRequestDto,
@@ -12,8 +12,8 @@ import type {
   RequestOtpRequestDto,
   UserDto,
   VerifyOtpRequestDto,
-} from '../model/auth-dto'
-import { mapOtpChallenge, normalizeUser } from '../model/auth-mappers'
+} from '../model/auth-dto.ts'
+import { mapOtpChallenge, normalizeUser } from '../model/auth-mappers.ts'
 import type {
   AuthSession,
   LoginInput,
@@ -21,7 +21,7 @@ import type {
   RequestOtpInput,
   User,
   VerifyOtpInput,
-} from '../model/auth-types'
+} from '../model/auth-types.ts'
 
 let refreshInFlight: Promise<AuthSession> | null = null
 
@@ -44,9 +44,15 @@ async function performRefresh() {
         device_id: getDeviceId(),
       }),
     })
+    if (getSession() !== current) {
+      throw new ApiClientError(401, {
+        code: ErrorCodes.sessionExpired,
+        message: 'Phiên đăng nhập đã thay đổi. Vui lòng đăng nhập lại.',
+      })
+    }
     return saveApiSession(response)
   } catch (error) {
-    clearSession()
+    if (getSession() === current) clearSession()
     throw error
   }
 }

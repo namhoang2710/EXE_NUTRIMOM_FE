@@ -7,6 +7,7 @@ const familyErrorMessages: Record<string, string> = {
   INVALID_INVITATION_TOKEN: 'Token lời mời không hợp lệ.',
   INVITATION_EXPIRED: 'Lời mời đã hết hạn.',
   INVITATION_ALREADY_USED: 'Lời mời này đã được sử dụng.',
+  INVITATION_REVOKED: 'Lời mời đã bị thu hồi.',
   INVITATION_TARGET_MISMATCH: 'Lời mời không dành cho tài khoản đang đăng nhập.',
   OWNER_ALREADY_IN_GROUP: 'Chủ thai kỳ đã có nhóm gia đình.',
   FAMILY_MEMBER_EXISTS: 'Tài khoản này đã là thành viên của nhóm.',
@@ -15,11 +16,16 @@ const familyErrorMessages: Record<string, string> = {
   UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
 }
 export function familyErrorMessage(error: unknown) {
+  if (error instanceof ApiClientError && error.status === 429) return 'Bạn thao tác quá nhanh. Vui lòng chờ khoảng 30 giây rồi thử lại.'
   if (error instanceof ApiClientError) return familyErrorMessages[error.code] || error.message
   return error instanceof Error ? error.message : 'Không thể xử lý yêu cầu. Vui lòng thử lại.'
 }
 
 export function isFamilyError(error: unknown, code: string) {
   return error instanceof ApiClientError && error.code === code
+}
+
+export function isFamilyRateLimitError(error: unknown) {
+  return error instanceof ApiClientError && error.status === 429
 }
 
