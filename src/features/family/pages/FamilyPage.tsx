@@ -32,6 +32,7 @@ export function FamilyPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedTab = searchParams.get('tab') as FamilyTab | null
   const activeTab = requestedTab && validTabs.has(requestedTab) ? requestedTab : 'group'
+  const focusedTaskId = searchParams.get('task')?.trim() || ''
   const [groups, setGroups] = useState<FamilyGroup[]>([])
   const [members, setMembers] = useState<FamilyMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,6 +68,12 @@ export function FamilyPage() {
     setSearchParams(tab === 'group' ? {} : { tab }, { replace: true })
   }
 
+  function closeFocusedTask() {
+    const next = new URLSearchParams(searchParams)
+    next.delete('task')
+    setSearchParams(next, { replace: true })
+  }
+
   async function createGroup() {
     setCreating(true); setError(''); setCreateErrorCode(''); setSuccess('')
     try {
@@ -88,13 +95,13 @@ export function FamilyPage() {
       value: 'group',
       label: 'Nhóm gia đình',
       icon: <UsersThree size={19} weight="duotone" aria-hidden="true" />,
-      content: <FamilyGroupPanel group={group!} members={members} currentUserId={currentUserId} loading={false} error={error} onReload={() => void reloadMembers()} onMembersChange={setMembers} />,
+      content: <FamilyGroupPanel group={group!} members={members} currentUserId={currentUserId} loading={false} error={error} onReload={() => void reloadMembers()} onMembersChange={setMembers} active={activeTab === 'group'} />,
     },
     {
       value: 'tasks',
       label: 'Việc cần làm',
       icon: <ClipboardText size={19} weight="duotone" aria-hidden="true" />,
-      content: <FamilyTasksPanel isOwner={isOwner} canUseTasks={activeTab === 'tasks' && canUseTasks} members={members} />,
+      content: <FamilyTasksPanel isOwner={isOwner} canUseTasks={activeTab === 'tasks' && canUseTasks} members={members} focusedTaskId={focusedTaskId} onCloseFocusedTask={closeFocusedTask} />,
     },
     {
       value: 'activity',

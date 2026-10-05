@@ -8,18 +8,28 @@ import { familyApi } from '../api/family-api'
 import { familyErrorMessage } from '../model/family-errors'
 import { formatVietnamDateTime, relationshipLabels, scopeLabels } from '../model/family-formatters'
 import type { FamilyInvitation, FamilyRelationship, FamilyScope } from '../model/family-types'
+import { logDiagnostic } from '@/core/diagnostics/logger'
 
 const relationships = Object.keys(relationshipLabels) as FamilyRelationship[]
 const relationshipOptions: AnimatedSelectOption<FamilyRelationship>[] = relationships.map((value) => ({ value, label: relationshipLabels[value] }))
 const scopes = Object.keys(scopeLabels) as FamilyScope[]
-const comingSoonScopes = new Set<FamilyScope>(['SHARED_CALENDAR', 'ALERTS', 'MEDICAL_RECORDS'])
+const comingSoonScopes = new Set<FamilyScope>(['ALERTS', 'MEDICAL_RECORDS'])
 const scopeCards: CardStatusItem<FamilyScope>[] = scopes.map((scope) => ({ id: scope, title: scopeLabels[scope], comingSoon: comingSoonScopes.has(scope) }))
+
+function deliveryMessage(status: FamilyInvitation['delivery_status']) {
+  switch (status) {
+    case 'SENT': return 'Email lời mời đã được gửi.'
+    case 'FAILED': return 'Gửi email thất bại. Hãy tự gửi liên kết lời mời.'
+    case 'SKIPPED': return 'NutriMom chưa hỗ trợ gửi SMS. Hãy tự gửi liên kết lời mời.'
+  }
+}
 
 interface InviteDialogProps {
   open: boolean
   onClose: () => void
+  onCreated?: (invitation: FamilyInvitation) => void
 }
-export function InviteDialog({ open, onClose }: InviteDialogProps) {
+export function InviteDialog({ open, onClose, onCreated }: InviteDialogProps) {
   const [targetType, setTargetType] = useState<'phone' | 'email'>('phone')
   const [target, setTarget] = useState('')
   const [relationship, setRelationship] = useState<FamilyRelationship>('PARTNER')
@@ -41,29 +51,30 @@ export function InviteDialog({ open, onClose }: InviteDialogProps) {
     if (!selectedScopes.length) { setError('Vui lòng chọn ít nhất một quyền chia sẻ.'); return }
     setBusy(true); setError('')
     try {
-      setResult(await familyApi.createInvitation({
+      const created = await familyApi.createInvitation({
         ...(targetType === 'phone' ? { invited_phone: target } : { invited_email: target }),
         relationship,
         scopes: selectedScopes,
         expires_in_hours: expires,
-      }))
-    } catch (reason) { setError(familyErrorMessage(reason)) }
+      })
+      setResult(created); logDiagnostic({ level: 'info', category: 'family-invitation', event: 'create_succeeded' }); onCreated?.(created)
+    } catch (reason) { setError(familyErrorMessage(reason)); logDiagnostic({ level: 'warn', category: 'family-invitation', event: 'create_failed' }) }
     finally { setBusy(false) }
   }
 
   async function copyToken() {
     if (!result) return
-    try { await navigator.clipboard.writeText(result.token); setCopied(true) }
-    catch { setError('Không thể sao chép tự động. Hãy chọn và sao chép token bên dưới.') }
+    try { await navigator.clipboard.writeText(result.invite_url); setCopied(true) }
+    catch { setError('Không thể sao chép tự động. Hãy chọn và sao chép liên kết bên dưới.') }
   }
 
-  return <AccessibleDialog open={open} title={result ? 'Lời mời đã sẵn sàng' : 'Mời thành viên'} description={result ? 'Token chỉ được hiển thị sau khi tạo. Hãy gửi qua kênh an toàn.' : 'Chọn đúng một cách nhận lời mời và phạm vi được chia sẻ.'} onClose={close} busy={busy} initialFocusRef={targetRef} className="family-dialog" footer={result ? <button className="primary-button" type="button" onClick={close}>Đóng</button> : undefined}>
-    {result ? <div className="family-token-success" role="status"><CheckCircle size={38} weight="fill" aria-hidden="true" /><div className="family-token-box"><code>{result.token}</code><button type="button" className="secondary-button" onClick={() => void copyToken()}><Copy size={18} aria-hidden="true" />{copied ? 'Đã sao chép' : 'Sao chép'}</button></div><p>Hết hạn: {formatVietnamDateTime(result.expires_at)}</p>{error && <StatusMessage tone="error">{error}</StatusMessage>}</div> : <form className="family-form" onSubmit={(event) => void submit(event)}>
+  return <AccessibleDialog open={open} title={result ? 'Lời mời đã sẵn sàng' : 'Mời thành viên'} description={result ? 'Sao chép liên kết để gửi qua kênh an toàn khi cần.' : 'Chọn đúng một cách nhận lời mời và phạm vi được chia sẻ.'} onClose={close} busy={busy} initialFocusRef={targetRef} className="family-dialog" footer={result ? <button className="primary-button" type="button" onClick={close}>Đóng</button> : undefined}>
+    {result ? <div className="family-token-success" role="status"><CheckCircle size={38} weight="fill" aria-hidden="true" /><StatusMessage tone={result.delivery_status === 'SENT' ? 'success' : 'error'}>{deliveryMessage(result.delivery_status)}</StatusMessage><div className="family-token-box"><code>{result.invite_url}</code><button type="button" className="secondary-button" onClick={() => void copyToken()}><Copy size={18} aria-hidden="true" />{copied ? 'Đã sao chép' : 'Sao chép liên kết'}</button></div><p>Hết hạn: {formatVietnamDateTime(result.expires_at)}</p>{error && <StatusMessage tone="error">{error}</StatusMessage>}</div> : <form className="family-form" onSubmit={(event) => void submit(event)}>
       <fieldset className="family-segmented"><legend>Cách nhận lời mời</legend><label><input type="radio" name="target-type" checked={targetType === 'phone'} onChange={() => { setTargetType('phone'); setTarget('') }} />Số điện thoại</label><label><input type="radio" name="target-type" checked={targetType === 'email'} onChange={() => { setTargetType('email'); setTarget('') }} />Email</label></fieldset>
       <label className="family-field"><span>{targetType === 'phone' ? 'Số điện thoại' : 'Email'}</span><input ref={targetRef} type={targetType === 'phone' ? 'tel' : 'email'} value={target} onChange={(event) => setTarget(event.target.value)} autoComplete={targetType === 'phone' ? 'tel' : 'email'} /></label>
       <AnimatedSelect className="family-field" label="Mối quan hệ" value={relationship} options={relationshipOptions} onValueChange={setRelationship} />
       <AnimatedCardStatusList title="Quyền chia sẻ" cards={scopeCards} selectedIds={selectedScopes} onSelectionChange={setSelectedScopes} disabled={busy} />
-      <p className="family-helper">Lịch dùng chung, cảnh báo và chia sẻ hồ sơ y tế đang được hoàn thiện.</p>
+      <p className="family-helper">Lịch dùng chung đã sẵn sàng. Cảnh báo và chia sẻ hồ sơ y tế vẫn đang được hoàn thiện.</p>
       <label className="family-field"><span>Hiệu lực (giờ)</span><input type="number" min={1} max={168} value={expires} onChange={(event) => setExpires(Number(event.target.value))} /></label>
       {error && <StatusMessage tone="error">{error}</StatusMessage>}
       <div className="family-dialog-actions"><button className="secondary-button" type="button" disabled={busy} onClick={close}>Hủy</button><button className="primary-button" type="submit" disabled={busy}>{busy ? 'Đang tạo...' : 'Tạo lời mời'}</button></div>
@@ -82,8 +93,8 @@ export function AcceptInvitationDialog({ open, onClose, onAccepted }: AcceptDial
     event.preventDefault()
     if (!token.trim()) { setError('Vui lòng nhập token lời mời.'); return }
     setBusy(true); setError('')
-    try { await familyApi.acceptInvitation(token); setToken(''); onAccepted(); onClose() }
-    catch (reason) { setError(familyErrorMessage(reason)) }
+    try { await familyApi.acceptInvitation(token); logDiagnostic({ level: 'info', category: 'family-invitation', event: 'accept_succeeded' }); setToken(''); onAccepted(); onClose() }
+    catch (reason) { setError(familyErrorMessage(reason)); logDiagnostic({ level: 'warn', category: 'family-invitation', event: 'accept_failed' }) }
     finally { setBusy(false) }
   }
   return <AccessibleDialog open={open} title="Tham gia nhóm gia đình" description="Nhập token một lần do chủ nhóm gửi cho bạn." onClose={onClose} busy={busy} initialFocusRef={tokenRef} className="family-dialog">

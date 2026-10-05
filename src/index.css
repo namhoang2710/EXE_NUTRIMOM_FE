@@ -5,6 +5,8 @@
 @import "./shared/styles/authenticated.css";
 @import "./shared/styles/scroll-progress.css";
 @import "./shared/styles/product-ui.css";
+@import "./features/calendar/styles/calendar.css";
+@import "./features/notifications/styles/notifications.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 

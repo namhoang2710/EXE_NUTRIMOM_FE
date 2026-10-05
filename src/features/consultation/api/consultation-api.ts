@@ -29,6 +29,10 @@ export const consultationApi = {
     const dto = await apiClient.request<ConsultationPageDto>(`/consultation-requests${buildConsultationListQuery(page, pageSize)}`, { signal })
     return mapConsultationPage(dto)
   },
+  async get(id: string, signal?: AbortSignal) {
+    const dto = await apiClient.request<ConsultationRequestDto>(`/consultation-requests/${encodeURIComponent(id)}`, { signal })
+    return mapConsultationRequest(dto)
+  },
   async cancel(id: string) {
     const dto = await apiClient.request<ConsultationRequestDto>(`/consultation-requests/${encodeURIComponent(id)}/cancel`, { method: 'POST' })
     return mapConsultationRequest(dto)

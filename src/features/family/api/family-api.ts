@@ -4,7 +4,8 @@ import type {
   CreateInvitationInput,
   CreateTaskInput,
   FamilyGroup,
-  FamilyInvitation,
+  FamilyInvitationPreview,
+  FamilyInvitationSummary,
   FamilyMember,
   FamilyScope,
   FamilyTask,
@@ -12,6 +13,7 @@ import type {
   UpdateTaskInput,
 } from '../model/family-types'
 import { buildActivityPath, buildTasksPath, invitationBody } from '../model/family-requests'
+import { normalizeCreatedInvitation, normalizeInvitationList, normalizeInvitationPreview } from '../model/invitation-normalizers'
 
 export const familyApi = {
   groups: (signal?: AbortSignal) => apiClient.request<FamilyGroup[]>('/family-groups', { signal }),
@@ -19,14 +21,17 @@ export const familyApi = {
     method: 'POST',
     body: JSON.stringify(pregnancyId ? { pregnancy_id: pregnancyId } : {}),
   }),
-  createInvitation: (input: CreateInvitationInput) => apiClient.request<FamilyInvitation>('/family-invitations', {
+  createInvitation: async (input: CreateInvitationInput) => normalizeCreatedInvitation(await apiClient.request<unknown>('/family-invitations', {
     method: 'POST',
     body: JSON.stringify(invitationBody(input)),
-  }),
+  })),
   acceptInvitation: (token: string) => apiClient.request<FamilyMember>('/family-invitations/accept', {
     method: 'POST',
     body: JSON.stringify({ token: token.trim() }),
   }),
+  previewInvitation: async (token: string, signal?: AbortSignal): Promise<FamilyInvitationPreview> => normalizeInvitationPreview(await apiClient.request<unknown>(`/family-invitations/preview?token=${encodeURIComponent(token)}`, { signal })),
+  invitations: async (signal?: AbortSignal): Promise<FamilyInvitationSummary[]> => normalizeInvitationList(await apiClient.request<unknown>('/family-invitations', { signal })),
+  revokeInvitation: (id: string) => apiClient.request<void>(`/family-invitations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   members: (signal?: AbortSignal) => apiClient.request<FamilyMember[]>('/family-members', { signal }),
   updateMember: (memberId: string, scopes: FamilyScope[], version: number) => apiClient.request<FamilyMember>(`/family-members/${encodeURIComponent(memberId)}`, {
     method: 'PATCH',
