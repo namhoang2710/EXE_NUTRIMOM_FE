@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { loadPaymentOutcome } from '../src/features/payment/model/payment-outcome.ts'
+import { loadPaymentOutcome, refreshPaidSubscription } from '../src/features/payment/model/payment-outcome.ts'
 import { isDemoCheckout, parseOrderCode } from '../src/features/payment/model/subscription-plans.ts'
 import type { PaymentOrderResponse, SubscriptionResponse } from '../src/features/payment/model/payment-types.ts'
 
@@ -25,6 +25,18 @@ test('subscription synchronization failure preserves the verified paid receipt',
   const result = await loadPaymentOutcome(order.order_code, { getOrderDetails: async () => ({ ...order, status: 'PAID' }), getMySubscription: async () => { throw new Error('temporarily unavailable') } })
   assert.equal(result.order.status, 'PAID')
   assert.equal(result.subscription, null)
+})
+
+test('subscription synchronization retries reuse the verified order without another order lookup', async () => {
+  let subscriptionReads = 0
+  const paidOrder = { ...order, status: 'PAID' as const }
+  const result = await refreshPaidSubscription(paidOrder, {
+    getOrderDetails: async () => { throw new Error('verified order must be reused') },
+    getMySubscription: async () => { subscriptionReads += 1; return subscription },
+  })
+  assert.equal(result.order, paidOrder)
+  assert.equal(result.subscription, subscription)
+  assert.equal(subscriptionReads, 1)
 })
 
 test('cancelled and expired orders do not activate or fetch subscription', async () => {

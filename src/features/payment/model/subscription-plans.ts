@@ -1,4 +1,7 @@
 import type { PlanTier } from './payment-types'
+import { pricingPlans } from './pricing-catalog.ts'
+
+const paymentAmountFormatter = new Intl.NumberFormat('vi-VN')
 
 export interface SubscriptionPlan {
   tier: PlanTier
@@ -8,30 +11,18 @@ export interface SubscriptionPlan {
   benefits: string[]
 }
 
-export const subscriptionPlans: SubscriptionPlan[] = [
-  {
-    tier: 'FREE', name: 'Miễn phí', amount: 0,
-    description: 'Bắt đầu lưu lại hành trình chăm sóc của mẹ.',
-    benefits: ['Lưu hồ sơ sức khỏe cơ bản', 'AI scan món ăn'],
-  },
-  {
-    tier: 'PLAN_99K', name: 'Cơ bản', amount: 99000,
-    description: 'Thêm công cụ chủ động cho hành trình thai kỳ.',
-    benefits: ['Tính ngày thụ thai', 'AI scan món ăn 2 lần / ngày'],
-  },
-  {
-    tier: 'PLAN_399K', name: 'Toàn diện', amount: 399000,
-    description: 'Kết nối chăm sóc cho mẹ và cả gia đình.',
-    benefits: ['Liên kết gia đình', 'Tính ngày thụ thai', 'Lưu hồ sơ trọn đời', 'AI scan không giới hạn', 'Gợi ý cá nhân hóa toàn diện'],
-  },
-]
-
-export function getSubscriptionPlan(value: string | null) {
-  return subscriptionPlans.find((plan) => plan.tier === value) ?? subscriptionPlans[1]!
-}
+export const subscriptionPlans: SubscriptionPlan[] = pricingPlans.map((plan) => ({
+  tier: plan.tier,
+  name: plan.name,
+  amount: plan.amount,
+  description: plan.description,
+  benefits: plan.features
+    .filter((feature) => feature.included)
+    .map((feature) => feature.detail ? `${feature.label}: ${feature.detail}` : feature.label),
+}))
 
 export function formatPaymentAmount(amount: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(amount)}đ`
+  return `${paymentAmountFormatter.format(amount)}đ`
 }
 
 export function parseOrderCode(value: string | null): number | null {
