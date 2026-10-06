@@ -119,6 +119,7 @@ export function LandingHeader() {
                 id="site-search"
                 type="search"
                 value={query}
+                placeholder="Nhập nội dung bạn muốn tìm..."
                 onChange={(event) => setQuery(event.target.value)}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}

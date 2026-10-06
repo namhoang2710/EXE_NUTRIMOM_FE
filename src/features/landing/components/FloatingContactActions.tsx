@@ -1,4 +1,5 @@
-import { EnvelopeSimple, MapPin, Phone } from '@phosphor-icons/react'
+import { EnvelopeSimple, InstagramLogo, MapPin, Phone } from '@phosphor-icons/react'
+import { nutrimomContact, nutrimomSocials } from '../../../shared/config/contact'
 
 interface FloatingContactActionsProps {
   visible: boolean
@@ -7,20 +8,20 @@ interface FloatingContactActionsProps {
 const contactActions = [
   {
     label: 'Gọi NutriMom',
-    href: 'tel:19001234',
+    href: nutrimomContact.phone.href,
     className: 'is-phone',
     icon: <Phone size={22} weight="regular" aria-hidden="true" />,
   },
   {
-    label: 'Nhắn Zalo',
-    href: 'https://zalo.me/19001234',
-    className: 'is-zalo',
-    icon: <span className="floating-contact-zalo-mark" aria-hidden="true">Zalo</span>,
+    label: 'Theo dõi NutriMom trên Instagram',
+    href: nutrimomSocials.instagram.href,
+    className: 'is-instagram',
+    icon: <InstagramLogo size={23} weight="bold" aria-hidden="true" />,
     external: true,
   },
   {
     label: 'Gửi email',
-    href: 'mailto:hello@nutrimom.vn',
+    href: nutrimomContact.email.href,
     className: 'is-email',
     icon: <EnvelopeSimple size={23} weight="regular" aria-hidden="true" />,
   },
@@ -48,7 +49,7 @@ export function FloatingContactActions({ visible }: FloatingContactActionsProps)
           aria-label={action.label}
           tabIndex={visible ? 0 : -1}
           target={'external' in action && action.external ? '_blank' : undefined}
-          rel={'external' in action && action.external ? 'noreferrer' : undefined}
+          rel={'external' in action && action.external ? 'noopener noreferrer' : undefined}
         >
           {action.icon}
         </a>
