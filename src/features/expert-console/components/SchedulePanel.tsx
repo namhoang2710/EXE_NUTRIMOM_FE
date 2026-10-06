@@ -107,7 +107,7 @@ export function SchedulePanel({ search, setParams, notify, onMutate, refreshToke
                   <small>{specialtyLabels[item.specialty]} | {item.assignmentType === 'DIRECT' ? 'Đặt trực tiếp' : 'Yêu cầu ngẫu nhiên'}{item.slot ? ` | ${formatTime(item.slot.startTime)} - ${formatTime(item.slot.endTime)}` : ''}</small>
                 </div>
                 {item.status === 'PENDING_CONSULTATION'
-                  ? <div className="expert-video-actions"><VideoRoomLink id={item.id} expert className="expert-button" /><button className="expert-button expert-complete-trigger" type="button" disabled={completingId === item.id} onClick={() => setConfirming(item)}><CheckCircle size={17} /> {completingId === item.id ? 'Đang hoàn tất...' : 'Hoàn tất'}</button></div>
+                  ? <div className="expert-video-actions"><VideoRoomLink id={item.id} expert className="expert-button expert-video-room-button" /><button className="expert-button expert-complete-trigger" type="button" disabled={completingId === item.id} onClick={() => setConfirming(item)}><CheckCircle size={17} /> {completingId === item.id ? 'Đang hoàn tất...' : 'Hoàn tất'}</button></div>
                   : <Clock className="expert-row-icon" size={20} />}
               </motion.article>
             ))}

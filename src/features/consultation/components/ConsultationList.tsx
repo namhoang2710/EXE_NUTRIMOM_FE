@@ -17,8 +17,8 @@ export function ConsultationCard({ item, highlighted = false, index = 0, onCance
     {item.note && <div className="consultation-card__note"><span>Ghi chú</span><p>{item.note}</p></div>}
     <div className="consultation-card__footer"><p>Tạo lúc {formatConsultationDateTime(item.createdAt)}</p><div className="consultation-card__actions">
       {item.reviewed && <span className="consultation-reviewed"><Star size={16} weight="fill" aria-hidden="true" />Đã đánh giá</span>}
-      {item.status === 'PENDING_CONSULTATION' && item.slot && <VideoRoomLink id={item.id} />}
       {onCancel && canCancelConsultation(item) && <button type="button" className="consultation-text-button is-danger" onClick={() => onCancel(item)}>Hủy lịch</button>}
+      {item.status === 'PENDING_CONSULTATION' && item.slot && <VideoRoomLink id={item.id} />}
       {onReview && canReviewConsultation(item) && <button type="button" className="consultation-secondary-button" onClick={() => onReview(item)}><Star size={17} aria-hidden="true" />Đánh giá</button>}
     </div></div>
   </motion.article>

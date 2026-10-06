@@ -8,12 +8,16 @@ import { ReviewConsultationDialog } from './ReviewConsultationDialog'
 import { useConsultationHistory } from '../hooks/useConsultationHistory'
 import type { ConsultationRequest } from '../model/consultation-types'
 
+const POST_CALL_REVIEW_RETRY_MS = 16_000
+
 export function ConsultationHistorySection({ onCancelled }: { onCancelled?: (item: ConsultationRequest) => void | Promise<void> }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const focusedId = searchParams.get('request')?.trim() || ''
+  const reviewRequested = searchParams.get('review') === '1'
   const [focused, setFocused] = useState<ConsultationRequest | null>(null)
   const [focusError, setFocusError] = useState('')
   const focusedRef = useRef<HTMLDivElement>(null)
+  const autoReviewOpened = useRef('')
   const [toast, setToast] = useState<ConsultationToastState | null>(null)
   const toastId = useRef(0)
   const notify = useCallback((message: string, tone: ConsultationToastState['tone'] = 'success') => {
@@ -21,6 +25,8 @@ export function ConsultationHistorySection({ onCancelled }: { onCancelled?: (ite
     setToast({ id: toastId.current, message, tone })
   }, [])
   const history = useConsultationHistory({ onNotify: notify, onCancelled })
+  const openReviewRef = useRef(history.openReview)
+  openReviewRef.current = history.openReview
   useEffect(() => {
     if (!toast) return
     const timer = window.setTimeout(() => setToast((current) => current?.id === toast.id ? null : current), 4200)
@@ -29,23 +35,41 @@ export function ConsultationHistorySection({ onCancelled }: { onCancelled?: (ite
   useEffect(() => {
     if (!focusedId) { setFocused(null); setFocusError(''); return }
     const controller = new AbortController()
+    let reviewRetryTimer: number | undefined
     setFocused(null); setFocusError('')
-    void consultationApi.get(focusedId, controller.signal).then((item) => {
+    const loadFocused = (allowReviewRetry: boolean) => void consultationApi.get(focusedId, controller.signal).then((item) => {
       if (controller.signal.aborted) return
       setFocused(item)
-      window.requestAnimationFrame(() => {
-        focusedRef.current?.focus({ preventScroll: true })
-        focusedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      })
+      const shouldOpenReview = reviewRequested && item.canReview && autoReviewOpened.current !== item.id
+      if (shouldOpenReview) {
+        autoReviewOpened.current = item.id
+        openReviewRef.current(item)
+      }
+      if (reviewRequested && !item.canReview && item.status === 'PENDING_CONSULTATION' && allowReviewRetry) {
+        // The expiry scheduler runs every 15 seconds. One delayed refresh bridges that hand-off
+        // window without polling or issuing requests from the in-call countdown.
+        reviewRetryTimer = window.setTimeout(() => loadFocused(false), POST_CALL_REVIEW_RETRY_MS)
+      }
+      if (!shouldOpenReview) {
+        window.requestAnimationFrame(() => {
+          focusedRef.current?.focus({ preventScroll: true })
+          focusedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        })
+      }
     }).catch(() => {
       if (!controller.signal.aborted) setFocusError('Không thể mở nội dung tư vấn này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.')
     })
-    return () => controller.abort()
-  }, [focusedId])
+    loadFocused(true)
+    return () => {
+      controller.abort()
+      if (reviewRetryTimer !== undefined) window.clearTimeout(reviewRetryTimer)
+    }
+  }, [focusedId, reviewRequested])
 
   function closeFocused() {
     const next = new URLSearchParams(searchParams)
     next.delete('request')
+    next.delete('review')
     setSearchParams(next, { replace: true })
   }
 

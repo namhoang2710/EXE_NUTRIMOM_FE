@@ -24,6 +24,6 @@ export interface VideoCredentials {
 const path = (id: string) => `/consultation-requests/${encodeURIComponent(id)}/video`
 export const videoApi = {
   info: (id: string, signal?: AbortSignal) => apiClient.request<VideoRoomInfo>(path(id), { signal, cache: 'no-store' }),
-  join: (id: string) => apiClient.request<VideoCredentials>(`${path(id)}/join`, { method: 'POST', cache: 'no-store' }),
-  complete: (id: string) => apiClient.request(`${path(id)}/complete`, { method: 'POST' }),
+  join: (id: string, signal?: AbortSignal) => apiClient.request<VideoCredentials>(`${path(id)}/join`, { method: 'POST', cache: 'no-store', signal }),
+  complete: (id: string, signal?: AbortSignal) => apiClient.request(`${path(id)}/complete`, { method: 'POST', cache: 'no-store', signal }),
 }
