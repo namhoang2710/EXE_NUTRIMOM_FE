@@ -2,13 +2,13 @@ import {
   ArrowRight,
   CalendarCheck,
   CaretDown,
-  ChatCircleDots,
   Check,
   CheckCircle,
   Clock,
   EnvelopeSimple,
   FacebookLogo,
   Heart,
+  InstagramLogo,
   MapPin,
   PaperPlaneTilt,
   Phone,
@@ -16,27 +16,28 @@ import {
 } from '@phosphor-icons/react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { nutrimomContact, nutrimomSocials } from '../../../shared/config/contact'
 import './contact-premium.css'
 
 const contactChannels = [
   {
     icon: Phone,
     label: 'Hotline tư vấn',
-    value: '1900 1234',
+    value: nutrimomContact.phone.label,
     description: 'Trao đổi trực tiếp cùng đội ngũ NutriMom',
-    href: 'tel:19001234',
+    href: nutrimomContact.phone.href,
   },
   {
     icon: EnvelopeSimple,
     label: 'Email',
-    value: 'hello@nutrimom.vn',
+    value: nutrimomContact.email.label,
     description: 'Phù hợp với câu hỏi cần chia sẻ chi tiết',
-    href: 'mailto:hello@nutrimom.vn',
+    href: nutrimomContact.email.href,
   },
   {
     icon: MapPin,
     label: 'Văn phòng NutriMom',
-    value: 'Thành phố Hồ Chí Minh',
+    value: nutrimomContact.office,
     description: 'Hỗ trợ trực tuyến cho gia đình trên toàn quốc',
   },
 ] as const
@@ -45,16 +46,16 @@ const quickActions = [
   {
     icon: Phone,
     label: 'Gọi ngay',
-    note: '1900 1234',
-    href: 'tel:19001234',
+    note: nutrimomContact.phone.label,
+    href: nutrimomContact.phone.href,
     className: 'is-phone',
   },
   {
-    icon: ChatCircleDots,
-    label: 'Chat Zalo',
-    note: 'Phản hồi nhanh',
-    href: 'https://zalo.me/19001234',
-    className: 'is-zalo',
+    icon: InstagramLogo,
+    label: 'Instagram',
+    note: 'Theo dõi NutriMom',
+    href: nutrimomSocials.instagram.href,
+    className: 'is-instagram',
     external: true,
   },
 ] as const
@@ -145,17 +146,18 @@ export function ContactPage() {
             </p>
 
             <div className="contactHero__actions">
-              <a className="landing-primary-button" href="tel:19001234">
+              <a className="landing-primary-button" href={nutrimomContact.phone.href}>
                 <Phone size={18} weight="bold" aria-hidden="true" />
-                Gọi 1900 1234
+                Gọi {nutrimomContact.phone.label}
               </a>
               <a
                 className="landing-secondary-button"
-                href="https://zalo.me/19001234"
+                href={nutrimomSocials.instagram.href}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
+                aria-label="Theo dõi NutriMom trên Instagram (mở trong tab mới)"
               >
-                Chat cùng NutriMom
+                Instagram NutriMom
                 <ArrowRight size={18} weight="bold" aria-hidden="true" />
               </a>
             </div>
@@ -209,7 +211,7 @@ export function ContactPage() {
         </div>
       </section>
 
-      <section className="contactWorkspace landing-section" aria-labelledby="contact-form-title">
+      <section className="contactWorkspace landing-section" id="contact-channels" aria-labelledby="contact-form-title">
         <div className="contactWorkspace__details">
           <header className="contactSectionHeading">
             <span className="contactEyebrow">KẾT NỐI VỚI NUTRIMOM</span>
@@ -242,11 +244,21 @@ export function ContactPage() {
           <div className="contactSocials">
             <span>Theo dõi và trò chuyện cùng chúng tôi</span>
             <div>
-              <a href="https://zalo.me/19001234" target="_blank" rel="noreferrer">
-                <ChatCircleDots size={18} weight="fill" /> Zalo
+              <a
+                href={nutrimomSocials.instagram.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={nutrimomSocials.instagram.ariaLabel}
+              >
+                <InstagramLogo size={18} weight="bold" aria-hidden="true" /> Instagram
               </a>
-              <a href="https://www.facebook.com" target="_blank" rel="noreferrer">
-                <FacebookLogo size={18} weight="fill" /> Facebook
+              <a
+                href={nutrimomSocials.facebook.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={nutrimomSocials.facebook.ariaLabel}
+              >
+                <FacebookLogo size={18} weight="fill" aria-hidden="true" /> Facebook
               </a>
             </div>
           </div>
@@ -375,7 +387,8 @@ export function ContactPage() {
             href={href}
             key={label}
             target={'external' in action ? '_blank' : undefined}
-            rel={'external' in action ? 'noreferrer' : undefined}
+            rel={'external' in action ? 'noopener noreferrer' : undefined}
+            aria-label={'external' in action ? `${label} (mở trong tab mới)` : label}
           >
             <Icon size={19} weight="fill" aria-hidden="true" />
             <span><strong>{label}</strong><small>{note}</small></span>
