@@ -15,6 +15,8 @@ interface WeekDatum {
   current: boolean
 }
 
+const initialWeekChartSize = { width: 640, height: 230 }
+
 function WeekTooltip({ active, payload, label, currentWeek, currentDay }: { active?: boolean; payload?: Array<{ payload: WeekDatum }>; label?: number; currentWeek: number; currentDay: number }) {
   if (!active || !payload?.length) return null
   const point = payload[0].payload
@@ -36,7 +38,7 @@ export function PregnancyWeekChart({ week, day, animationKey = 0 }: PregnancyWee
     <motion.section key={animationKey} className="pregnancy-chart-card pregnancy-week-chart" initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }} aria-labelledby="pregnancy-week-chart-title">
       <div className="pregnancy-chart-heading"><div><p className="card-kicker">Bản đồ tuần thai</p><h2 id="pregnancy-week-chart-title">Tuần {week}, ngày {day}</h2><p>Cửa sổ theo dõi tuần {window.start}-{window.end} trong hành trình tối đa 42 tuần.</p></div><span className="pregnancy-chart-location"><MapPin size={18} weight="fill" />Hiện tại</span></div>
       <div className="pregnancy-chart-canvas" role="img" aria-label={`Biểu đồ tuần thai từ tuần ${window.start} đến ${window.end}. Bạn đang ở tuần ${week}, ngày ${day}.`}>
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={initialWeekChartSize}>
           <AreaChart data={data} margin={{ top: 24, right: 12, bottom: 4, left: 12 }}>
             <defs><linearGradient id="pregnancy-week-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.3" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5" />

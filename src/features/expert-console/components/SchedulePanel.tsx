@@ -1,12 +1,13 @@
 import { CalendarBlank, CheckCircle, CircleNotch, Clock, UserCircle } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { VideoRoomLink } from '@/features/consultation-video/components/VideoRoomLink'
 import { runAsyncAction } from '@/shared/model/async-action'
 import { expertConsoleApi } from '../api/expert-console-api'
 import { useExpertResource } from '../hooks/useExpertResource'
 import { expertActionErrorMessage, isExpertApiError } from '../model/expert-console-errors'
 import { formatDate, formatTime } from '../model/expert-console-formatters'
+import { sortConsultationsNewestFirst } from '../model/expert-console-time'
 import { consultationStatusLabels, specialtyLabels, type Consultation, type ConsultationStatus } from '../model/expert-console-types'
 import { Dialog, ExpertDateField, ExpertSelect, Pagination, PanelHeading, ResourceState } from './ExpertUI'
 
@@ -36,7 +37,8 @@ export function SchedulePanel({ search, setParams, notify, onMutate, refreshToke
   const [completingId, setCompletingId] = useState<string | null>(null)
   const completionLock = useRef(false)
   const reduceMotion = useReducedMotion()
-  const nextAppointment = resource.data?.items[0] ?? null
+  const orderedConsultations = useMemo(() => sortConsultationsNewestFirst(resource.data?.items ?? []), [resource.data?.items])
+  const nextAppointment = orderedConsultations[0] ?? null
 
   async function complete() {
     if (!confirming || completionLock.current || completingId) return
@@ -90,7 +92,7 @@ export function SchedulePanel({ search, setParams, notify, onMutate, refreshToke
       >
         <div className="expert-consultation-list">
           <AnimatePresence initial={false}>
-            {resource.data?.items.map((item) => (
+            {orderedConsultations.map((item) => (
               <motion.article
                 className="expert-consultation"
                 key={item.id}
@@ -107,7 +109,7 @@ export function SchedulePanel({ search, setParams, notify, onMutate, refreshToke
                   <small>{specialtyLabels[item.specialty]} | {item.assignmentType === 'DIRECT' ? 'Đặt trực tiếp' : 'Yêu cầu ngẫu nhiên'}{item.slot ? ` | ${formatTime(item.slot.startTime)} - ${formatTime(item.slot.endTime)}` : ''}</small>
                 </div>
                 {item.status === 'PENDING_CONSULTATION'
-                  ? <div className="expert-video-actions"><VideoRoomLink id={item.id} expert className="expert-button" /><button className="expert-button expert-complete-trigger" type="button" disabled={completingId === item.id} onClick={() => setConfirming(item)}><CheckCircle size={17} /> {completingId === item.id ? 'Đang hoàn tất...' : 'Hoàn tất'}</button></div>
+                  ? <div className="expert-video-actions"><VideoRoomLink id={item.id} expert className="expert-button expert-video-room-button" /><button className="expert-button expert-complete-trigger" type="button" disabled={completingId === item.id} onClick={() => setConfirming(item)}><CheckCircle size={17} /> {completingId === item.id ? 'Đang hoàn tất...' : 'Hoàn tất'}</button></div>
                   : <Clock className="expert-row-icon" size={20} />}
               </motion.article>
             ))}

@@ -11,6 +11,8 @@ interface DueDateRadialChartProps {
   animationKey?: number
 }
 
+const initialRadialChartSize = { width: 245, height: 245 }
+
 export function DueDateRadialChart({ estimatedDueDate, daysUntilDue, animationKey = 0 }: DueDateRadialChartProps) {
   const reduceMotion = useReducedMotion()
   const rawId = useId().replace(/:/g, '')
@@ -23,7 +25,7 @@ export function DueDateRadialChart({ estimatedDueDate, daysUntilDue, animationKe
       <div className="pregnancy-chart-heading"><div><p className="card-kicker">Ngày dự sinh</p><h2 id="due-date-chart-title">Hành trình 280 ngày</h2><p>Tiến độ được tính trực tiếp từ số ngày còn lại trong hồ sơ thai kỳ.</p></div><CalendarHeart size={26} weight="duotone" aria-hidden="true" /></div>
       {!hasValidDueDate(estimatedDueDate) ? <div className="pregnancy-chart-empty"><CalendarHeart size={32} /><strong>Chưa có ngày dự sinh</strong><span>Cập nhật hồ sơ thai kỳ để xem tiến độ hành trình.</span></div> : <div className="due-date-radial-wrap">
         <div className="due-date-radial" role="img" aria-label={`Đã đi được ${Math.round(progress.progressPercent)} phần trăm hành trình thai kỳ. Còn ${progress.remainingDays} ngày đến ngày dự sinh ${formatDate(estimatedDueDate!)}.`}>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={initialRadialChartSize}>
             <RadialBarChart innerRadius="78%" outerRadius="100%" data={[{ value: progress.progressPercent, fill: `url(#${gradientId})` }]} startAngle={90} endAngle={-270}>
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="var(--accent)" /><stop offset="100%" stopColor="var(--success)" /></linearGradient>

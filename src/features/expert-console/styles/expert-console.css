@@ -317,6 +317,9 @@
 
 .expert-video-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .expert-video-actions a { text-decoration: none; white-space: nowrap; }
+.expert-button.expert-video-room-button { color: var(--button-text); border-color: var(--accent); background: var(--accent); box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 25%, transparent); font-weight: 800; }
+.expert-button.expert-video-room-button:hover:not(:disabled) { border-color: var(--accent-strong); background: var(--accent-strong); box-shadow: 0 13px 28px color-mix(in srgb, var(--accent) 32%, transparent); }
+.expert-button.expert-video-room-button:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 32%, transparent); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
   .expert-sidebar-profile { transition: none; }

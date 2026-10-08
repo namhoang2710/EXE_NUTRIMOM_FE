@@ -63,23 +63,39 @@ export function HealthPage() {
   const [loading, setLoading] = useState(true)
   const [conflict, setConflict] = useState(false)
   const journeyRef = useRef<HTMLElement>(null)
+  const loadGenerationRef = useRef(0)
 
   const load = useCallback(async () => {
+    const generation = ++loadGenerationRef.current
     setLoading(true)
     setError('')
     setContentStatus(null)
     try {
       const current = await pregnancyApi.current()
+      if (generation !== loadGenerationRef.current) return
       setPregnancy(current)
-      try { setContent(await pregnancyApi.weekContent(current.gestational_week)) }
-      catch (reason) { setContent(null); setContentStatus(weeklyContentStatus(reason, current.gestational_week)) }
+      try {
+        const weeklyContent = await pregnancyApi.weekContent(current.gestational_week)
+        if (generation !== loadGenerationRef.current) return
+        setContent(weeklyContent)
+      } catch (reason) {
+        if (generation !== loadGenerationRef.current) return
+        setContent(null)
+        setContentStatus(weeklyContentStatus(reason, current.gestational_week))
+      }
     } catch (reason) {
-      if (reason instanceof ApiClientError && (reason.code === 'RESOURCE_NOT_FOUND' || reason.code === 'ACTIVE_PREGNANCY_NOT_FOUND')) setPregnancy(null)
+      if (generation !== loadGenerationRef.current) return
+      if (reason instanceof ApiClientError && (reason.code === 'RESOURCE_NOT_FOUND' || reason.code === 'ACTIVE_PREGNANCY_NOT_FOUND')) { setPregnancy(null); setContent(null) }
       else setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ thai kỳ.')
-    } finally { setLoading(false) }
+    } finally {
+      if (generation === loadGenerationRef.current) setLoading(false)
+    }
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    void load()
+    return () => { loadGenerationRef.current += 1 }
+  }, [load])
 
   async function calculate() {
     setError(''); setFieldError(''); setWarning(''); setPreview(null)
