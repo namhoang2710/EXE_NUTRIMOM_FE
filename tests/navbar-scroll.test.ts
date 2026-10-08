@@ -29,6 +29,7 @@ test('user header uses a responsive clip-path animation without replacing real n
   assert.match(tabs, /ResizeObserver/)
   assert.match(navbar, /<AnimatedTabs tabs=\{animatedTabs\}/)
   assert.match(navbar, /<NavLink to="\/app"/)
+  assert.match(navbar, /<Link to="\/app\/profile\/health"[^]*>Hồ sơ cá nhân<\/Link>/)
   assert.match(styles, /transition: clip-path 360ms/)
   assert.match(styles, /@media \(max-width: 1100px\).*\.nm-animated-tabs-clip \{ display: none; \}/)
 })

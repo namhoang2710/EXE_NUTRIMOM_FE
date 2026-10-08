@@ -14,6 +14,26 @@ const CALL_TIME_WARNINGS: readonly CallTimeWarning[] = [
   { minutes: 10, message: 'Buổi tư vấn còn 10 phút.', tone: 'notice' },
 ]
 
+const VIETNAM_CLOCK = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+export function vietnamClockLabel(now: number) {
+  return VIETNAM_CLOCK.format(new Date(now))
+}
+
+export function callClockSnapshot(localNow: number, clockOffset: number, closesAt?: string | null) {
+  const serverNow = localNow + clockOffset
+  return {
+    serverNow,
+    time: vietnamClockLabel(serverNow),
+    remaining: closesAt ? remainingLabel(closesAt, serverNow) : null,
+  }
+}
+
 export function roomMessage(state: EffectiveRoomState) {
   switch (state) {
     case 'SCHEDULED': return 'Phòng mở trước giờ hẹn 5 phút. Bạn có thể kiểm tra thiết bị trước khi bắt đầu.'

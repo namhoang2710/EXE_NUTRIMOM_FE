@@ -2,23 +2,30 @@ import { apiClient } from '@/core/api/api-client'
 import type { ConsultationDto, DayScheduleDto, DaySummaryDto, ExpertProfileDto, PageDto, ReviewDto, ScheduleSlotDto } from '../model/expert-console-dto'
 import { mapConsultation, mapDaySchedule, mapDaySummary, mapExpertProfile, mapPage, mapReview, mapScheduleSlot } from '../model/expert-console-mappers'
 import { buildConsultationQuery, buildReviewQuery, toQueryString } from '../model/expert-console-query'
+import { expertReadCoordinator } from '../model/expert-read-coordinator'
 import type { ConsultationQuery, ExpertOverview, ReviewQuery } from '../model/expert-console-types'
 import { toApiSlotTime, vietnamToday } from '@/features/consultation/model/slot-grid'
 
 const PAGE_SIZE = 20
 
 async function profile(signal?: AbortSignal) {
-  return mapExpertProfile(await apiClient.request<ExpertProfileDto>('/expert/me', { signal }))
+  return expertReadCoordinator.run('profile', async () => mapExpertProfile(await apiClient.request<ExpertProfileDto>('/expert/me')), signal)
 }
 
 async function schedule(date: string, signal?: AbortSignal) {
-  const data = await apiClient.request<DayScheduleDto>(`/expert/schedule${toQueryString({ date })}`, { signal })
-  return mapDaySchedule(data)
+  const query = toQueryString({ date })
+  return expertReadCoordinator.run(`schedule${query}`, async () => {
+    const data = await apiClient.request<DayScheduleDto>(`/expert/schedule${query}`)
+    return mapDaySchedule(data)
+  }, signal)
 }
 
 async function scheduleSummary(from: string, to: string, signal?: AbortSignal) {
-  const data = await apiClient.request<DaySummaryDto[]>(`/expert/schedule/summary${toQueryString({ from, to })}`, { signal })
-  return data.map(mapDaySummary)
+  const query = toQueryString({ from, to })
+  return expertReadCoordinator.run(`schedule-summary${query}`, async () => {
+    const data = await apiClient.request<DaySummaryDto[]>(`/expert/schedule/summary${query}`)
+    return data.map(mapDaySummary)
+  }, signal)
 }
 
 async function toggleSlot(date: string, startTime: string, closed: boolean) {
@@ -36,8 +43,11 @@ async function toggleDayOff(date: string, dayOff: boolean) {
 }
 
 async function consultations(query: ConsultationQuery, signal?: AbortSignal) {
-  const data = await apiClient.request<PageDto<ConsultationDto>>(`/expert/consultation-requests${buildConsultationQuery(query)}`, { signal })
-  return mapPage(data, mapConsultation)
+  const queryString = buildConsultationQuery(query)
+  return expertReadCoordinator.run(`consultations${queryString}`, async () => {
+    const data = await apiClient.request<PageDto<ConsultationDto>>(`/expert/consultation-requests${queryString}`)
+    return mapPage(data, mapConsultation)
+  }, signal)
 }
 
 async function acceptConsultation(requestId: string, date: string, startTime: string) {
@@ -51,8 +61,11 @@ async function completeConsultation(requestId: string) {
 }
 
 async function reviews(query: ReviewQuery, signal?: AbortSignal) {
-  const data = await apiClient.request<PageDto<ReviewDto>>(`/expert/reviews${buildReviewQuery(query)}`, { signal })
-  return mapPage(data, mapReview)
+  const queryString = buildReviewQuery(query)
+  return expertReadCoordinator.run(`reviews${queryString}`, async () => {
+    const data = await apiClient.request<PageDto<ReviewDto>>(`/expert/reviews${queryString}`)
+    return mapPage(data, mapReview)
+  }, signal)
 }
 
 async function overview(signal?: AbortSignal): Promise<ExpertOverview> {

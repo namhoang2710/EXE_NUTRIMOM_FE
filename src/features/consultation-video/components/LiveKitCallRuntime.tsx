@@ -19,10 +19,10 @@ import {
   Track,
   VideoPresets,
 } from 'livekit-client'
-import { CheckCircle, LockKey, Microphone, MicrophoneSlash, Monitor, PhoneDisconnect, VideoCamera, VideoCameraSlash } from '@phosphor-icons/react'
+import { ArrowsIn, ArrowsOut, CheckCircle, LockKey, Microphone, MicrophoneSlash, Monitor, PhoneDisconnect, VideoCamera, VideoCameraSlash, X } from '@phosphor-icons/react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import type { VideoCredentials, VideoRoomInfo } from '../api/video-api'
-import { callCapabilityError } from '../model/video-room'
+import { callCapabilityError, callClockSnapshot, nextCallTimeWarning } from '../model/video-room'
 import '@livekit/components-styles'
 
 export interface CallDeviceChoices {
@@ -44,6 +44,8 @@ interface RuntimeProps {
   completeLabel: string
   joinDisabled: boolean
   joinLabel: string
+  clockOffset: number
+  shownTimeWarnings: Set<number>
   onJoin: (choices: CallDeviceChoices) => void
   onLeave: () => void
   onComplete: () => Promise<boolean>
@@ -58,7 +60,9 @@ const disposeResources = ({ room, worker }: { room: Room; worker: Worker }) => {
   return room.disconnect().catch(() => undefined).finally(() => worker.terminate())
 }
 
-const CallStage = memo(function CallStage({ info, completing, completeDisabled, completeLabel, onLeave, onComplete, onError }: Pick<RuntimeProps, 'info' | 'completing' | 'completeDisabled' | 'completeLabel' | 'onLeave' | 'onComplete' | 'onError'>) {
+type CallControl = 'microphone' | 'camera' | 'screen'
+
+const CallStage = memo(function CallStage({ info, completing, completeDisabled, completeLabel, clockOffset, shownTimeWarnings, onLeave, onComplete, onError }: Pick<RuntimeProps, 'info' | 'completing' | 'completeDisabled' | 'completeLabel' | 'clockOffset' | 'shownTimeWarnings' | 'onLeave' | 'onComplete' | 'onError'>) {
   const tracks = useTracks([
     { source: Track.Source.Camera, withPlaceholder: true },
     { source: Track.Source.ScreenShare, withPlaceholder: false },
@@ -66,10 +70,18 @@ const CallStage = memo(function CallStage({ info, completing, completeDisabled, 
   const remoteParticipants = useRemoteParticipants()
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled } = useLocalParticipant()
   const connection = useConnectionState()
-  const [toggling, setToggling] = useState(false)
+  const pendingControlsRef = useRef(new Set<CallControl>())
+  const [pendingControls, setPendingControls] = useState<ReadonlySet<CallControl>>(() => new Set())
   const [confirming, setConfirming] = useState(false)
   const [completionFailed, setCompletionFailed] = useState(false)
+  const [warning, setWarning] = useState<ReturnType<typeof nextCallTimeWarning>>(null)
+  const [clock, setClock] = useState(() => callClockSnapshot(Date.now(), clockOffset, info.closes_at))
+  const [fullscreenSupported, setFullscreenSupported] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [fullscreenChanging, setFullscreenChanging] = useState(false)
   const confirmation = useRef<HTMLDialogElement>(null)
+  const roomShell = useRef<HTMLDivElement>(null)
+  const fullscreenChangingRef = useRef(false)
   const screen = tracks.find((track) => track.source === Track.Source.ScreenShare)
   const remoteCamera = tracks.find((track) => !track.participant.isLocal && track.source === Track.Source.Camera)
   const localCamera = tracks.find((track) => track.participant.isLocal && track.source === Track.Source.Camera)
@@ -82,31 +94,89 @@ const CallStage = memo(function CallStage({ info, completing, completeDisabled, 
     if (!confirming && dialog?.open) dialog.close()
   }, [confirming])
 
-  const toggle = useCallback(async (action: () => Promise<unknown>) => {
-    if (toggling) return
-    setToggling(true)
-    try { await action() } catch { onError(permissionMessage) }
-    finally { setToggling(false) }
-  }, [onError, toggling])
+  useEffect(() => {
+    const tick = () => {
+      const snapshot = callClockSnapshot(Date.now(), clockOffset, info.closes_at)
+      setClock(snapshot)
+      if (!info.closes_at) return
+      const nextWarning = nextCallTimeWarning(Date.parse(info.closes_at) - snapshot.serverNow, shownTimeWarnings)
+      if (nextWarning) {
+        shownTimeWarnings.add(nextWarning.minutes)
+        setWarning(nextWarning)
+      }
+    }
+    tick()
+    const timer = window.setInterval(tick, 1000)
+    return () => window.clearInterval(timer)
+  }, [clockOffset, info.closes_at, shownTimeWarnings])
+
+  useEffect(() => {
+    const onFullscreenChange = () => setFullscreen(document.fullscreenElement === roomShell.current)
+    setFullscreenSupported(Boolean(document.fullscreenEnabled && roomShell.current?.requestFullscreen))
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [])
+
+  const runControl = useCallback(async (control: CallControl, action: () => Promise<unknown>, errorMessage = permissionMessage) => {
+    if (pendingControlsRef.current.has(control)) return false
+    pendingControlsRef.current.add(control)
+    setPendingControls(new Set(pendingControlsRef.current))
+    try {
+      await action()
+      return true
+    } catch {
+      onError(errorMessage)
+      return false
+    } finally {
+      pendingControlsRef.current.delete(control)
+      setPendingControls(new Set(pendingControlsRef.current))
+    }
+  }, [onError])
+
+  const toggleFullscreen = useCallback(async () => {
+    const element = roomShell.current
+    if (!fullscreenSupported || !element || fullscreenChangingRef.current) return
+    fullscreenChangingRef.current = true
+    setFullscreenChanging(true)
+    try {
+      if (document.fullscreenElement === element) await document.exitFullscreen()
+      else await element.requestFullscreen()
+    } catch {
+      onError('Không thể mở chế độ toàn màn hình trên trình duyệt này.')
+    } finally {
+      fullscreenChangingRef.current = false
+      setFullscreenChanging(false)
+    }
+  }, [fullscreenSupported, onError])
 
   const connectionLabel = connection === ConnectionState.Reconnecting || connection === ConnectionState.SignalReconnecting
     ? 'Mạng gián đoạn · Đang kết nối lại…'
     : connection === ConnectionState.Connected ? 'Đã kết nối' : 'Đang kết nối…'
 
   return <>
-    <div className="nm-call-stage" data-lk-theme="default">
-      {primary ? <div className="nm-call-primary-video"><ParticipantTile trackRef={primary} />{primary === remoteCamera && (!remoteCamera.publication || remoteCamera.publication.isMuted) && <p>Camera của {counterpart || 'người tham gia'} đang tắt</p>}</div> : <div className="nm-call-waiting"><span><VideoCamera size={38} weight="duotone" /></span><h2>{connection === ConnectionState.Connecting ? 'Đang kết nối phòng…' : 'Đang chờ người còn lại'}</h2><p>{counterpart || 'Người tham gia'} sẽ xuất hiện tại đây khi vào phòng.</p></div>}
-      {localCamera && <div className={`nm-call-self${isCameraEnabled ? '' : ' is-camera-off'}`}><ParticipantTile trackRef={localCamera} /><span>{isCameraEnabled ? 'Bạn' : 'Camera đang tắt'}</span></div>}
-      <div className={`nm-call-connection is-${connection.toLowerCase()}`} role="status"><span aria-hidden="true" />{connectionLabel}</div>
-      <RoomAudioRenderer />
-      <StartAudio label="Bật âm thanh cuộc gọi" />
-    </div>
-    <div className="nm-call-controls" aria-label="Điều khiển cuộc gọi">
-      <button type="button" disabled={toggling} aria-pressed={isMicrophoneEnabled} aria-label={isMicrophoneEnabled ? 'Tắt micro' : 'Bật micro'} onClick={() => void toggle(() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled))}>{isMicrophoneEnabled ? <Microphone size={23} /> : <MicrophoneSlash size={23} />}<span>Micro</span></button>
-      <button type="button" disabled={toggling} aria-pressed={isCameraEnabled} aria-label={isCameraEnabled ? 'Tắt camera' : 'Bật camera'} onClick={() => void toggle(() => localParticipant.setCameraEnabled(!isCameraEnabled))}>{isCameraEnabled ? <VideoCamera size={23} /> : <VideoCameraSlash size={23} />}<span>Camera</span></button>
-      <button type="button" disabled={toggling} aria-pressed={isScreenShareEnabled} aria-label={isScreenShareEnabled ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'} onClick={() => void toggle(() => localParticipant.setScreenShareEnabled(!isScreenShareEnabled, { resolution: ScreenSharePresets.h720fps15.resolution }))}><Monitor size={23} /><span>{isScreenShareEnabled ? 'Dừng chia sẻ' : 'Chia sẻ'}</span></button>
-      <button type="button" className="nm-call-hangup" onClick={onLeave}><PhoneDisconnect size={23} /><span>Rời phòng</span></button>
-      {info.expert && <button type="button" className="nm-call-finish" disabled={completeDisabled} onClick={() => { setCompletionFailed(false); setConfirming(true) }}><CheckCircle size={23} /><span>Hoàn tất tư vấn</span></button>}
+    <div ref={roomShell} className="nm-call-room-shell" data-lk-theme="default">
+      {warning && <div className={`nm-call-time-warning is-${warning.tone}`} role="status" aria-live={warning.tone === 'urgent' ? 'assertive' : 'polite'} aria-atomic="true">
+        <span>{warning.message}</span>
+        <button type="button" onClick={() => setWarning(null)} aria-label="Đóng cảnh báo thời gian"><X size={17} /></button>
+      </div>}
+      <div className="nm-call-stage">
+        {primary ? <div className="nm-call-primary-video"><ParticipantTile trackRef={primary} />{primary === remoteCamera && (!remoteCamera.publication || remoteCamera.publication.isMuted) && <p>Camera của {counterpart || 'người tham gia'} đang tắt</p>}</div> : <div className="nm-call-waiting"><span><VideoCamera size={38} weight="duotone" /></span><h2>{connection === ConnectionState.Connecting ? 'Đang kết nối phòng…' : 'Đang chờ người còn lại'}</h2><p>{counterpart || 'Người tham gia'} sẽ xuất hiện tại đây khi vào phòng.</p></div>}
+        {localCamera && <div className={`nm-call-self${isCameraEnabled ? '' : ' is-camera-off'}`}><ParticipantTile trackRef={localCamera} /><span>{isCameraEnabled ? 'Bạn' : 'Camera đang tắt'}</span></div>}
+        <div className={`nm-call-connection is-${connection.toLowerCase()}`} role="status"><span aria-hidden="true" />{connectionLabel}</div>
+        <RoomAudioRenderer />
+        <StartAudio label="Bật âm thanh cuộc gọi" />
+      </div>
+      <div className="nm-call-controls" aria-label="Điều khiển cuộc gọi">
+        <div className="nm-call-clock" aria-label={`Giờ Việt Nam ${clock.time}${clock.remaining ? `, còn ${clock.remaining}` : ''}`}><strong>{clock.time}</strong>{clock.remaining && <><i aria-hidden="true" /><span>Còn {clock.remaining}</span></>}</div>
+        <div className="nm-call-control-actions">
+          <button type="button" disabled={pendingControls.has('microphone')} aria-pressed={isMicrophoneEnabled} title={isMicrophoneEnabled ? 'Tắt micro' : 'Bật micro'} aria-label={isMicrophoneEnabled ? 'Tắt micro' : 'Bật micro'} onClick={() => void runControl('microphone', () => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled))}>{isMicrophoneEnabled ? <Microphone size={22} /> : <MicrophoneSlash size={22} />}<span>Micro</span></button>
+          <button type="button" disabled={pendingControls.has('camera')} aria-pressed={isCameraEnabled} title={isCameraEnabled ? 'Tắt camera' : 'Bật camera'} aria-label={isCameraEnabled ? 'Tắt camera' : 'Bật camera'} onClick={() => void runControl('camera', () => localParticipant.setCameraEnabled(!isCameraEnabled))}>{isCameraEnabled ? <VideoCamera size={22} /> : <VideoCameraSlash size={22} />}<span>Camera</span></button>
+          <button type="button" disabled={pendingControls.has('screen')} aria-pressed={isScreenShareEnabled} title={isScreenShareEnabled ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'} aria-label={isScreenShareEnabled ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'} onClick={() => void runControl('screen', () => localParticipant.setScreenShareEnabled(!isScreenShareEnabled, { resolution: ScreenSharePresets.h720fps15.resolution }))}><Monitor size={22} /><span>{isScreenShareEnabled ? 'Dừng chia sẻ' : 'Chia sẻ'}</span></button>
+          <button type="button" className="nm-call-hangup" onClick={onLeave} title="Rời cuộc gọi" aria-label="Rời cuộc gọi"><PhoneDisconnect size={22} /><span>Rời cuộc gọi</span></button>
+          {info.expert && <button type="button" className="nm-call-finish" disabled={completeDisabled} onClick={() => { setCompletionFailed(false); setConfirming(true) }}><CheckCircle size={22} /><span>Hoàn tất tư vấn</span></button>}
+        </div>
+        <button type="button" className="nm-call-fullscreen" disabled={!fullscreenSupported || fullscreenChanging} aria-busy={fullscreenChanging} aria-pressed={fullscreen} title={fullscreen ? 'Thoát toàn màn hình' : 'Phòng toàn màn hình'} aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Phòng toàn màn hình'} onClick={() => void toggleFullscreen()}>{fullscreen ? <ArrowsIn size={22} /> : <ArrowsOut size={22} />}<span>{fullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span></button>
+      </div>
     </div>
     <dialog ref={confirmation} className="nm-call-modal" aria-labelledby="finish-title" onClose={() => setConfirming(false)} onCancel={(event) => { if (completing) event.preventDefault() }}>
       <span className="nm-call-modal-icon"><LockKey size={24} weight="duotone" /></span><h2 id="finish-title">Hoàn tất buổi tư vấn?</h2><p>Phòng sẽ đóng cho cả hai bên. Người dùng có thể gửi đánh giá sau khi bạn xác nhận.</p>
@@ -116,7 +186,7 @@ const CallStage = memo(function CallStage({ info, completing, completeDisabled, 
   </>
 })
 
-function ActiveRoom({ info, credentials, choices, completing, completeDisabled, completeLabel, onLeave, onComplete, onUnexpectedDisconnect, onError, onRegisterDisposer }: RuntimeProps & { credentials: VideoCredentials; choices: CallDeviceChoices }) {
+function ActiveRoom({ info, credentials, choices, completing, completeDisabled, completeLabel, clockOffset, shownTimeWarnings, onLeave, onComplete, onUnexpectedDisconnect, onError, onRegisterDisposer }: RuntimeProps & { credentials: VideoCredentials; choices: CallDeviceChoices }) {
   const [room, setRoom] = useState<Room | null>(null)
   const [fatalError, setFatalError] = useState('')
   const resources = useRef<{ room: Room; worker: Worker } | null>(null)
@@ -185,7 +255,7 @@ function ActiveRoom({ info, credentials, choices, completing, completeDisabled, 
       setFatalError(message); onError(message); closeRoom()
     }}
     onDisconnected={() => { if (!intentional.current) onUnexpectedDisconnect() }}>
-    <CallStage info={info} completing={completing} completeDisabled={completeDisabled} completeLabel={completeLabel} onLeave={onLeave} onComplete={onComplete} onError={onError} />
+    <CallStage info={info} completing={completing} completeDisabled={completeDisabled} completeLabel={completeLabel} clockOffset={clockOffset} shownTimeWarnings={shownTimeWarnings} onLeave={onLeave} onComplete={onComplete} onError={onError} />
   </LiveKitRoom>
 }
 

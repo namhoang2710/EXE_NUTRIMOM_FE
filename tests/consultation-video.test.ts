@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { ApiClientError } from '../src/core/api/api-error.ts'
 import type { VideoRoomInfo } from '../src/features/consultation-video/api/video-api.ts'
 import { VideoCooldownError, VideoRequestCoordinator } from '../src/features/consultation-video/model/request-coordinator.ts'
-import { callCapabilityError, canOfferPostCallReview, effectiveRoomState, hasReachedRoomClose, nextCallTimeWarning, nextRoomBoundary, postCallPath, remainingLabel, roomPath, shouldRefreshOnForeground } from '../src/features/consultation-video/model/video-room.ts'
+import { callCapabilityError, callClockSnapshot, canOfferPostCallReview, effectiveRoomState, hasReachedRoomClose, nextCallTimeWarning, nextRoomBoundary, postCallPath, remainingLabel, roomPath, shouldRefreshOnForeground, vietnamClockLabel } from '../src/features/consultation-video/model/video-room.ts'
 
 const info = (overrides: Partial<VideoRoomInfo> = {}): VideoRoomInfo => ({
   request_id: 'request-1', user_name: 'Mai', expert_name: 'Bác sĩ An', specialty: 'HEALTH', note: null,
@@ -18,6 +18,14 @@ test('remaining time uses the server adjusted clock and never shows negative tim
   assert.equal(remainingLabel(end, Date.parse('2026-10-03T02:30:01Z')), '04:59')
   assert.equal(remainingLabel(end, Date.parse(end)), '00:00')
   assert.equal(remainingLabel(end, Date.parse('2026-10-03T03:00:00Z')), '00:00')
+})
+
+test('call clock formats Vietnam time and applies the server offset to its countdown', () => {
+  const localNow = Date.parse('2026-10-06T11:25:00Z')
+  const snapshot = callClockSnapshot(localNow, 60_000, '2026-10-06T11:35:00Z')
+  assert.equal(vietnamClockLabel(localNow), '18:25')
+  assert.deepEqual(snapshot, { serverNow: Date.parse('2026-10-06T11:26:00Z'), time: '18:26', remaining: '09:00' })
+  assert.equal(callClockSnapshot(localNow, 0).remaining, null)
 })
 
 test('time warnings fire once at ten, five, and one minute', () => {
@@ -180,8 +188,8 @@ test('call implementation is event-driven, lazy, encrypted, and preserves the ba
   assert.match(history, /window\.clearTimeout\(reviewRetryTimer\)/)
   assert.match(history, /if \(!shouldOpenReview\)[^]*focusedRef\.current\?\.focus/)
   assert.match(page, /const onPageHide = \(\) => disposeCall\(\)/)
-  assert.match(page, /window\.setInterval\(tick, 1000\)/)
-  assert.match(page, /return \(\) => window\.clearInterval\(timer\)/)
+  assert.match(runtime, /window\.setInterval\(tick, 1000\)/)
+  assert.match(runtime, /return \(\) => window\.clearInterval\(timer\)/)
   assert.match(page, /setForcedEnded\(true\); disposeCall\(\)/)
   assert.match(page, /const leave = useCallback\(\(\) => \{ disposeCall\(\); setLeft\(true\); setError\(''\)/)
   assert.match(page, /const disconnected = useCallback\(\(\) => \{[^]*void loadInfo\(\)/)
@@ -191,4 +199,46 @@ test('call implementation is event-driven, lazy, encrypted, and preserves the ba
   assert.match(runtime, /trackPublications\.forEach\(\(publication\) => publication\.track\?\.stop\(\)\)/)
   assert.match(runtime, /finally\(\(\) => worker\.terminate\(\)\)/)
   assert.match(runtime, /info\.expert && <button[^]*Hoàn tất tư vấn/)
+})
+
+test('video room is viewport-bound and removes the redundant call title', async () => {
+  const [page, styles] = await Promise.all([
+    readFile(new URL('../src/features/consultation-video/pages/ConsultationCallPage.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation-video/styles/video-room.css', import.meta.url), 'utf8'),
+  ])
+  assert.doesNotMatch(page, /ĐỒNG HÀNH CÙNG BẠN|Sẵn sàng cho buổi tư vấn|Buổi tư vấn của bạn|nm-call-title/)
+  assert.match(styles, /\.nm-call-page \{[^}]*height: 100dvh;[^}]*overflow: hidden;[^}]*grid-template-rows: auto minmax\(0, 1fr\)/s)
+  assert.match(styles, /\.nm-call-layout \{[^}]*height: 100%;[^}]*min-height: 0;[^}]*overflow: hidden;/s)
+  assert.match(styles, /\.nm-call-sidebar \{[^}]*overflow: hidden;/s)
+  assert.match(styles, /\.nm-call-prejoin \{[^}]*overflow: hidden;[^}]*display: flex;/s)
+  assert.match(styles, /\.nm-call-prejoin \.lk-prejoin \{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 2fr\) minmax\(190px, 1fr\);/s)
+  assert.match(styles, /\.nm-call-prejoin \.lk-video-container \{[^}]*grid-column: 1 \/ -1;[^}]*grid-row: 1;/s)
+  assert.match(styles, /\.nm-call-prejoin \.lk-button-group-container \{[^}]*grid-column: 1;[^}]*grid-row: 2;/s)
+  assert.match(styles, /\.nm-call-prejoin \.lk-username-container \{[^}]*grid-column: 2;[^}]*grid-row: 2;/s)
+  assert.doesNotMatch(page, /nm-call-opening/)
+  assert.match(page, /<MobileCallInfo info=\{info\}/)
+  assert.match(styles, /\.nm-call-mobile-info > div \{[^}]*max-height:[^}]*overflow: auto;/s)
+  assert.match(styles, /\.nm-call-main > \.lk-room-container \{[^}]*flex: 1;/s)
+  assert.doesNotMatch(styles, /\.nm-call-stage[^}]*min-height: 420px/)
+})
+
+test('active call controls provide fullscreen, clock and role-safe completion without raise hand', async () => {
+  const [runtime, styles] = await Promise.all([
+    readFile(new URL('../src/features/consultation-video/components/LiveKitCallRuntime.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation-video/styles/video-room.css', import.meta.url), 'utf8'),
+  ])
+  const order = ['nm-call-clock', "runControl('microphone'", "runControl('camera'", "runControl('screen'", 'nm-call-hangup', 'nm-call-fullscreen']
+  for (let index = 1; index < order.length; index += 1) assert.ok(runtime.indexOf(order[index - 1]) < runtime.indexOf(order[index]))
+  assert.doesNotMatch(runtime, /HandPalm|RaisedHand|raisedHand|handRaised|canRaiseHand|setAttributes|nm-call-hand/)
+  assert.match(runtime, /document\.addEventListener\('fullscreenchange'/)
+  assert.match(runtime, /document\.removeEventListener\('fullscreenchange'/)
+  assert.match(runtime, /await element\.requestFullscreen\(\)/)
+  assert.match(runtime, /await document\.exitFullscreen\(\)/)
+  assert.match(runtime, /fullscreenChangingRef\.current/)
+  assert.match(runtime, /disabled=\{!fullscreenSupported \|\| fullscreenChanging\}/)
+  assert.match(runtime, /className="nm-call-control-actions"[^]*className="nm-call-hangup"[^]*<\/div>[^]*className="nm-call-fullscreen"/)
+  assert.match(styles, /\.nm-call-controls \{[^}]*grid-template-columns: minmax\(180px, 1fr\) auto minmax\(180px, 1fr\)/s)
+  assert.match(styles, /\.nm-call-controls \.nm-call-fullscreen \{[^}]*justify-self: end;/s)
+  assert.match(runtime, /info\.expert && <button[^]*Hoàn tất tư vấn/)
+  assert.doesNotMatch(runtime, /apiClient|videoApi\./)
 })

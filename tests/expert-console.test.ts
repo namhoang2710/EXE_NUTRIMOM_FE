@@ -6,10 +6,21 @@ import { authenticatedDestination, isExpertUser } from '../src/features/auth/mod
 import { expertActionErrorMessage, REQUEST_ALREADY_CLAIMED_MESSAGE, SLOT_UNAVAILABLE_MESSAGE } from '../src/features/expert-console/model/expert-console-errors.ts'
 import { mapConsultation, mapDaySchedule, mapDaySummary, mapExpertProfile, mapPage, mapReview, mapScheduleSlot } from '../src/features/expert-console/model/expert-console-mappers.ts'
 import { buildConsultationQuery, buildReviewQuery, toQueryString } from '../src/features/expert-console/model/expert-console-query.ts'
+import { sortConsultationsNewestFirst } from '../src/features/expert-console/model/expert-console-time.ts'
+import { createExpertReadCoordinator } from '../src/features/expert-console/model/expert-read-coordinator.ts'
+import type { Consultation } from '../src/features/expert-console/model/expert-console-types.ts'
 import type { User } from '../src/features/auth/model/auth-types.ts'
 
 function user(roles: string[]): User {
   return { id: 'user-1', phone: '0900000000', displayName: 'Test', role: roles[0] || 'USER', roles, status: 'ACTIVE', createdAt: '2026-01-01T00:00:00Z' }
+}
+
+function consultation(id: string, date: string | null, startTime: string, createdAt: string): Consultation {
+  return {
+    id, userId: 'user-1', userDisplayName: 'Nguyễn Mai', specialty: 'HEALTH', assignmentType: 'DIRECT',
+    status: 'PENDING_CONSULTATION', slot: date ? { id: `slot-${id}`, date, startTime, endTime: '13:00' } : null,
+    note: null, completedAt: null, createdAt,
+  }
 }
 
 test('routes EXPERT and legacy DOCTOR personas exclusively to the expert console', () => {
@@ -57,6 +68,39 @@ test('maps schedule, optional booking, summary, and consultation responses', () 
   assert.equal(page.items[0].userDisplayName, 'Nguyễn Mai')
 })
 
+test('expert appointments are copied and ordered by latest slot before rendering', () => {
+  const original = [
+    consultation('old', '2026-10-08', '08:00', '2026-10-07T01:00:00Z'),
+    consultation('unscheduled', null, '', '2026-10-08T06:00:00Z'),
+    consultation('new', '2026-10-08', '12:30', '2026-10-07T02:00:00Z'),
+  ]
+  assert.deepEqual(sortConsultationsNewestFirst(original).map((item) => item.id), ['new', 'old', 'unscheduled'])
+  assert.deepEqual(original.map((item) => item.id), ['old', 'unscheduled', 'new'])
+})
+
+test('expert read coordinator shares duplicate loads and blocks all reads during a 429 cooldown', async () => {
+  let now = 1_000
+  let calls = 0
+  const coordinator = createExpertReadCoordinator(30_000, () => now)
+  const request = async () => { calls += 1; return 'ok' }
+  assert.deepEqual(await Promise.all([coordinator.run('same', request), coordinator.run('same', request)]), ['ok', 'ok'])
+  assert.equal(calls, 1)
+
+  let limitedCalls = 0
+  await assert.rejects(coordinator.run('limited', async () => {
+    limitedCalls += 1
+    throw new ApiClientError(429, { code: 'REQUEST_FAILED', message: 'Too many requests' }, 5_000)
+  }), ApiClientError)
+  assert.equal(coordinator.isCoolingDown(), true)
+  assert.equal(coordinator.remainingMs(), 5_000)
+  await assert.rejects(coordinator.run('another-key', async () => { limitedCalls += 1; return 'blocked' }), ApiClientError)
+  assert.equal(limitedCalls, 1)
+
+  now += 5_000
+  assert.equal(await coordinator.run('another-key', async () => { limitedCalls += 1; return 'allowed' }), 'allowed')
+  assert.equal(limitedCalls, 2)
+})
+
 test('prioritizes validation fields and preserves conflict messages', () => {
   const validation = new ApiClientError(422, { code: 'VALIDATION_ERROR', message: 'Thông báo server', fields: { start_time: 'Giờ bắt đầu không hợp lệ.' } })
   assert.equal(expertActionErrorMessage(validation), 'Giờ bắt đầu không hợp lệ.')
@@ -76,6 +120,7 @@ test('expert API uses schedule endpoints and date-time payloads without legacy s
   assert.match(api, /JSON\.stringify\(\{ slot_date: date, start_time: toApiSlotTime\(startTime\) \}\)/)
   assert.doesNotMatch(api, /expert\/slots|slot_id/)
   assert.match(api, /scheduleSummary\(today, today, signal\)/)
+  assert.match(api, /expertReadCoordinator\.run/)
 })
 
 test('WorkSchedulePanel implements controlled ReUI switches and safe optimistic updates', async () => {

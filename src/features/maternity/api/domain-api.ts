@@ -1,14 +1,29 @@
 import { apiClient } from '@/core/api/api-client'
+import { createSingleFlight } from '@/core/api/single-flight'
 import { env } from '@/core/config/env'
 import { getSession } from '@/core/auth/token-store'
 import type { BirthPlan, CarePlan, CursorPage, Guidance, MedicalRecord, MomDashboard, PartnerDashboard, Pregnancy, PregnancyCalculation, PreparationItem, UploadedFile, UploadSession, WeekContent } from '@/types/domain'
 
+const pregnancyReads = createSingleFlight()
+
+function pregnancyReadKey(resource: string) {
+  return `${getSession()?.user.id ?? 'anonymous'}:${resource}`
+}
+
 export const pregnancyApi = {
-  current: () => apiClient.request<Pregnancy>('/pregnancies/current'),
+  current: () => pregnancyReads.run(pregnancyReadKey('current'), () => apiClient.request<Pregnancy>('/pregnancies/current')),
   calculate: (body: Record<string, unknown>) => apiClient.request<PregnancyCalculation>('/pregnancies/calculate', { method: 'POST', body: JSON.stringify(body) }),
-  create: (body: Record<string, unknown>) => apiClient.request<Pregnancy>('/pregnancies', { method: 'POST', body: JSON.stringify(body) }),
-  update: (id: string, body: Record<string, unknown>) => apiClient.request<Pregnancy>(`/pregnancies/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  weekContent: (week: number) => apiClient.request<WeekContent>(`/pregnancy-content/weeks/${week}`),
+  create: async (body: Record<string, unknown>) => {
+    const created = await apiClient.request<Pregnancy>('/pregnancies', { method: 'POST', body: JSON.stringify(body) })
+    pregnancyReads.clear()
+    return created
+  },
+  update: async (id: string, body: Record<string, unknown>) => {
+    const updated = await apiClient.request<Pregnancy>(`/pregnancies/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+    pregnancyReads.clear()
+    return updated
+  },
+  weekContent: (week: number) => pregnancyReads.run(pregnancyReadKey(`week:${week}`), () => apiClient.request<WeekContent>(`/pregnancy-content/weeks/${week}`)),
 }
 
 export const dashboardApi = {

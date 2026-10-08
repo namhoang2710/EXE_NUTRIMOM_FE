@@ -66,6 +66,23 @@ function AvailabilitySkeleton() {
   </div>
 }
 
+function AnimatedBookingTime({ value }: { value: string }) {
+  const reduceMotion = useReducedMotion()
+  return <strong className="consultation-booking-time-value">
+    <AnimatePresence initial={false} mode="popLayout">
+      <motion.span
+        key={value}
+        aria-hidden="true"
+        initial={reduceMotion ? false : { opacity: 0.2, y: 12, filter: 'blur(5px)' }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12, filter: 'blur(5px)' }}
+        transition={{ duration: reduceMotion ? 0.01 : 0.38, ease: [0.22, 1, 0.36, 1] }}
+      >{value}</motion.span>
+    </AnimatePresence>
+    <span className="sr-only" aria-live="polite">{value}</span>
+  </strong>
+}
+
 export function BookingPanel(props: BookingPanelProps) {
   const reduceMotion = useReducedMotion()
   const directTabRef = useRef<HTMLButtonElement>(null)
@@ -142,9 +159,13 @@ export function BookingPanel(props: BookingPanelProps) {
               </div>
             </div>
             <div className="consultation-booking-bar">
-              <div><span>Ngày tư vấn</span><strong>{formatConsultationDate(props.date)}</strong></div>
-              <div><span>Khung giờ</span><strong>{selectedCell ? `${selectedCell.startTime} - ${selectedCell.endTime}` : 'Chưa chọn'}</strong></div>
-              {selectedCell && <button className="consultation-clear-selection" type="button" disabled={props.directBusy} onClick={props.onClearSelection}>Bỏ chọn</button>}
+              <div className="consultation-booking-bar__field"><span>Ngày tư vấn</span><strong>{formatConsultationDate(props.date)}</strong></div>
+              <div className="consultation-booking-bar__time">
+                <div className="consultation-booking-bar__field"><span>Khung giờ</span><AnimatedBookingTime value={selectedCell ? `${selectedCell.startTime} - ${selectedCell.endTime}` : 'Chưa chọn'} /></div>
+                <span className="consultation-clear-selection-slot">
+                  <AnimatePresence initial={false}>{selectedCell && <motion.button className="consultation-clear-selection" type="button" disabled={props.directBusy} onClick={props.onClearSelection} initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.92 }} transition={{ duration: reduceMotion ? 0.01 : 0.2 }}>Bỏ chọn</motion.button>}</AnimatePresence>
+                </span>
+              </div>
               <StatefulButton className="consultation-stateful-button" type="button" disabled={!directReady} onAction={props.onDirectSubmit}>Xác nhận đặt lịch</StatefulButton>
             </div>
           </div>}

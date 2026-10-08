@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowLeft, CalendarBlank, CheckCircle, CircleNotch, ShieldCheck, Star, VideoCamera, X } from '@phosphor-icons/react'
+import { ArrowClockwise, ArrowLeft, CalendarBlank, CheckCircle, CircleNotch, ShieldCheck, Star, VideoCamera } from '@phosphor-icons/react'
 import { TfiInfoAlt } from 'react-icons/tfi'
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
@@ -8,48 +8,30 @@ import { consultationSpecialtyLabels } from '@/features/consultation/model/consu
 import { videoApi, type VideoCredentials, type VideoRoomInfo } from '../api/video-api'
 import type { CallDeviceChoices } from '../components/LiveKitCallRuntime'
 import { VideoCooldownError, videoRequestCoordinator, type VideoAction } from '../model/request-coordinator'
-import { canOfferPostCallReview, effectiveRoomState, nextCallTimeWarning, nextRoomBoundary, postCallPath, remainingLabel, roomMessage, shouldRefreshOnForeground } from '../model/video-room'
+import { canOfferPostCallReview, effectiveRoomState, nextRoomBoundary, postCallPath, roomMessage, shouldRefreshOnForeground } from '../model/video-room'
 import '../styles/video-room.css'
 
 const LiveKitCallRuntime = lazy(() => import('../components/LiveKitCallRuntime'))
 const dateTime = (value: string) => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
-const CallSidebar = memo(function CallSidebar({ info }: { info: VideoRoomInfo | null }) {
-  return <aside className="nm-call-sidebar">
+const CallInfoContent = memo(function CallInfoContent({ info }: { info: VideoRoomInfo | null }) {
+  return <>
     <span className="nm-call-sidebar-icon"><TfiInfoAlt size={24} aria-hidden="true" /></span><h2>Thông tin buổi tư vấn</h2>
     {info && <><dl><div><dt>Chuyên gia</dt><dd>{info.expert_name || 'Chưa được phân công'}</dd></div><div><dt>Người đặt lịch</dt><dd>{info.user_name || 'Người dùng'}</dd></div><div><dt>Chuyên khoa</dt><dd>{consultationSpecialtyLabels[info.specialty]}</dd></div>{info.opens_at && <div><dt>Thời gian mở phòng</dt><dd>{dateTime(info.opens_at)}</dd></div>}</dl>{info.note && <div className="nm-call-note"><h3>Ghi chú đặt lịch</h3><p>{info.note}</p></div>}</>}
     <div className="nm-call-help"><ShieldCheck size={22} /><div><h3>Không gian riêng cho hai người</h3><p>Cuộc gọi được mã hóa đầu cuối trước khi kết nối. Camera và micro chỉ bật khi bạn cho phép. Buổi gọi không được ghi hình.</p></div></div><p className="nm-call-tip">Dùng tai nghe và chọn nơi yên tĩnh để trò chuyện rõ hơn.</p>
-  </aside>
+  </>
+})
+
+const CallSidebar = memo(function CallSidebar({ info }: { info: VideoRoomInfo | null }) {
+  return <aside className="nm-call-sidebar"><CallInfoContent info={info} /></aside>
+})
+
+const MobileCallInfo = memo(function MobileCallInfo({ info }: { info: VideoRoomInfo | null }) {
+  return <details className="nm-call-mobile-info"><summary><TfiInfoAlt size={18} aria-hidden="true" />Thông tin</summary><div><CallInfoContent info={info} /></div></details>
 })
 
 function RuntimeFallback() {
   return <div className="nm-call-empty is-dark" role="status"><CircleNotch size={30} className="nm-call-spinner" /><p>Đang tải phòng gọi bảo mật…</p></div>
-}
-
-function CallSessionClock({ closesAt, clockOffset, shownWarnings }: { closesAt: string; clockOffset: number; shownWarnings: { current: Set<number> } }) {
-  const [now, setNow] = useState(() => Date.now() + clockOffset)
-  const [warning, setWarning] = useState<ReturnType<typeof nextCallTimeWarning>>(null)
-  useEffect(() => {
-    const tick = () => {
-      const serverNow = Date.now() + clockOffset
-      setNow(serverNow)
-      const nextWarning = nextCallTimeWarning(Date.parse(closesAt) - serverNow, shownWarnings.current)
-      if (nextWarning) {
-        shownWarnings.current.add(nextWarning.minutes)
-        setWarning(nextWarning)
-      }
-    }
-    tick()
-    const timer = window.setInterval(tick, 1000)
-    return () => window.clearInterval(timer)
-  }, [closesAt, clockOffset, shownWarnings])
-  return <div className="nm-call-session-clock">
-    {warning && <div className={`nm-call-time-warning is-${warning.tone}`} role="status" aria-live={warning.tone === 'urgent' ? 'assertive' : 'polite'} aria-atomic="true">
-      <span>{warning.message}</span>
-      <button type="button" onClick={() => setWarning(null)} aria-label="Đóng cảnh báo thời gian"><X size={17} /></button>
-    </div>}
-    <span className="nm-call-timer" aria-label="Thời gian còn lại">{remainingLabel(closesAt, now)}</span>
-  </div>
 }
 
 const EndedCallScreen = memo(function EndedCallScreen({ info, requestId, expert, canReview }: { info: VideoRoomInfo; requestId: string; expert: boolean; canReview: boolean }) {
@@ -245,26 +227,22 @@ export function ConsultationCallPage() {
   const retry = useCallback(() => { if (!actionCooling('info')) { setInfoRetryAvailable(false); setError(''); void loadInfo() } }, [actionCooling, loadInfo])
   const joinLabel = actionCooling('join') ? `Thử lại sau ${cooldownSeconds('join')}s` : joining ? 'Đang chuẩn bị…' : info?.can_join ? 'Vào phòng tư vấn' : 'Chưa đến giờ vào phòng'
   const completeLabel = completing ? 'Đang hoàn tất…' : actionCooling('complete') ? `Thử lại sau ${cooldownSeconds('complete')}s` : 'Xác nhận hoàn tất'
-  const title = credentials ? 'Buổi tư vấn của bạn' : state === 'ENDED' ? 'Buổi tư vấn đã kết thúc' : 'Sẵn sàng cho buổi tư vấn'
-
   return <main className="nm-call-page">
     <header className="nm-call-header"><Link to={back} onClick={disposeCall} className="nm-call-back"><ArrowLeft size={19} />Quay lại lịch tư vấn</Link><Link to={back} onClick={disposeCall} className="nm-call-brand">NutriMom<span>Tư vấn trực tuyến</span></Link><span className="nm-call-private"><ShieldCheck size={18} />Phòng riêng tư</span></header>
     <div className="nm-call-layout">
       <section className="nm-call-main">
-        <div className="nm-call-title"><div><p>ĐỒNG HÀNH CÙNG BẠN</p><h1>{title}</h1></div></div>
-        {credentials && info?.closes_at && <CallSessionClock key={requestId} closesAt={info.closes_at} clockOffset={clockOffset.current} shownWarnings={shownTimeWarnings} />}
         {error && <div className="nm-call-alert" role="alert"><span>{error}</span>{infoRetryAvailable && <button type="button" disabled={actionCooling('info')} onClick={retry}><ArrowClockwise size={17} />{actionCooling('info') ? `${cooldownSeconds('info')}s` : 'Thử lại'}</button>}</div>}
         {!info && !error && <div className="nm-call-empty"><CircleNotch size={30} className="nm-call-spinner" /><p>Đang chuẩn bị phòng tư vấn…</p></div>}
         {info && state && ['READY', 'SCHEDULED'].includes(state) && <>
           {left && !credentials && <p className="nm-call-left-note" role="status">Bạn đã rời phòng. Bạn có thể vào lại trước khi lịch kết thúc.</p>}
-          <Suspense fallback={<RuntimeFallback />}><LiveKitCallRuntime info={info} credentials={credentials} choices={choices} displayName={user?.displayName || 'Bạn'} joining={joining} completing={completing} completeDisabled={completing || actionCooling('complete')} completeLabel={completeLabel} joinDisabled={!info.can_join || actionCooling('join')} joinLabel={joinLabel} onJoin={join} onLeave={leave} onComplete={complete} onUnexpectedDisconnect={disconnected} onError={showRuntimeError} onRegisterDisposer={registerDisposer} /></Suspense>
-          {!info.can_join && info.opens_at && <p className="nm-call-opening">Phòng mở lúc {dateTime(info.opens_at)}</p>}
+          <Suspense fallback={<RuntimeFallback />}><LiveKitCallRuntime info={info} credentials={credentials} choices={choices} displayName={user?.displayName || 'Bạn'} joining={joining} completing={completing} completeDisabled={completing || actionCooling('complete')} completeLabel={completeLabel} joinDisabled={!info.can_join || actionCooling('join')} joinLabel={joinLabel} clockOffset={clockOffset.current} shownTimeWarnings={shownTimeWarnings.current} onJoin={join} onLeave={leave} onComplete={complete} onUnexpectedDisconnect={disconnected} onError={showRuntimeError} onRegisterDisposer={registerDisposer} /></Suspense>
           {actionCooling('complete') && <p className="nm-call-cooldown" role="status">Có thể hoàn tất lại sau {cooldownSeconds('complete')} giây.</p>}
         </>}
         {info && state === 'ENDED' && <EndedCallScreen info={info} requestId={requestId} expert={info.expert} canReview={canReview} />}
         {info && state && ['UNAVAILABLE', 'UNSCHEDULED'].includes(state) && <div className="nm-call-empty"><span><VideoCamera size={36} weight="duotone" /></span><h2>Phòng chưa sẵn sàng</h2><p>{roomMessage(state)}</p><Link to={back} className="nm-call-primary">Về lịch tư vấn</Link></div>}
       </section>
       <CallSidebar info={info} />
+      <MobileCallInfo info={info} />
     </div>
   </main>
 }
