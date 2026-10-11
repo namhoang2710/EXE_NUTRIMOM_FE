@@ -9,6 +9,8 @@ import './animated-select.css'
 export interface AnimatedSelectOption<T extends string = string> {
   value: T
   label: string
+  description?: string
+  disabled?: boolean
 }
 
 interface AnimatedSelectProps<T extends string> {
@@ -19,6 +21,15 @@ interface AnimatedSelectProps<T extends string> {
   disabled?: boolean
   className?: string
   labelClassName?: string
+}
+
+function findEnabledOptionIndex<T extends string>(options: readonly AnimatedSelectOption<T>[], start: number, direction: 1 | -1) {
+  if (!options.length) return -1
+  for (let step = 0; step < options.length; step += 1) {
+    const index = (start + direction * step + options.length) % options.length
+    if (!options[index]?.disabled) return index
+  }
+  return -1
 }
 
 export function AnimatedSelect<T extends string>({
@@ -43,8 +54,9 @@ export function AnimatedSelect<T extends string>({
 
   useEffect(() => {
     if (!open) return
-    setActiveIndex(selectedIndex)
-    const frame = window.requestAnimationFrame(() => optionRefs.current[selectedIndex]?.focus())
+    const initialIndex = options[selectedIndex]?.disabled ? findEnabledOptionIndex(options, 0, 1) : selectedIndex
+    setActiveIndex(initialIndex)
+    const frame = window.requestAnimationFrame(() => optionRefs.current[initialIndex]?.focus())
 
     function closeFromOutside(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
@@ -55,7 +67,7 @@ export function AnimatedSelect<T extends string>({
       window.cancelAnimationFrame(frame)
       document.removeEventListener('pointerdown', closeFromOutside)
     }
-  }, [open, selectedIndex])
+  }, [open, options, selectedIndex])
 
   useEffect(() => {
     if (disabled) setOpen(false)
@@ -67,13 +79,16 @@ export function AnimatedSelect<T extends string>({
   }
 
   function choose(option: AnimatedSelectOption<T>) {
+    if (option.disabled) return
     onValueChange(option.value)
     closeAndReturnFocus()
   }
 
   function moveFocus(nextIndex: number) {
     if (!options.length) return
-    const normalized = (nextIndex + options.length) % options.length
+    const direction = nextIndex >= activeIndex ? 1 : -1
+    const normalized = findEnabledOptionIndex(options, (nextIndex + options.length) % options.length, direction)
+    if (normalized < 0) return
     setActiveIndex(normalized)
     optionRefs.current[normalized]?.focus()
   }
@@ -81,10 +96,10 @@ export function AnimatedSelect<T extends string>({
   function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
     event.preventDefault()
-    if (event.key === 'Home') setActiveIndex(0)
-    else if (event.key === 'End') setActiveIndex(options.length - 1)
-    else if (event.key === 'ArrowUp') setActiveIndex(Math.max(0, selectedIndex - 1))
-    else setActiveIndex(Math.min(options.length - 1, selectedIndex + 1))
+    if (event.key === 'Home') setActiveIndex(findEnabledOptionIndex(options, 0, 1))
+    else if (event.key === 'End') setActiveIndex(findEnabledOptionIndex(options, options.length - 1, -1))
+    else if (event.key === 'ArrowUp') setActiveIndex(findEnabledOptionIndex(options, selectedIndex - 1, -1))
+    else setActiveIndex(findEnabledOptionIndex(options, selectedIndex + 1, 1))
     setOpen(true)
   }
 
@@ -101,10 +116,10 @@ export function AnimatedSelect<T extends string>({
       moveFocus(index - 1)
     } else if (event.key === 'Home') {
       event.preventDefault()
-      moveFocus(0)
+      moveFocus(findEnabledOptionIndex(options, 0, 1))
     } else if (event.key === 'End') {
       event.preventDefault()
-      moveFocus(options.length - 1)
+      moveFocus(findEnabledOptionIndex(options, options.length - 1, -1))
     } else if (event.key === 'Tab') {
       setOpen(false)
     }
@@ -148,12 +163,14 @@ export function AnimatedSelect<T extends string>({
                   type="button"
                   role="option"
                   aria-selected={option.value === value}
-                  className={cn('nm-animated-select-option', index === activeIndex && 'is-focused')}
+                  aria-disabled={option.disabled || undefined}
+                  disabled={option.disabled}
+                  className={cn('nm-animated-select-option', index === activeIndex && 'is-focused', option.disabled && 'is-disabled')}
                   onClick={() => choose(option)}
                   onFocus={() => setActiveIndex(index)}
                   onKeyDown={(event) => handleOptionKeyDown(event, index)}
                 >
-                  <span>{option.label}</span>
+                  <span className="nm-animated-select-option-copy"><span>{option.label}</span>{option.description && <small>{option.description}</small>}</span>
                   {option.value === value && <Check size={17} weight="bold" aria-hidden="true" />}
                 </button>
               ))}

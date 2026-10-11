@@ -2,9 +2,25 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
 import { activityFeedNextState, buildActivityPath, buildTasksPath, invitationBody, resetActivityFeedState } from '../src/features/family/model/family-requests.ts'
-import { activityDayKey, formatVietnamDateTime, memberLabel, relationshipLabels, scopeLabels, taskPriorityLabels, taskStatusLabels, toIsoTimestamp } from '../src/features/family/model/family-formatters.ts'
+import { activityDayKey, formatVietnamDateTime, memberDialogLabel, memberDisplayName, memberLabel, memberRelationshipLabel, relationshipLabels, scopeLabels, taskPriorityLabels, taskStatusLabels, toIsoTimestamp } from '../src/features/family/model/family-formatters.ts'
 import { createInvitationListRequestCoordinator, formatInvitationRetryCountdown } from '../src/features/family/model/invitation-list-requests.ts'
 import { createdInvitationSummary } from '../src/features/family/model/invitation-normalizers.ts'
+import { familyScopeCards, supportedFamilyScopes } from '../src/features/family/model/scope-capabilities.ts'
+import type { FamilyMember } from '../src/features/family/model/family-types.ts'
+
+const familyMemberFixture: FamilyMember = {
+  id: 'family-member-id',
+  family_group_id: 'family-group-id',
+  user_id: 'daf0d6ae-1234-5678-9012-de8f12345678',
+  display_name: '  Nguyễn Trường Giang  ',
+  relationship: 'PARTNER',
+  membership_role: 'PARTNER',
+  scopes: ['FAMILY_TASKS'],
+  status: 'ACTIVE',
+  version: 1,
+  created_at: '2026-10-10T00:00:00Z',
+  updated_at: '2026-10-10T00:00:00Z',
+}
 
 test('family API uses the backend endpoints, methods and snake_case bodies', async () => {
   const source = await readFile(new URL('../src/features/family/api/family-api.ts', import.meta.url), 'utf8')
@@ -19,12 +35,70 @@ test('family API uses the backend endpoints, methods and snake_case bodies', asy
   assert.match(source, /pregnancy_id|assignee_id/)
 })
 
-test('invitation sends exactly one target', () => {
+test('invitation create request is email-only and trims the address', () => {
   const base = { relationship: 'PARTNER' as const, scopes: ['FAMILY_TASKS' as const] }
-  assert.deepEqual(invitationBody({ ...base, invited_phone: ' 0901234567 ' }), { invited_phone: '0901234567', relationship: 'PARTNER', scopes: ['FAMILY_TASKS'] })
   assert.deepEqual(invitationBody({ ...base, invited_email: ' family@example.com ' }), { invited_email: 'family@example.com', relationship: 'PARTNER', scopes: ['FAMILY_TASKS'] })
-  assert.throws(() => invitationBody({ ...base, invited_phone: '0901', invited_email: 'family@example.com' }))
-  assert.throws(() => invitationBody(base))
+  assert.throws(() => invitationBody({ ...base, invited_email: '   ' }))
+})
+
+test('coming-soon family scopes stay visible but disabled and never enter write payloads', () => {
+  const alerts = familyScopeCards.find((card) => card.id === 'ALERTS')
+  const medical = familyScopeCards.find((card) => card.id === 'MEDICAL_RECORDS')
+  assert.deepEqual({ disabled: alerts?.disabled, comingSoon: alerts?.comingSoon }, { disabled: true, comingSoon: true })
+  assert.deepEqual({ disabled: medical?.disabled, comingSoon: medical?.comingSoon }, { disabled: true, comingSoon: true })
+  assert.deepEqual(supportedFamilyScopes(['FAMILY_TASKS', 'ALERTS', 'MEDICAL_RECORDS']), ['FAMILY_TASKS'])
+  assert.deepEqual(invitationBody({ invited_email: ' FAMILY@EXAMPLE.COM ', relationship: 'PARTNER', scopes: ['SHARED_CALENDAR', 'ALERTS'] }), {
+    invited_email: 'family@example.com',
+    relationship: 'PARTNER',
+    scopes: ['SHARED_CALENDAR'],
+  })
+})
+
+test('task assignment UI hides user ids, blocks members without task scope, and preserves update semantics', async () => {
+  const editor = await readFile(new URL('../src/features/family/components/TaskEditorDialog.tsx', import.meta.url), 'utf8')
+  const formatters = await readFile(new URL('../src/features/family/model/family-formatters.ts', import.meta.url), 'utf8')
+  const group = await readFile(new URL('../src/features/family/components/FamilyGroupPanel.tsx', import.meta.url), 'utf8')
+  assert.match(editor, /member\.scopes\.includes\('FAMILY_TASKS'\)/)
+  assert.match(editor, /disabled: !canReceiveTasks/)
+  assert.match(editor, /value: member\.id,[^]*label: memberLabel\(member\)/)
+  assert.match(editor, /assigneeId !== \(task\.assignee_id \|\| ''\)/)
+  assert.match(editor, /assignee_id: assigneeId/)
+  assert.doesNotMatch(formatters, /shortUserId|member\.user_id/)
+  assert.doesNotMatch(group, /Mã người dùng/)
+})
+
+test('family member labels use trimmed display names with safe relationship fallbacks', () => {
+  assert.equal(memberLabel(familyMemberFixture), 'Nguyễn Trường Giang · Bạn đời')
+  assert.equal(memberDisplayName(familyMemberFixture), 'Nguyễn Trường Giang')
+  assert.equal(memberRelationshipLabel(familyMemberFixture), 'Bạn đời')
+  assert.equal(memberDialogLabel(familyMemberFixture), 'Nguyễn Trường Giang (Bạn đời)')
+  assert.equal(memberLabel({ ...familyMemberFixture, display_name: '', relationship: 'PARENT', membership_role: 'FAMILY_MEMBER' }), 'Cha/mẹ')
+  assert.equal(memberLabel({ ...familyMemberFixture, display_name: '   ', relationship: 'SIBLING', membership_role: 'FAMILY_MEMBER' }), 'Anh/chị/em')
+  assert.equal(memberLabel({ ...familyMemberFixture, display_name: undefined } as unknown as FamilyMember), 'Bạn đời')
+  assert.doesNotMatch(memberLabel(familyMemberFixture), /daf0d6|de8f|family-member-id/)
+})
+
+test('all Family member surfaces use display-name formatters without changing identifiers', async () => {
+  const types = await readFile(new URL('../src/features/family/model/family-types.ts', import.meta.url), 'utf8')
+  const group = await readFile(new URL('../src/features/family/components/FamilyGroupPanel.tsx', import.meta.url), 'utf8')
+  const scopes = await readFile(new URL('../src/features/family/components/MemberScopeDialog.tsx', import.meta.url), 'utf8')
+  const editor = await readFile(new URL('../src/features/family/components/TaskEditorDialog.tsx', import.meta.url), 'utf8')
+  const tasks = await readFile(new URL('../src/features/family/components/FamilyTasksPanel.tsx', import.meta.url), 'utf8')
+  const activity = await readFile(new URL('../src/features/family/components/ActivityTimeline.tsx', import.meta.url), 'utf8')
+
+  assert.match(types, /interface FamilyMember[^]*display_name: string/)
+  assert.match(group, /memberDisplayName\(member\)[^]*memberRelationshipLabel\(member\)/)
+  assert.match(group, /aria-label=\{`Chỉnh quyền \$\{memberLabel\(member\)\}`\}/)
+  assert.match(group, /aria-label=\{`Thu hồi \$\{memberLabel\(member\)\}`\}/)
+  assert.match(group, /memberDisplayName\(currentMembership\)[^]*memberRelationshipLabel\(currentMembership\)/)
+  assert.match(scopes, /description=\{member \? memberDialogLabel\(member\) : undefined\}/)
+  assert.match(editor, /value: member\.id,[^]*label: memberLabel\(member\)/)
+  assert.match(tasks, /value: member\.id, label: memberLabel\(member\)/)
+  assert.match(tasks, /assignee_id: isOwner \? assigneeId \|\| undefined/)
+  assert.match(tasks, /member\.id === task\.assignee_id/)
+  assert.match(activity, /member\.user_id === item\.actor_user_id/)
+  assert.match(activity, /memberLabel\(actor\)/)
+  assert.doesNotMatch(`${group}${scopes}${editor}${tasks}${activity}`, /shortUserId|member\.user_id\.slice|member\.id\.slice/)
 })
 
 test('task filter keeps assignee_id as the member id and encodes query values', () => {
@@ -68,6 +142,51 @@ test('version conflict exposes a reload action', async () => {
   const members = await readFile(new URL('../src/features/family/components/FamilyGroupPanel.tsx', import.meta.url), 'utf8')
   assert.match(tasks, /VERSION_CONFLICT[^]*>Tải lại</)
   assert.match(members, /Dữ liệu thành viên đã thay đổi[^]*>Tải lại</)
+})
+
+test('family writes show one global action toast after server success and block duplicate submissions', async () => {
+  const tasks = await readFile(new URL('../src/features/family/components/FamilyTasksPanel.tsx', import.meta.url), 'utf8')
+  const editor = await readFile(new URL('../src/features/family/components/TaskEditorDialog.tsx', import.meta.url), 'utf8')
+  const group = await readFile(new URL('../src/features/family/components/FamilyGroupPanel.tsx', import.meta.url), 'utf8')
+  const scopes = await readFile(new URL('../src/features/family/components/MemberScopeDialog.tsx', import.meta.url), 'utf8')
+  const page = await readFile(new URL('../src/features/family/pages/FamilyPage.tsx', import.meta.url), 'utf8')
+  assert.match(group, /Đã cập nhật quyền chia sẻ của thành viên\./)
+  assert.match(tasks, /Đã tạo việc gia đình\./)
+  assert.match(tasks, /Đã cập nhật việc gia đình\./)
+  assert.match(tasks, /Đã chuyển trạng thái việc sang \$\{taskStatusLabels\[saved\.status\]\}\./)
+  assert.match(tasks, /if \(nextStatus === task\.status \|\| updatingGate\.current\.has\(task\.id\)\) return/)
+  assert.match(tasks, /setTasks\(\(current\) => current\.map\(\(item\) => item\.id === saved\.id \? saved : item\)\)/)
+  assert.match(editor, /if \(submitting\.current\) return/)
+  assert.match(scopes, /if \(!member \|\| saving\.current\) return/)
+  assert.match(page, /<GlobalActionToast toast=\{toast\} onClose=\{dismissToast\}/)
+  assert.equal((page.match(/<GlobalActionToast/g) ?? []).length, 1)
+  assert.match(tasks, /onNotify\(wasEditing \? 'Đã cập nhật việc gia đình\.' : 'Đã tạo việc gia đình\.'\)/)
+  assert.match(tasks, /setDeleting\(null\); onNotify\('Đã xóa việc khỏi danh sách\.'\)/)
+  assert.match(group, /setRevokeMember\(null\); onNotify\('Đã thu hồi thành viên khỏi nhóm\.'\)/)
+  assert.doesNotMatch(`${tasks}${group}${page}`, /SuccessDialog|family-announcer/)
+})
+
+test('task deletion uses a compact confirmation without the stable empty footprint', async () => {
+  const tasks = await readFile(new URL('../src/features/family/components/FamilyTasksPanel.tsx', import.meta.url), 'utf8')
+  const dialog = await readFile(new URL('../src/shared/components/ActionStateDialog.tsx', import.meta.url), 'utf8')
+  const styles = await readFile(new URL('../src/shared/styles/product-ui.css', import.meta.url), 'utf8')
+  assert.match(tasks, /<ActionStateDialog compact/)
+  assert.match(tasks, /title="Xóa việc cần làm\?"/)
+  assert.match(tasks, /Bạn không thể hoàn tác thao tác này\./)
+  assert.match(dialog, /stable=\{!compact\}/)
+  assert.match(styles, /\.nm-action-dialog-compact\s*\{[^}]*width: min\(520px, calc\(100vw - 32px\)\);/s)
+  assert.match(styles, /\.nm-action-dialog-compact \.nm-dialog-body\s*\{[^}]*padding: 24px;/s)
+})
+
+test('permission dialog keeps helper text in normal flow and its body scrollable', async () => {
+  const dialog = await readFile(new URL('../src/features/family/components/MemberScopeDialog.tsx', import.meta.url), 'utf8')
+  const styles = await readFile(new URL('../src/features/family/styles/family.css', import.meta.url), 'utf8')
+  assert.match(dialog, /family-dialog family-permission-dialog/)
+  assert.match(dialog, /family-permission-dialog-content/)
+  assert.match(styles, /\.family-permission-dialog-content \{[^}]*display: grid;[^}]*gap: 18px;/)
+  assert.match(styles, /\.family-permission-dialog \.nm-dialog-body \{[^}]*scrollbar-gutter: stable;/)
+  assert.match(styles, /\.family-helper \{[^}]*margin: 0;/)
+  assert.doesNotMatch(styles, /\.family-helper \{[^}]*margin:\s*-/)
 })
 
 test('owner and member receive distinct action groups', async () => {
@@ -185,15 +304,15 @@ test('family group and invitation history avoid technical identifiers and wordin
   assert.match(styles, /\.family-invitations \.family-section-heading h3 \{[^}]*font-size:[^}]*font-weight: 760;/)
 })
 
-test('invitation deletion is confirmed, stays right-aligned, spins and uses the calendar toast', async () => {
+test('invitation deletion is confirmed, stays right-aligned, spins and reports through the family global toast', async () => {
   const invitations = await readFile(new URL('../src/features/family/components/InvitationList.tsx', import.meta.url), 'utf8')
   const styles = await readFile(new URL('../src/features/family/styles/family.css', import.meta.url), 'utf8')
   assert.match(invitations, /title="Xóa lời mời này\?"/)
   assert.match(invitations, /Lời mời gửi đến <strong>\{confirming\?\.masked_target\}<\/strong> sẽ bị thu hồi và không thể sử dụng được nữa\./)
   assert.doesNotMatch(invitations, /busy=\{revoking\}[^]*stable/)
   assert.match(invitations, /revoking && <CircleNotch className="nm-dialog-spinner"/)
-  assert.match(invitations, /<GlobalActionToast toast=\{toast\}/)
-  assert.match(invitations, /message: 'Đã xóa thành công'/)
+  assert.match(invitations, /onNotify\?\.\('Đã xóa lời mời\.'\)/)
+  assert.doesNotMatch(invitations, /<GlobalActionToast|setToast/)
   assert.match(styles, /\.family-invitation-row \{ grid-template-columns: minmax\(0, 1fr\) auto;/)
   assert.match(styles, /\.family-invitations \{[^}]*border:[^}]*border-radius:[^}]*background:/)
 })
@@ -325,7 +444,8 @@ test('creating and deleting invitations update local state instead of refetching
   const group = await readFile(new URL('../src/features/family/components/FamilyGroupPanel.tsx', import.meta.url), 'utf8')
   const list = await readFile(new URL('../src/features/family/components/InvitationList.tsx', import.meta.url), 'utf8')
   const requests = await readFile(new URL('../src/features/family/model/invitation-list-requests.ts', import.meta.url), 'utf8')
-  assert.match(group, /onCreated=\{\(created\) => setCreatedInvitations/)
+  assert.match(group, /onCreated=\{\(created\) => \{ rememberInvitation\(createdInvitationSummary\(created\)\); onNotify\('Đã tạo lời mời gia đình\.'\) \}\}/)
+  assert.match(group, /onReconciled=\{\(invitation\) => \{ rememberInvitation\(invitation\); onNotify\('Đã tạo lời mời gia đình\.'\) \}\}/)
   assert.doesNotMatch(group, /invitationRefresh/)
   assert.match(list, /invitationListRequests\.replace\(nextItems\)/)
   assert.match(list, /onClick=\{\(\) => void load\(\)\}/)

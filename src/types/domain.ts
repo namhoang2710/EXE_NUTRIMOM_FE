@@ -110,7 +110,7 @@ export interface Guidance { id: string; week?: number | null; topic?: string | n
 export interface CursorPage<T> { items: T[]; next_cursor?: string | null; has_more?: boolean }
 export interface PartnerActivityEvent {
   id: string
-  type: 'CONSULTATION_ACCEPTED' | 'CONSULTATION_COMPLETED' | 'CONSULTATION_CANCELLED' | 'CONTACT_COMPLETED' | 'FAMILY_TASK_ASSIGNED' | 'FAMILY_TASK_COMPLETED'
+  type: 'CONSULTATION_ACCEPTED' | 'CONSULTATION_COMPLETED' | 'CONSULTATION_CANCELLED' | 'CONTACT_COMPLETED' | 'FAMILY_TASK_ASSIGNED' | 'FAMILY_TASK_STATUS_CHANGED' | 'FAMILY_TASK_COMPLETED'
   title: string
   actor_user_id?: string
   pregnancy_id?: string

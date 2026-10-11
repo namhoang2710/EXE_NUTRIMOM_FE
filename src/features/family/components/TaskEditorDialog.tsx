@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AnimatedSelect, type AnimatedSelectOption } from '@/components/ui/animated-select'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { StatusMessage } from '@/shared/components/StatusMessage'
@@ -34,9 +35,18 @@ export function TaskEditorDialog({ open, task, members, onClose, onSaved, onConf
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
+  const submitting = useRef(false)
   const assigneeOptions: AnimatedSelectOption<string>[] = [
     { value: '', label: 'Chưa giao' },
-    ...members.map((member) => ({ value: member.id, label: memberLabel(member) })),
+    ...members.map((member) => {
+      const canReceiveTasks = member.scopes.includes('FAMILY_TASKS')
+      return {
+        value: member.id,
+        label: memberLabel(member),
+        disabled: !canReceiveTasks,
+        description: canReceiveTasks ? undefined : 'Chưa được cấp quyền Việc gia đình',
+      }
+    }),
   ]
 
   useEffect(() => {
@@ -51,28 +61,32 @@ export function TaskEditorDialog({ open, task, members, onClose, onSaved, onConf
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
+    if (submitting.current) return
     const cleanTitle = title.trim()
     if (!cleanTitle) { setError('Tiêu đề là bắt buộc.'); return }
     if (cleanTitle.length > 200) { setError('Tiêu đề tối đa 200 ký tự.'); return }
     const isoDueAt = toIsoTimestamp(dueAt)
     if (dueAt && !isoDueAt) { setError('Thời hạn chưa hợp lệ.'); return }
-    setBusy(true); setError('')
+    submitting.current = true; setBusy(true); setError('')
     try {
-      const payload = {
+      const basePayload = {
         title: cleanTitle,
         ...(description.trim() ? { description: description.trim() } : {}),
         priority,
         ...(isoDueAt ? { due_at: isoDueAt } : {}),
-        ...(assigneeId ? { assignee_id: assigneeId } : {}),
       }
       const saved = task
-        ? await familyApi.updateTask(task.id, { ...payload, version: task.version })
-        : await familyApi.createTask(payload)
+        ? await familyApi.updateTask(task.id, {
+          ...basePayload,
+          ...(assigneeId !== (task.assignee_id || '') ? { assignee_id: assigneeId } : {}),
+          version: task.version,
+        })
+        : await familyApi.createTask({ ...basePayload, ...(assigneeId ? { assignee_id: assigneeId } : {}) })
       onSaved(saved); onClose()
     } catch (reason) {
       setError(familyErrorMessage(reason))
       if (isFamilyError(reason, 'VERSION_CONFLICT')) onConflict()
-    } finally { setBusy(false) }
+    } finally { submitting.current = false; setBusy(false) }
   }
 
   return <AccessibleDialog open={open} title={task ? 'Sửa việc gia đình' : 'Tạo việc gia đình'} description="Thay đổi chỉ hiển thị sau khi máy chủ xác nhận thành công." onClose={onClose} busy={busy} initialFocusRef={titleRef} className="family-dialog">
@@ -81,6 +95,7 @@ export function TaskEditorDialog({ open, task, members, onClose, onSaved, onConf
       <label className="family-field"><span>Mô tả</span><textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
       <div className="family-form-row"><AnimatedSelect className="family-field" label="Ưu tiên" value={priority} options={priorityOptions} onValueChange={setPriority} /><label className="family-field"><span>Thời hạn</span><input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></label></div>
       <AnimatedSelect className="family-field" label="Người phụ trách" value={assigneeId} options={assigneeOptions} onValueChange={setAssigneeId} />
+      {members.some((member) => !member.scopes.includes('FAMILY_TASKS')) && <p className="family-helper">Thành viên bị khóa chưa được cấp quyền Việc gia đình. <Link className="text-link" to="/app/family" onClick={onClose}>Mở tab Nhóm gia đình để chỉnh quyền.</Link></p>}
       {error && <StatusMessage tone="error">{error}</StatusMessage>}
       <div className="family-dialog-actions"><button className="secondary-button" type="button" disabled={busy} onClick={onClose}>Hủy</button><button className="primary-button" type="submit" disabled={busy}>{busy ? 'Đang lưu...' : task ? 'Lưu thay đổi' : 'Tạo việc'}</button></div>
     </form>

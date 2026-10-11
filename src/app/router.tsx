@@ -20,6 +20,7 @@ const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecor
 const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
 const FamilyPage = lazy(() => import('@/features/family/pages/FamilyPage').then((module) => ({ default: module.FamilyPage })))
 const FamilyInvitePage = lazy(() => import('@/features/family/pages/FamilyInvitePage').then((module) => ({ default: module.FamilyInvitePage })))
+const FamilyInvitationByIdPage = lazy(() => import('@/features/family/pages/FamilyInvitationByIdPage').then((module) => ({ default: module.FamilyInvitationByIdPage })))
 const AssistantPage = lazy(() => import('@/features/assistant/pages/AssistantPage').then((module) => ({ default: module.AssistantPage })))
 const AppointmentQuestionsPage = lazy(() => import('@/features/appointment-questions/pages/AppointmentQuestionsPage').then((module) => ({ default: module.AppointmentQuestionsPage })))
 const ActivateAccountPage = lazy(() => import('@/features/auth/pages/ActivateAccountPage').then((module) => ({ default: module.ActivateAccountPage })))
@@ -114,6 +115,7 @@ export function AppRouter() {
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<Navigate to="/app" replace />} />
         <Route path="family" element={<Suspense fallback={<UserRouteFallback />}><FamilyPage /></Suspense>} />
+        <Route path="family/invitations/:invitationId" element={<Suspense fallback={<UserRouteFallback />}><FamilyInvitationByIdPage /></Suspense>} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
         <Route path="health" element={<Navigate to="/app/profile/health" replace />} />
         <Route path="care" element={<Navigate to="/app/profile/care" replace />} />

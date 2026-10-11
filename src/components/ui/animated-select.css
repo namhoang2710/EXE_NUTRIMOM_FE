@@ -111,6 +111,37 @@
   font-weight: 720;
 }
 
+.nm-animated-select-option-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nm-animated-select-option-copy > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nm-animated-select-option-copy small {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.nm-animated-select-option:disabled,
+.nm-animated-select-option.is-disabled {
+  cursor: not-allowed;
+  opacity: .56;
+}
+
+.nm-animated-select-option:disabled:hover,
+.nm-animated-select-option:disabled:focus-visible {
+  color: var(--text);
+  background: transparent;
+}
+
 .nm-animated-select-option svg {
   flex: none;
   color: var(--accent);

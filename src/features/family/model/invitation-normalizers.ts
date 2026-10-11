@@ -1,4 +1,4 @@
-import type { FamilyInvitation, FamilyInvitationPreview, FamilyInvitationStatus, FamilyInvitationSummary, FamilyScope, InvitationDeliveryStatus } from './family-types'
+import type { FamilyInvitation, FamilyInvitationPreview, FamilyInvitationStatus, FamilyInvitationSummary, FamilyScope, InvitationDeliveryStatus, ReceivedFamilyInvitation } from './family-types'
 import { logDiagnostic } from '../../../core/diagnostics/logger.ts'
 
 type Json = Record<string, unknown>
@@ -45,7 +45,38 @@ export function normalizeInvitationList(value: unknown): FamilyInvitationSummary
   })
 }
 
-function maskInvitationTarget(value: string, type: 'EMAIL' | 'PHONE') {
+function normalizeReceivedInvitation(value: unknown): ReceivedFamilyInvitation | undefined {
+  const item = record(value)
+  if (!item) return undefined
+  const status = statuses.has(item.status as FamilyInvitationStatus) ? item.status as FamilyInvitationStatus : undefined
+  const targetType = item.target_type === 'EMAIL' || item.target_type === 'PHONE' ? item.target_type : undefined
+  const normalizedScopes = scopeList(item.scopes)
+  const scopeLabels = Array.isArray(item.scope_labels) ? item.scope_labels.filter((label): label is string => typeof label === 'string') : undefined
+  const result = {
+    id: text(item.id),
+    inviter_display_name: text(item.inviter_display_name),
+    relationship: text(item.relationship),
+    relationship_label: text(item.relationship_label),
+    scopes: normalizedScopes,
+    scope_labels: scopeLabels,
+    target_type: targetType,
+    masked_target: text(item.masked_target),
+    status,
+    expires_at: date(item.expires_at),
+    created_at: date(item.created_at),
+  }
+  return Object.values(result).some((field) => field === undefined) ? undefined : result as ReceivedFamilyInvitation
+}
+
+export function normalizeReceivedInvitations(value: unknown): ReceivedFamilyInvitation[] {
+  if (!Array.isArray(value)) throw new FamilyInvitationContractError('hộp thư lời mời không phải mảng')
+  return value.flatMap((entry) => {
+    const normalized = normalizeReceivedInvitation(entry)
+    return normalized ? [normalized] : []
+  })
+}
+
+export function maskInvitationTarget(value: string, type: 'EMAIL' | 'PHONE') {
   if (type === 'EMAIL') {
     const separator = value.lastIndexOf('@')
     const local = separator > 0 ? value.slice(0, separator) : value

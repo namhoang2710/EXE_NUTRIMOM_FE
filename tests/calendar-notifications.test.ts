@@ -22,7 +22,7 @@ import {
 import { CALENDAR_TOAST_DURATION, runCalendarAction, scheduleCalendarToastDismiss } from '../src/features/calendar/model/calendar-action-feedback.ts'
 import type { CalendarEventItem, ReminderDetail, ReminderFormValue } from '../src/features/calendar/model/calendar-types.ts'
 import { CalendarContractError, normalizeCalendarEvents, normalizeCalendarMonth, normalizeReminderDetail } from '../src/features/calendar/model/calendar-normalizers.ts'
-import { adaptDeepLink, buildNotificationsPath, markAllNotificationsRead, markNotificationRead, notificationLoadingEnabled, notificationPageState, resetNotificationState } from '../src/features/notifications/model/notification-helpers.ts'
+import { adaptDeepLink, buildNotificationsPath, markAllNotificationsRead, markNotificationRead, newNotificationCount, notificationLoadingEnabled, notificationPageState, resetNotificationState } from '../src/features/notifications/model/notification-helpers.ts'
 import { NotificationContractError, normalizeNotificationPage } from '../src/features/notifications/model/notification-normalizers.ts'
 import { commitNotificationAction, createNotificationMutationCoordinator, createNotificationRequestCoordinator } from '../src/features/notifications/model/notification-request-coordinator.ts'
 import { dashboardGreeting } from '../src/features/user/model/dashboard-greeting.ts'
@@ -203,6 +203,45 @@ test('notification loading waits until authentication is resolved and the bell i
   assert.equal(notificationLoadingEnabled('anonymous', true), false)
   assert.equal(notificationLoadingEnabled('authenticated', false), false)
   assert.equal(notificationLoadingEnabled('authenticated', true), true)
+})
+
+test('new notification feedback establishes a baseline and only reacts once to increases', () => {
+  assert.equal(newNotificationCount(undefined, 3), 0)
+  assert.equal(newNotificationCount(3, 4), 1)
+  assert.equal(newNotificationCount(3, 5), 2)
+  assert.equal(newNotificationCount(4, 4), 0)
+  assert.equal(newNotificationCount(4, 2), 0)
+  assert.equal(newNotificationCount(4, undefined), 0)
+})
+
+test('mark read and read-all count reductions never trigger new-notification feedback', () => {
+  assert.equal(newNotificationCount(4, 3), 0)
+  assert.equal(newNotificationCount(4, 0), 0)
+})
+
+test('notification bell gives finite accessible feedback without adding requests or polling', async () => {
+  const bell = await readFile(new URL('../src/features/notifications/components/NotificationBell.tsx', import.meta.url), 'utf8')
+  const hook = await readFile(new URL('../src/features/notifications/hooks/useNotifications.ts', import.meta.url), 'utf8')
+  const styles = await readFile(new URL('../src/features/notifications/styles/notifications.css', import.meta.url), 'utf8')
+
+  assert.match(bell, /useRef<number \| undefined>\(undefined\)/)
+  assert.match(bell, /newNotificationCount\(previousUnreadCount\.current, nextUnreadCount\)/)
+  assert.match(bell, /previousUnreadCount\.current = nextUnreadCount/)
+  assert.match(bell, /reduceMotion \? ' is-new-reduced' : ' is-new'/)
+  assert.match(bell, /aria-live="polite" aria-atomic="true"/)
+  assert.match(bell, /Bạn có một thông báo mới\./)
+  assert.match(bell, /`Bạn có \$\{newNotifications\} thông báo mới\.`/)
+  assert.match(bell, /feed\.unreadCount > 99 \? '99\+' : feed\.unreadCount/)
+  assert.match(bell, /window\.clearTimeout\(feedbackTimer\.current\)/)
+
+  assert.match(styles, /@keyframes nm-notification-bell-ring/)
+  assert.match(styles, /animation: nm-notification-bell-ring 800ms[^;]* 1 both;/)
+  assert.match(styles, /@keyframes nm-notification-badge-pop[^]*transform: scale\(1\.24\);[^]*box-shadow:/)
+  assert.match(styles, /prefers-reduced-motion:reduce[^}]*nm-notification-trigger\.is-new \.nm-notification-bell-icon[^}]*animation: none;/)
+  assert.doesNotMatch(bell, /notificationsApi|setInterval/)
+  assert.doesNotMatch(bell, /new Audio|\.play\(\)/)
+  assert.equal((hook.match(/window\.setInterval/g) ?? []).length, 1)
+  assert.match(hook, /window\.setInterval\(refreshWhenActive, 60_000\)/)
 })
 
 test('notification response normalization renders items, accepts empty pages, and rejects a broken contract', () => {
