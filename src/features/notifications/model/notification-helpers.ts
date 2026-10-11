@@ -5,6 +5,11 @@ export function notificationLoadingEnabled(authStatus: string, open: boolean) {
   return authStatus === 'authenticated' && open
 }
 
+export function newNotificationCount(previousUnreadCount: number | undefined, nextUnreadCount: number | undefined) {
+  if (previousUnreadCount === undefined || nextUnreadCount === undefined || nextUnreadCount <= previousUnreadCount) return 0
+  return nextUnreadCount - previousUnreadCount
+}
+
 export function buildNotificationsPath(cursor?: string, unreadOnly = false, limit = 20) {
   const query = new URLSearchParams({ limit: String(limit), unreadOnly: String(unreadOnly) })
   if (cursor) query.set('cursor', cursor)
@@ -38,6 +43,14 @@ const idPattern = '[^/?#]+'
 
 export function adaptDeepLink(deepLink?: string): DeepLinkResult {
   if (!deepLink) return {}
+  const invitationById = deepLink.match(/^nutrimom:\/\/family\/invitations\/([^/?#]+)$/)
+  if (invitationById) {
+    try {
+      const id = decodeURIComponent(invitationById[1])
+      if (!id || /[/?#]/.test(id)) return { message: 'Liên kết này chưa được hỗ trợ trên phiên bản web.' }
+      return { path: `/app/family/invitations/${encodeURIComponent(id)}` }
+    } catch { return { message: 'Liên kết này chưa được hỗ trợ trên phiên bản web.' } }
+  }
   const invitation = deepLink.match(/^nutrimom:\/\/family\/invitations\?token=([^&#/?]+)$/)
   if (invitation) {
     try { return { path: `/family/invite?token=${encodeURIComponent(decodeURIComponent(invitation[1]))}` } }

@@ -7,13 +7,14 @@ import type {
   FamilyInvitationPreview,
   FamilyInvitationSummary,
   FamilyMember,
+  ReceivedFamilyInvitation,
   FamilyScope,
   FamilyTask,
   FamilyTaskStatus,
   UpdateTaskInput,
 } from '../model/family-types'
 import { buildActivityPath, buildTasksPath, invitationBody } from '../model/family-requests'
-import { normalizeCreatedInvitation, normalizeInvitationList, normalizeInvitationPreview } from '../model/invitation-normalizers'
+import { normalizeCreatedInvitation, normalizeInvitationList, normalizeInvitationPreview, normalizeReceivedInvitations } from '../model/invitation-normalizers'
 
 export const familyApi = {
   groups: (signal?: AbortSignal) => apiClient.request<FamilyGroup[]>('/family-groups', { signal }),
@@ -30,6 +31,9 @@ export const familyApi = {
     body: JSON.stringify({ token: token.trim() }),
   }),
   previewInvitation: async (token: string, signal?: AbortSignal): Promise<FamilyInvitationPreview> => normalizeInvitationPreview(await apiClient.request<unknown>(`/family-invitations/preview?token=${encodeURIComponent(token)}`, { signal })),
+  receivedInvitations: async (signal?: AbortSignal): Promise<ReceivedFamilyInvitation[]> => normalizeReceivedInvitations(await apiClient.request<unknown>('/family-invitations/received', { signal })),
+  previewInvitationById: async (id: string, signal?: AbortSignal): Promise<FamilyInvitationPreview> => normalizeInvitationPreview(await apiClient.request<unknown>(`/family-invitations/${encodeURIComponent(id)}/preview`, { signal })),
+  acceptInvitationById: (id: string) => apiClient.request<FamilyMember>(`/family-invitations/${encodeURIComponent(id)}/accept`, { method: 'POST' }),
   invitations: async (signal?: AbortSignal): Promise<FamilyInvitationSummary[]> => normalizeInvitationList(await apiClient.request<unknown>('/family-invitations', { signal })),
   revokeInvitation: (id: string) => apiClient.request<void>(`/family-invitations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   members: (signal?: AbortSignal) => apiClient.request<FamilyMember[]>('/family-members', { signal }),

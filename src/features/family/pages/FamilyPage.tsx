@@ -1,8 +1,9 @@
 import { ClipboardText, Plus, UsersThree, Waveform } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Tabs } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { GlobalActionToast, type CalendarToastMessage } from '@/features/calendar/components/CalendarToast'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { familyApi } from '../api/family-api'
 import { ActivityTimeline } from '../components/ActivityTimeline'
@@ -10,24 +11,20 @@ import { FamilyGroupPanel } from '../components/FamilyGroupPanel'
 import { FamilyLoadingState } from '../components/FamilyLoadingState'
 import { FamilyTasksPanel } from '../components/FamilyTasksPanel'
 import { AcceptInvitationDialog } from '../components/InvitationDialogs'
+import { ReceivedInvitationList } from '../components/ReceivedInvitationList'
 import { familyErrorMessage, isFamilyError } from '../model/family-errors'
+import { loadFamilyBootstrap, refreshFamilyAfterAccept } from '../model/family-bootstrap'
 import { waitForFamilyLoading } from '../model/family-loading'
-import type { FamilyGroup, FamilyMember } from '../model/family-types'
+import { receivedInvitationRequests } from '../model/received-invitation-requests'
+import type { FamilyGroup, FamilyMember, ReceivedFamilyInvitation } from '../model/family-types'
 import '../styles/family.css'
 
 type FamilyTab = 'group' | 'tasks' | 'activity'
 const validTabs = new Set<FamilyTab>(['group', 'tasks', 'activity'])
-let bootstrapPromise: Promise<{ groups: FamilyGroup[]; members: FamilyMember[] }> | null = null
-
-async function loadFamilyBootstrap() {
-  if (!bootstrapPromise) {
-    bootstrapPromise = familyApi.groups().then(async (groups) => ({ groups, members: groups.length ? await familyApi.members() : [] }))
-    void bootstrapPromise.finally(() => { window.setTimeout(() => { bootstrapPromise = null }, 0) }).catch(() => undefined)
-  }
-  return bootstrapPromise
-}
 export function FamilyPage() {
-  const { user, profile } = useAuth()
+  const { user, profile, reloadProfile } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const currentUserId = profile?.id || user?.id || ''
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedTab = searchParams.get('tab') as FamilyTab | null
@@ -35,28 +32,65 @@ export function FamilyPage() {
   const focusedTaskId = searchParams.get('task')?.trim() || ''
   const [groups, setGroups] = useState<FamilyGroup[]>([])
   const [members, setMembers] = useState<FamilyMember[]>([])
+  const [receivedInvitations, setReceivedInvitations] = useState<ReceivedFamilyInvitation[]>(() => receivedInvitationRequests.snapshot() ?? [])
+  const [receivedLoading, setReceivedLoading] = useState(() => receivedInvitationRequests.snapshot() === undefined)
+  const [receivedError, setReceivedError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [createErrorCode, setCreateErrorCode] = useState('')
-  const [success, setSuccess] = useState('')
+  const [toast, setToast] = useState<CalendarToastMessage>()
   const [creating, setCreating] = useState(false)
   const [acceptOpen, setAcceptOpen] = useState(false)
   const alive = useRef(true)
+  const loadVersion = useRef(0)
+  const receivedLoadVersion = useRef(0)
+  const receivedRelease = useRef<() => void>(() => undefined)
+  const toastId = useRef(0)
+  const invitationAccepted = Boolean((location.state as { invitationAccepted?: boolean } | null)?.invitationAccepted)
 
-  const load = useCallback(async () => {
-    const startedAt = Date.now()
-    setLoading(true); setError('')
+  const showToast = useCallback((message: string, tone: CalendarToastMessage['tone'] = 'success') => {
+    toastId.current += 1
+    setToast({ id: toastId.current, message, tone })
+  }, [])
+  const dismissToast = useCallback(() => setToast(undefined), [])
+
+  const loadReceivedInvitations = useCallback(async (force = false) => {
+    const version = ++receivedLoadVersion.current
+    setReceivedLoading(true); setReceivedError('')
+    const lease = receivedInvitationRequests.acquire((signal) => familyApi.receivedInvitations(signal), { force })
+    receivedRelease.current = lease.release
     try {
-      const result = await loadFamilyBootstrap()
-      if (alive.current) { setGroups(result.groups); setMembers(result.members) }
-    } catch (reason) { if (alive.current) setError(familyErrorMessage(reason)) }
-    finally {
-      await waitForFamilyLoading(startedAt)
-      if (alive.current) setLoading(false)
+      const invitations = await lease.promise
+      if (alive.current && version === receivedLoadVersion.current) setReceivedInvitations(invitations)
+    } catch (reason) {
+      if (alive.current && version === receivedLoadVersion.current) setReceivedError(familyErrorMessage(reason))
+    } finally {
+      lease.release()
+      if (alive.current && version === receivedLoadVersion.current) setReceivedLoading(false)
     }
   }, [])
 
-  useEffect(() => { alive.current = true; void load(); return () => { alive.current = false } }, [load])
+  const load = useCallback(async () => {
+    const version = ++loadVersion.current
+    const startedAt = Date.now()
+    setLoading(true); setError('')
+    void loadReceivedInvitations()
+    try {
+      const result = await loadFamilyBootstrap()
+      if (alive.current && version === loadVersion.current) { setGroups(result.groups); setMembers(result.members) }
+    } catch (reason) { if (alive.current && version === loadVersion.current) setError(familyErrorMessage(reason)) }
+    finally {
+      await waitForFamilyLoading(startedAt)
+      if (alive.current && version === loadVersion.current) setLoading(false)
+    }
+  }, [loadReceivedInvitations])
+
+  useEffect(() => { alive.current = true; void load(); return () => { alive.current = false; receivedRelease.current() } }, [load])
+  useEffect(() => {
+    if (!invitationAccepted) return
+    showToast('Bạn đã tham gia nhóm gia đình.')
+    navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null })
+  }, [invitationAccepted, location.hash, location.pathname, location.search, navigate, showToast])
 
   const group = groups[0]
   const isOwner = Boolean(group && group.owner_user_id === currentUserId)
@@ -75,10 +109,10 @@ export function FamilyPage() {
   }
 
   async function createGroup() {
-    setCreating(true); setError(''); setCreateErrorCode(''); setSuccess('')
+    setCreating(true); setError(''); setCreateErrorCode('')
     try {
       const created = await familyApi.createGroup()
-      setGroups([created]); setMembers([]); setSuccess('Nhóm gia đình đã sẵn sàng.')
+      setGroups([created]); setMembers([]); showToast('Nhóm gia đình đã sẵn sàng.')
     } catch (reason) {
       setError(familyErrorMessage(reason))
       if (isFamilyError(reason, 'ACTIVE_PREGNANCY_NOT_FOUND')) setCreateErrorCode('ACTIVE_PREGNANCY_NOT_FOUND')
@@ -90,24 +124,28 @@ export function FamilyPage() {
     catch (reason) { setError(familyErrorMessage(reason)) }
   }
 
+  async function refreshPermissions() {
+    await reloadMembers()
+  }
+
   const tabs = [
     {
       value: 'group',
       label: 'Nhóm gia đình',
       icon: <UsersThree size={19} weight="duotone" aria-hidden="true" />,
-      content: <FamilyGroupPanel group={group!} members={members} currentUserId={currentUserId} loading={false} error={error} onReload={() => void reloadMembers()} onMembersChange={setMembers} active={activeTab === 'group'} />,
+      content: <FamilyGroupPanel group={group!} members={members} currentUserId={currentUserId} loading={false} error={error} onReload={() => void reloadMembers()} onMembersChange={setMembers} onNotify={showToast} active={activeTab === 'group'} />,
     },
     {
       value: 'tasks',
       label: 'Việc cần làm',
       icon: <ClipboardText size={19} weight="duotone" aria-hidden="true" />,
-      content: <FamilyTasksPanel isOwner={isOwner} canUseTasks={activeTab === 'tasks' && canUseTasks} members={members} focusedTaskId={focusedTaskId} onCloseFocusedTask={closeFocusedTask} />,
+      content: <FamilyTasksPanel isOwner={isOwner} canUseTasks={activeTab === 'tasks' && canUseTasks} members={members} focusedTaskId={focusedTaskId} onCloseFocusedTask={closeFocusedTask} onRefreshPermissions={refreshPermissions} onNotify={showToast} />,
     },
     {
       value: 'activity',
       label: 'Hoạt động',
       icon: <Waveform size={19} weight="duotone" aria-hidden="true" />,
-      content: <ActivityTimeline enabled={activeTab === 'activity' && canViewActivity} members={members} />,
+      content: <ActivityTimeline enabled={activeTab === 'activity' && canViewActivity} members={members} onRefreshPermissions={refreshPermissions} />,
     },
   ] as const
 
@@ -123,9 +161,10 @@ export function FamilyPage() {
       </div>
     </header>
     <div className="family-page-body">
-      <div className="family-announcer" aria-live="polite">{success && <StatusMessage tone="success">{success}</StatusMessage>}</div>
-      {loading ? <FamilyLoadingState label="Đang tải nhóm gia đình" description="NutriMom đang đồng bộ thành viên và quyền chia sẻ." /> : <div className="family-content-ready">{!group ? <section className="family-onboarding" aria-labelledby="family-empty-title"><div><UsersThree size={44} weight="duotone" aria-hidden="true" /><h2 id="family-empty-title">Bắt đầu cùng gia đình</h2><p>Bạn có thể tạo nhóm cho thai kỳ đang hoạt động hoặc tham gia bằng token được mời.</p></div><div className="family-onboarding-actions"><article><Plus size={28} weight="duotone" aria-hidden="true" /><h3>Tạo nhóm gia đình</h3><p>Dành cho chủ thai kỳ đang hoạt động.</p><button className="primary-button" type="button" disabled={creating} onClick={() => void createGroup()}>{creating ? 'Đang tạo...' : 'Tạo nhóm'}</button></article><article><Waveform size={28} weight="duotone" aria-hidden="true" /><h3>Nhập token lời mời</h3><p>Dành cho tài khoản được người thân mời.</p><button className="secondary-button" type="button" onClick={() => setAcceptOpen(true)}>Nhập token</button></article></div>{error && <StatusMessage tone="error">{error}</StatusMessage>}{createErrorCode === 'ACTIVE_PREGNANCY_NOT_FOUND' && <Link className="text-link" to="/app/profile/health">Tạo hồ sơ thai kỳ</Link>}<AcceptInvitationDialog open={acceptOpen} onClose={() => setAcceptOpen(false)} onAccepted={() => { setSuccess('Bạn đã tham gia nhóm gia đình.'); void load() }} /></section> : <Tabs items={tabs} value={activeTab} onValueChange={chooseTab} ariaLabel="Khu vực Family Hub" idPrefix="family" className="family-tabs" />}</div>}
+      <ReceivedInvitationList items={receivedInvitations} loading={receivedLoading} error={receivedError} onRetry={() => void loadReceivedInvitations(true)} />
+      {loading ? <FamilyLoadingState label="Đang tải nhóm gia đình" description="NutriMom đang đồng bộ thành viên và quyền chia sẻ." /> : <div className="family-content-ready">{!group ? <section className="family-onboarding" aria-labelledby="family-empty-title"><div><UsersThree size={44} weight="duotone" aria-hidden="true" /><h2 id="family-empty-title">Bắt đầu cùng gia đình</h2><p>Bạn có thể tạo nhóm cho thai kỳ đang hoạt động hoặc tham gia bằng token được mời.</p></div><div className="family-onboarding-actions"><article><Plus size={28} weight="duotone" aria-hidden="true" /><h3>Tạo nhóm gia đình</h3><p>Dành cho chủ thai kỳ đang hoạt động.</p><button className="primary-button" type="button" disabled={creating} onClick={() => void createGroup()}>{creating ? 'Đang tạo...' : 'Tạo nhóm'}</button></article><article><Waveform size={28} weight="duotone" aria-hidden="true" /><h3>Nhập token lời mời</h3><p>Dành cho tài khoản được người thân mời.</p><button className="secondary-button" type="button" onClick={() => setAcceptOpen(true)}>Nhập token</button></article></div>{error && <StatusMessage tone="error">{error}</StatusMessage>}{createErrorCode === 'ACTIVE_PREGNANCY_NOT_FOUND' && <Link className="text-link" to="/app/profile/health">Tạo hồ sơ thai kỳ</Link>}<AcceptInvitationDialog open={acceptOpen} onClose={() => setAcceptOpen(false)} onAccepted={async () => { await refreshFamilyAfterAccept(reloadProfile); showToast('Bạn đã tham gia nhóm gia đình.'); await load() }} /></section> : <Tabs items={tabs} value={activeTab} onValueChange={chooseTab} ariaLabel="Khu vực Family Hub" idPrefix="family" className="family-tabs" />}</div>}
     </div>
+    <GlobalActionToast toast={toast} onClose={dismissToast} />
   </main>
 }
 

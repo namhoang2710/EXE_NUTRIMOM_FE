@@ -22,7 +22,7 @@ const events: DiagnosticEvent[] = []
 const sensitiveKey = /(authorization|password|otp|token|invite_url|email|phone|body|note)/i
 const bearer = /bearer\s+[a-z0-9._~+/=-]+/gi
 const email = /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/gi
-const phone = /(?:\+?84|0)(?:[ .()-]*\d){8,10}/g
+const phone = /(?<![a-z0-9])(?:\+?84|0)(?:[ .()-]*\d){8,10}(?![a-z0-9-])/gi
 const invitationLink = /nutrimom:\/\/family\/invitations\?token=[^\s&#]+/gi
 
 function redactText(value: string) {

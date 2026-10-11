@@ -2,7 +2,6 @@ import { ArrowClockwise, CircleNotch, Trash, WarningCircle } from '@phosphor-ico
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LuHistory } from 'react-icons/lu'
 import { logDiagnostic } from '@/core/diagnostics/logger'
-import { GlobalActionToast, type CalendarToastMessage } from '@/features/calendar/components/CalendarToast'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { DiagnosticCopyButton } from '@/shared/components/DiagnosticCopyButton'
 import { StatusMessage } from '@/shared/components/StatusMessage'
@@ -16,6 +15,7 @@ interface InvitationListProps {
   enabled?: boolean
   createdInvitations?: FamilyInvitationSummary[]
   onInvitationDeleted?: (id: string) => void
+  onNotify?: (message: string) => void
 }
 
 function mergeInvitations(primary: FamilyInvitationSummary[], secondary: FamilyInvitationSummary[]) {
@@ -23,7 +23,14 @@ function mergeInvitations(primary: FamilyInvitationSummary[], secondary: FamilyI
   return [...primary, ...secondary.filter((item) => !ids.has(item.id))]
 }
 
-export function InvitationList({ enabled = true, createdInvitations = [], onInvitationDeleted }: InvitationListProps) {
+function deliveryLabel(status: FamilyInvitationSummary['delivery_status']) {
+  if (status === 'SENT') return 'Email đã được gửi'
+  if (status === 'SKIPPED') return 'Kênh gửi tự động đã được bỏ qua'
+  if (status === 'FAILED') return 'Chưa gửi được email'
+  return 'Chưa xác nhận được việc gửi email'
+}
+
+export function InvitationList({ enabled = true, createdInvitations = [], onInvitationDeleted, onNotify }: InvitationListProps) {
   const [items, setItems] = useState<FamilyInvitationSummary[]>(() => invitationListRequests.snapshot() ?? [])
   const [hasSnapshot, setHasSnapshot] = useState(() => invitationListRequests.snapshot() !== undefined)
   const [loading, setLoading] = useState(() => invitationListRequests.snapshot() === undefined)
@@ -31,10 +38,8 @@ export function InvitationList({ enabled = true, createdInvitations = [], onInvi
   const [confirming, setConfirming] = useState<FamilyInvitationSummary>()
   const [revoking, setRevoking] = useState(false)
   const [revokeError, setRevokeError] = useState('')
-  const [toast, setToast] = useState<CalendarToastMessage>()
   const [cooldownSeconds, setCooldownSeconds] = useState(() => Math.ceil(invitationListRequests.remainingMs() / 1_000))
   const itemsRef = useRef(items)
-  const toastId = useRef(0)
   const mounted = useRef(false)
 
   const load = useCallback(async (force = false) => {
@@ -94,8 +99,6 @@ export function InvitationList({ enabled = true, createdInvitations = [], onInvi
     return () => window.clearInterval(timer)
   }, [coolingDown])
 
-  const dismissToast = useCallback(() => setToast(undefined), [])
-
   function requestRevoke(item: FamilyInvitationSummary) {
     setRevokeError('')
     setConfirming(item)
@@ -122,8 +125,7 @@ export function InvitationList({ enabled = true, createdInvitations = [], onInvi
       setHasSnapshot(true)
       onInvitationDeleted?.(invitation.id)
       setConfirming(undefined)
-      toastId.current += 1
-      setToast({ id: toastId.current, message: 'Đã xóa thành công', tone: 'success' })
+      onNotify?.('Đã xóa lời mời.')
       logDiagnostic({ level: 'info', category: 'family-invitation', event: 'revoke_succeeded' })
     } catch (reason) {
       setRevokeError(familyErrorMessage(reason))
@@ -157,7 +159,7 @@ export function InvitationList({ enabled = true, createdInvitations = [], onInvi
               <h3>{item.masked_target}</h3>
               <p>{relationshipLabels[item.relationship as FamilyRelationship] || item.relationship} · {item.status}</p>
               <div className="family-scope-list">{item.scopes.map((scope) => <span key={scope}>{scopeLabels[scope]}</span>)}</div>
-              <small>Gửi: {item.delivery_status || 'Chưa xác định'} · {item.sent_at ? formatVietnamDateTime(item.sent_at) : 'chưa gửi'} · Hết hạn: {formatVietnamDateTime(item.expires_at)} · Tạo: {formatVietnamDateTime(item.created_at)}</small>
+              <small>{deliveryLabel(item.delivery_status)} · {item.sent_at ? formatVietnamDateTime(item.sent_at) : 'chưa có thời gian gửi'} · Hết hạn: {formatVietnamDateTime(item.expires_at)} · Tạo: {formatVietnamDateTime(item.created_at)}</small>
             </div>
             {item.status === 'PENDING' && <button className="family-icon-button is-danger" type="button" aria-label={`Xóa lời mời ${item.masked_target}`} onClick={() => requestRevoke(item)}><Trash size={20} /></button>}
           </article>)}
@@ -186,6 +188,5 @@ export function InvitationList({ enabled = true, createdInvitations = [], onInvi
       </div>
     </AccessibleDialog>
 
-    <GlobalActionToast toast={toast} onClose={dismissToast} />
   </>
 }

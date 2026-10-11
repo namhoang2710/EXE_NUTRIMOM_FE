@@ -13,6 +13,7 @@ interface ActionStateDialogProps {
   busyLabel?: string
   successMessage: string
   danger?: boolean
+  compact?: boolean
   onAction: () => Promise<void>
   onClose: () => void
   onCompleted?: () => void
@@ -28,6 +29,7 @@ export function ActionStateDialog({
   busyLabel = 'Đang xử lý...',
   successMessage,
   danger = false,
+  compact = false,
   onAction,
   onClose,
   onCompleted,
@@ -56,11 +58,11 @@ export function ActionStateDialog({
     <AccessibleDialog
       open={open}
       title={success ? 'Hoàn tất' : title}
-      description={success ? undefined : description}
+      description={success || compact ? undefined : description}
       onClose={closeDialog}
       busy={busy}
-      stable
-      className="nm-action-dialog"
+      stable={!compact}
+      className={`nm-action-dialog${compact ? ' nm-action-dialog-compact' : ''}`}
       footer={success ? (
         <button className="primary-button" type="button" onClick={closeDialog}>OK</button>
       ) : (
@@ -75,7 +77,7 @@ export function ActionStateDialog({
       ) : busy ? (
         <div className="nm-action-dialog-state" role="status"><CircleNotch className="nm-dialog-spinner" size={32} weight="bold" /><p>{busyLabel}</p></div>
       ) : (
-        <div className="nm-action-dialog-state"><WarningCircle size={34} weight="duotone" />{state.error && <p className="nm-dialog-error" role="alert">{state.error}</p>}</div>
+        <div className="nm-action-dialog-state"><WarningCircle size={compact ? 40 : 34} weight="duotone" />{compact && <p>{description}</p>}{state.error && <p className="nm-dialog-error" role="alert">{state.error}</p>}</div>
       )}
     </AccessibleDialog>
   )

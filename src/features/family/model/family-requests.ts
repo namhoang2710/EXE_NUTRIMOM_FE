@@ -1,4 +1,5 @@
 import type { ActivityEvent, ActivityPage, CreateInvitationInput, FamilyTaskStatus } from './family-types'
+import { supportedFamilyScopes } from './scope-capabilities.ts'
 
 function queryString(params: Record<string, string | undefined>) {
   const query = new URLSearchParams()
@@ -7,13 +8,14 @@ function queryString(params: Record<string, string | undefined>) {
   return result ? `?${result}` : ''
 }
 export function invitationBody(input: CreateInvitationInput) {
-  const phone = input.invited_phone?.trim()
-  const email = input.invited_email?.trim()
-  if (Boolean(phone) === Boolean(email)) throw new Error('Chỉ nhập số điện thoại hoặc email của người được mời.')
+  const email = input.invited_email.trim()
+  if (!email) throw new Error('Vui lòng nhập email của người được mời.')
+  const scopes = supportedFamilyScopes(input.scopes)
+  if (!scopes.length) throw new Error('Vui lòng chọn ít nhất một quyền chia sẻ đang hoạt động.')
   return {
-    ...(phone ? { invited_phone: phone } : { invited_email: email }),
+    invited_email: email.toLowerCase(),
     relationship: input.relationship,
-    scopes: input.scopes,
+    scopes,
     ...(input.expires_in_hours ? { expires_in_hours: input.expires_in_hours } : {}),
   }
 }

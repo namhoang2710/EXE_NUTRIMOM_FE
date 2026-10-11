@@ -24,11 +24,24 @@ function isSafeInvitationReturnPath(value: string) {
   } catch { return false }
 }
 
+function isSafeInvitationIdReturnPath(value: string) {
+  const match = value.match(/^\/app\/family\/invitations\/([^/?#]+)$/)
+  if (!match) return false
+  try {
+    const id = decodeURIComponent(match[1])
+    return Boolean(id) && !/[/?#]/.test(id)
+  } catch { return false }
+}
+
 export function authenticatedDestination(user: User | null | undefined, onboardingStatus?: OnboardingStatus, requestedPath?: unknown) {
   if (isAdminUser(user)) return '/admin'
   if (isExpertUser(user)) return '/expert'
   if (onboardingStatus === 'PROFILE_REQUIRED') return '/onboarding/profile'
-  if (typeof requestedPath === 'string' && (/^\/(?:app(?:[/?#]|$)|payment\/(?:success|cancel)(?:[/?#]|$))/.test(requestedPath) || isSafeInvitationReturnPath(requestedPath))) return requestedPath
+  if (typeof requestedPath === 'string') {
+    if (requestedPath.startsWith('/family/invite')) return isSafeInvitationReturnPath(requestedPath) ? requestedPath : '/app'
+    if (requestedPath.startsWith('/app/family/invitations')) return isSafeInvitationIdReturnPath(requestedPath) ? requestedPath : '/app'
+    if (/^\/(?:app(?:[/?#]|$)|payment\/(?:success|cancel)(?:[/?#]|$))/.test(requestedPath)) return requestedPath
+  }
   return '/app'
 }
 
