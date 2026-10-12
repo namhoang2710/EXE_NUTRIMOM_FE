@@ -181,8 +181,16 @@ export function medicalRecordReminderDefaults(occurredAt: string, now = new Date
   return { type: 'FOLLOW_UP' as const, startsAtLocal: `${localDate(target)}T${pad(target.getHours())}:${pad(target.getMinutes())}`, remindMinutesBefore: 1440 }
 }
 
-export function medicalRecordReminderPayload(input: { type: MedicalRecordReminderPayload['type']; startsAtLocal: string; remindEnabled: boolean; remindMinutesBefore: number; title?: string; note?: string; repeat?: ReminderRepeat }): MedicalRecordReminderPayload {
-  return compact({ type: input.type, starts_at: localDateTimeToUtc(input.startsAtLocal), remind_minutes_before: input.remindEnabled ? input.remindMinutesBefore : undefined, title: input.title?.trim() || undefined, note: input.note?.trim() || undefined, repeat: input.repeat })
+export function medicalRecordReminderTitle(type: MedicalRecordReminderPayload['type'], recordTitle: string, enteredTitle = '') {
+  if (enteredTitle.trim()) return enteredTitle.trim()
+  const prefixes = { FOLLOW_UP: 'Tái khám', ROUTINE_CHECKUP: 'Khám định kỳ', CUSTOM: 'Nhắc nhở' }
+  const suggestion = `${prefixes[type]}: ${recordTitle.trim()}`
+  // Keep generated names within the reminder API's limit, including a long record title.
+  return suggestion.slice(0, 255).replace(/[\uD800-\uDBFF]$/, '')
+}
+
+export function medicalRecordReminderPayload(input: { type: MedicalRecordReminderPayload['type']; recordTitle: string; startsAtLocal: string; remindEnabled: boolean; remindMinutesBefore: number; title?: string; note?: string; repeat?: ReminderRepeat }): MedicalRecordReminderPayload {
+  return compact({ type: input.type, starts_at: localDateTimeToUtc(input.startsAtLocal), remind_minutes_before: input.remindEnabled ? input.remindMinutesBefore : undefined, title: medicalRecordReminderTitle(input.type, input.recordTitle, input.title), note: input.note?.trim() || undefined, repeat: input.repeat })
 }
 
 export function formatEventTime(event: Pick<CalendarEventItem, 'starts_at' | 'ends_at' | 'source'>) {

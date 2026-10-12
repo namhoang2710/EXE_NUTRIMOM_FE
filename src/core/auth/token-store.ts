@@ -5,6 +5,11 @@ import type { AuthSession } from '../../features/auth/model/auth-types.ts'
 const SESSION_KEY = 'nutrimom.auth-session'
 
 let memorySession: AuthSession | null = null
+let sessionGeneration = 0
+
+export function getSessionScope() {
+  return `${sessionGeneration}:${getSession()?.user.id ?? 'anonymous'}`
+}
 
 export function getSession() {
   if (memorySession) return memorySession
@@ -21,7 +26,7 @@ export function getSession() {
   }
 }
 
-export function saveApiSession(response: AuthResponseDto) {
+export function saveApiSession(response: AuthResponseDto, rotation = false) {
   const now = Date.now()
   const session: AuthSession = {
     accessToken: response.access_token,
@@ -32,12 +37,18 @@ export function saveApiSession(response: AuthResponseDto) {
     user: normalizeUser(response.user),
   }
 
+  const previousUser = getSession()?.user.id
   memorySession = session
+  if (!rotation || previousUser !== session.user.id) {
+    sessionGeneration += 1
+    window.dispatchEvent(new Event('nutrimom:session-changed'))
+  }
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
   return session
 }
 
 export function clearSession() {
+  sessionGeneration += 1
   memorySession = null
   sessionStorage.removeItem(SESSION_KEY)
   window.dispatchEvent(new Event('nutrimom:session-cleared'))

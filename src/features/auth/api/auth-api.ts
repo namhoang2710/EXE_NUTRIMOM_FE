@@ -1,8 +1,9 @@
+import { profileRead, requireCurrentScope } from '../../../core/api/profile-requests.ts'
 import { apiClient, setRefreshHandler } from '../../../core/api/api-client.ts'
 import { ApiClientError } from '../../../core/api/api-error.ts'
 import { ErrorCodes } from '../../../core/api/error-code.ts'
 import { getDeviceId } from '../../../core/auth/device.ts'
-import { clearSession, getSession, saveApiSession } from '../../../core/auth/token-store.ts'
+import { clearSession, getSession, getSessionScope, saveApiSession } from '../../../core/auth/token-store.ts'
 import type {
   AuthResponseDto,
   LoginRequestDto,
@@ -24,8 +25,13 @@ import type {
 } from '../model/auth-types.ts'
 
 let refreshInFlight: Promise<AuthSession> | null = null
+if (typeof window !== 'undefined') {
+  window.addEventListener('nutrimom:session-cleared', () => { refreshInFlight = null })
+  window.addEventListener('nutrimom:session-changed', () => { refreshInFlight = null })
+}
 
 async function performRefresh() {
+  const scope = getSessionScope()
   const current = getSession()
   if (!current?.refreshToken) {
     throw new ApiClientError(401, {
@@ -50,7 +56,8 @@ async function performRefresh() {
         message: 'Phiên đăng nhập đã thay đổi. Vui lòng đăng nhập lại.',
       })
     }
-    return saveApiSession(response)
+    requireCurrentScope(scope)
+    return saveApiSession(response, true)
   } catch (error) {
     if (getSession() === current) clearSession()
     throw error
@@ -59,9 +66,10 @@ async function performRefresh() {
 
 export function refreshSession() {
   if (!refreshInFlight) {
-    refreshInFlight = performRefresh().finally(() => {
-      refreshInFlight = null
+    const pending = performRefresh().finally(() => {
+      if (refreshInFlight === pending) refreshInFlight = null
     })
+    refreshInFlight = pending
   }
   return refreshInFlight
 }
@@ -134,11 +142,12 @@ async function verifyOtp(payload: VerifyOtpInput) {
 }
 
 async function me(): Promise<User> {
-  const response = await apiClient.request<UserDto>('/auth/me')
+  const response = await profileRead('auth:me', () => apiClient.request<UserDto>('/auth/me'))
   return normalizeUser(response)
 }
 
 async function logout() {
+  const scope = getSessionScope()
   const current = getSession()
   try {
     if (current?.refreshToken) {
@@ -150,7 +159,7 @@ async function logout() {
       })
     }
   } finally {
-    clearSession()
+    if (scope === getSessionScope()) clearSession()
   }
 }
 
