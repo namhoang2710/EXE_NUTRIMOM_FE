@@ -10,20 +10,13 @@ import { PregnancyStageArtwork } from '@/features/maternity/components/Pregnancy
 import { CalendarDatePicker } from '@/shared/components/CalendarDatePicker'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { FeaturePage as AppShell } from '@/shared/layouts/FeaturePage'
-import type { Pregnancy, PregnancyCalculation, WeekContent } from '@/types/domain'
+import type { Pregnancy, PregnancyCalculation } from '@/types/domain'
 
 const PregnancyWeekChart = lazy(() => import('@/features/maternity/components/PregnancyWeekChart').then((module) => ({ default: module.PregnancyWeekChart })))
 const DueDateRadialChart = lazy(() => import('@/features/maternity/components/DueDateRadialChart').then((module) => ({ default: module.DueDateRadialChart })))
 
 type Method = 'LAST_MENSTRUAL_PERIOD' | 'CONCEPTION_DATE' | 'MANUAL'
-type ContentStatus = { tone: 'info' | 'error'; message: string } | null
 const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Ho_Chi_Minh'
-
-function weeklyContentStatus(reason: unknown, week: number): ContentStatus {
-  if (reason instanceof ApiClientError && reason.code === 'CONTENT_NOT_REVIEWED') return { tone: 'info', message: `Nội dung chăm sóc tuần ${week} đang chờ thẩm định y khoa. Hồ sơ thai kỳ của bạn vẫn được lưu bình thường.` }
-  if (reason instanceof ApiClientError && reason.code === 'RESOURCE_NOT_FOUND') return { tone: 'info', message: `Chưa có nội dung chăm sóc cho tuần ${week}. Hồ sơ thai kỳ của bạn vẫn được lưu bình thường.` }
-  return { tone: 'error', message: `Không tải được nội dung chăm sóc tuần ${week}. Hãy thử tải lại sau.` }
-}
 
 function calculationSourceLabel(source: string) {
   const labels: Record<string, string> = {
@@ -48,7 +41,6 @@ function calculationNote(method: Method) {
 export function HealthPage() {
   const { reloadProfile } = useAuth()
   const [pregnancy, setPregnancy] = useState<Pregnancy | null>(null)
-  const [content, setContent] = useState<WeekContent | null>(null)
   const [method, setMethod] = useState<Method>('LAST_MENSTRUAL_PERIOD')
   const [date, setDate] = useState('')
   const [week, setWeek] = useState('')
@@ -59,7 +51,6 @@ export function HealthPage() {
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState('')
   const [warning, setWarning] = useState('')
-  const [contentStatus, setContentStatus] = useState<ContentStatus>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadFailed, setLoadFailed] = useState(false)
@@ -73,23 +64,13 @@ export function HealthPage() {
     setLoading(true)
     setLoadFailed(false)
     setError('')
-    setContentStatus(null)
     try {
       const current = await pregnancyApi.current()
       if (generation !== loadGenerationRef.current) return
       setPregnancy(current)
-      try {
-        const weeklyContent = await pregnancyApi.weekContent(current.gestational_week)
-        if (generation !== loadGenerationRef.current) return
-        setContent(weeklyContent)
-      } catch (reason) {
-        if (generation !== loadGenerationRef.current) return
-        setContent(null)
-        setContentStatus(weeklyContentStatus(reason, current.gestational_week))
-      }
     } catch (reason) {
       if (generation !== loadGenerationRef.current) return
-      if (reason instanceof ApiClientError && (reason.code === 'RESOURCE_NOT_FOUND' || reason.code === 'ACTIVE_PREGNANCY_NOT_FOUND')) { setPregnancy(null); setContent(null) }
+      if (reason instanceof ApiClientError && (reason.code === 'RESOURCE_NOT_FOUND' || reason.code === 'ACTIVE_PREGNANCY_NOT_FOUND')) setPregnancy(null)
       else { setLoadFailed(true); setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ thai kỳ.') }
     } finally {
       if (generation === loadGenerationRef.current) setLoading(false)
@@ -135,11 +116,6 @@ export function HealthPage() {
       await reloadProfile().catch(() => undefined)
       if (generation !== loadGenerationRef.current) return
       setPregnancy(saved)
-      try {
-        const latestContent = await pregnancyApi.weekContent(saved.gestational_week)
-        if (generation !== loadGenerationRef.current) return
-        setContent(latestContent); setContentStatus(null)
-      } catch (reason) { if (generation === loadGenerationRef.current) { setContent(null); setContentStatus(weeklyContentStatus(reason, saved.gestational_week)) } }
     } catch (reason) {
       if (generation === loadGenerationRef.current && reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') {
         setConflict(true)
@@ -152,14 +128,6 @@ export function HealthPage() {
   function saveErrorMessage(reason: unknown) {
     if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') return 'Hồ sơ thai kỳ đã thay đổi ở nơi khác. Hãy quay lại và tải dữ liệu mới nhất trước khi thử lại.'
     return reason instanceof Error ? reason.message : 'Không thể lưu hồ sơ thai kỳ. Hãy thử lại.'
-  }
-
-  async function retryWeeklyContent() {
-    if (!pregnancy) return
-    const generation = loadGenerationRef.current
-    setContentStatus(null)
-    try { const latestContent = await pregnancyApi.weekContent(pregnancy.gestational_week); if (generation === loadGenerationRef.current) setContent(latestContent) }
-    catch (reason) { if (generation === loadGenerationRef.current) { setContent(null); setContentStatus(weeklyContentStatus(reason, pregnancy.gestational_week)) } }
   }
 
   function finishPregnancySetup() {
@@ -179,15 +147,13 @@ export function HealthPage() {
     {error && <StatusMessage tone="error">{error}</StatusMessage>}
     {(conflict || loadFailed) && <button className="secondary-button" type="button" disabled={loading} onClick={() => void load(true)}>Tải lại hồ sơ thai kỳ</button>}
     {loading ? <section className="empty-state"><Heartbeat size={42} weight="duotone" /><h2>Đang tải hồ sơ thai kỳ</h2><p>NutriMom đang lấy dữ liệu mới nhất của bạn.</p></section> : pregnancy ? <>
-      <section ref={journeyRef} className="pregnancy-journey-hero"><div className="pregnancy-journey-copy"><p className="card-kicker">Chặng hiện tại</p><h2>Tuần {pregnancy.gestational_week} · Ngày {pregnancy.gestational_day}</h2><p>Tam cá nguyệt {pregnancy.trimester}. Nguồn tính: {calculationSourceLabel(pregnancy.calculation_source)}.</p></div><PregnancyStageArtwork week={pregnancy.gestational_week} day={pregnancy.gestational_day} /></section>
+      <section ref={journeyRef} className="pregnancy-journey-hero"><div className="pregnancy-journey-copy"><p className="card-kicker">Chặng hiện tại</p><h2>Tuần {pregnancy.gestational_week} · Ngày {pregnancy.gestational_day}</h2><p>Dự sinh {formatDate(pregnancy.estimated_due_date)}. Tam cá nguyệt {pregnancy.trimester}. Nguồn tính: {calculationSourceLabel(pregnancy.calculation_source)}.</p></div><PregnancyStageArtwork week={pregnancy.gestational_week} day={pregnancy.gestational_day} /></section>
       <Suspense fallback={<div className="pregnancy-charts-grid" aria-label="Đang tải biểu đồ"><div className="pregnancy-chart-skeleton" /><div className="pregnancy-chart-skeleton" /></div>}>
         <div className="pregnancy-charts-grid">
           <PregnancyWeekChart week={pregnancy.gestational_week} day={pregnancy.gestational_day} animationKey={chartAnimationKey} />
           <DueDateRadialChart estimatedDueDate={pregnancy.estimated_due_date} daysUntilDue={pregnancy.days_until_due} animationKey={chartAnimationKey} />
         </div>
       </Suspense>
-      {contentStatus && <div className="weekly-content-status"><StatusMessage tone={contentStatus.tone}>{contentStatus.message}</StatusMessage>{contentStatus.tone === 'error' && <button className="secondary-button" type="button" onClick={() => void retryWeeklyContent()}>Tải lại nội dung tuần thai</button>}</div>}
-      {content && <section className="app-card content-card pregnancy-content-card"><h2>{content.title || `Phát triển tuần ${content.week}`}</h2><p>{content.baby_development || content.development_summary}</p><div className="content-columns"><div><h3>Thay đổi của mẹ</h3><p>{content.maternal_changes?.join(' ') || content.mother_changes}</p></div><div><h3>Gợi ý chăm sóc</h3><p>{content.care_topics?.join(' ') || content.care_tips}</p></div></div><div className="content-columns"><div><h3>Dấu hiệu cần lưu ý</h3><p>{content.warning_signs || 'Chưa có thông tin riêng cho tuần này.'}</p></div><div><h3>Nguồn và kiểm duyệt</h3><p>{content.sources || 'Nguồn đang được cập nhật.'}</p>{content.reviewed_by && <small>Kiểm duyệt bởi {content.reviewed_by}</small>}{content.reviewed_at && <small>Cập nhật {formatDate(content.reviewed_at)}</small>}{content.content_version && <small>Phiên bản nội dung {content.content_version}</small>}</div></div><p className="disclaimer">{content.disclaimer || 'Thông tin chỉ mang tính tham khảo, không thay thế tư vấn y khoa.'}</p></section>}
     </> : loadFailed ? null : <section className="empty-state"><Heartbeat size={42} weight="duotone" /><h2>Chưa có hồ sơ thai kỳ</h2><p>Bạn vẫn có thể tính thử tuổi thai bên dưới. Hệ thống chỉ lưu khi bạn xác nhận.</p></section>}
     <section className="app-card calculator-card"><div className="section-title-row"><div><p className="card-kicker">Cập nhật tuổi thai</p><h2>Tính thử trước khi lưu</h2></div><Calculator size={30} weight="duotone" /></div><div className="method-tabs">{([{ value: 'LAST_MENSTRUAL_PERIOD', label: 'Kỳ kinh cuối' }, { value: 'CONCEPTION_DATE', label: 'Ngày thụ thai' }, { value: 'MANUAL', label: 'Nhập thủ công' }] as const).map((item) => <button key={item.value} type="button" className={method === item.value ? 'active' : ''} onClick={() => { setMethod(item.value); setPreview(null); setError(''); setFieldError(''); setWarning('') }}>{item.label}</button>)}</div>{method === 'MANUAL' ? <div className="inline-fields"><label className="field-group"><span>Tuần thai</span><div className="input-shell"><input type="number" min="0" max="42" value={week} onChange={(event) => { setWeek(event.target.value); setPreview(null); setWarning('') }} /></div></label><label className="field-group"><span>Ngày thai</span><div className="input-shell"><input type="number" min="0" max="6" value={day} onChange={(event) => { setDay(event.target.value); setPreview(null); setWarning('') }} /></div></label></div> : <CalendarDatePicker label={method === 'CONCEPTION_DATE' ? 'Ngày thụ thai ước tính' : 'Ngày đầu tiên của kỳ kinh cuối'} value={date} onChange={(value) => { setDate(value); setFieldError(''); setPreview(null); setWarning('') }} error={fieldError} />}{warning && <p className="calculation-warning" role="status">{warning}</p>}<p className="disclaimer">{calculationNote(method)}</p><button className="secondary-button" type="button" onClick={() => void calculate()} disabled={busy}>{busy ? 'Đang tính...' : 'Tính kết quả'}</button>{preview && <div className="calculation-result"><strong>Dự sinh {formatDate(preview.estimated_due_date)}</strong><span>Tuần {preview.gestational_week}, ngày {preview.gestational_day}. Tam cá nguyệt {preview.trimester}.</span><button className="primary-button" type="button" onClick={() => setSaveOpen(true)}><FloppyDisk size={20} />Dùng kết quả này</button></div>}</section>
     <PregnancySaveDialog preview={preview} open={saveOpen} onClose={() => setSaveOpen(false)} onAction={savePreview} errorMessage={saveErrorMessage} onSaved={finishPregnancySetup} />

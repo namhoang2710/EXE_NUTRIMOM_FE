@@ -5,7 +5,7 @@ import { profileRead, seedProfileResource, invalidateProfileResources, requireCu
 import { forConsumer } from '../../../core/api/resource-cache.ts'
 import { createConcurrencyPool } from '../../../core/api/concurrency-pool.ts'
 import { ApiClientError } from '../../../core/api/api-error.ts'
-import type { BirthPlan, CarePlan, CursorPage, Guidance, MedicalRecord, MomDashboard, PartnerDashboard, Pregnancy, PregnancyCalculation, PreparationItem, UploadedFile, UploadSession, WeekContent } from '@/types/domain'
+import type { BirthPlan, CarePlan, CursorPage, Guidance, MedicalRecord, MomDashboard, PartnerDashboard, Pregnancy, PregnancyCalculation, PreparationItem, UploadedFile, UploadSession } from '@/types/domain'
 
 const pregnancyReads = { run: profileRead }
 const binaryReads = createSingleFlight()
@@ -41,7 +41,6 @@ export const pregnancyApi = {
     seedProfileResource('pregnancy:current', updated)
     return updated
   },
-  weekContent: (week: number) => pregnancyReads.run(pregnancyReadKey(`week:${week}`), () => apiClient.request<WeekContent>(`/pregnancy-content/weeks/${week}`)),
 }
 
 export const dashboardApi = {
