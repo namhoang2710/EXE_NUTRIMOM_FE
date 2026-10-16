@@ -2,11 +2,14 @@ import { ArrowCounterClockwise, ArrowLeft, ArrowRight, CheckCircle, CircleNotch,
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { paymentApi } from '../api/payment-api'
-import { loadPaymentOutcome } from '../model/payment-outcome'
+import { primeSubscriptionCache } from '../hooks/useSubscription'
+import { loadPaymentOutcome, refreshPaidSubscription } from '../model/payment-outcome'
 import { formatPaymentAmount, parseOrderCode } from '../model/subscription-plans'
 import type { PaymentOrderResponse, SubscriptionResponse } from '../model/payment-types'
 import { PaymentSteps } from './PaymentSteps'
 import '../styles/payment.css'
+
+const paymentStatusPollDelays = [1500, 2500, 4000, 6000] as const
 
 function formatDate(value: string) {
   const date = new Date(value)
@@ -25,19 +28,28 @@ export function PaymentResult({ cancelled = false }: { cancelled?: boolean }) {
     let active = true
     let timer: ReturnType<typeof setTimeout> | undefined
     setState({ order: null, subscription: null, loading: true, error: null })
-    async function check(poll = 0) {
+    async function check(poll = 0, verifiedPaidOrder: PaymentOrderResponse | null = null) {
       if (!code) {
         if (active) setState({ order: null, subscription: null, loading: false, error: 'Đường dẫn chưa có mã đơn hợp lệ. Vui lòng quay lại Bảng giá hoặc liên hệ hỗ trợ.' })
         return
       }
       try {
-        const result = await loadPaymentOutcome(code, paymentApi)
+        const result = verifiedPaidOrder
+          ? await refreshPaidSubscription(verifiedPaidOrder, paymentApi)
+          : await loadPaymentOutcome(code, paymentApi)
         if (!active) return
         const ready = result.subscription?.active && result.subscription.plan_tier === result.order.plan_tier
+        if (ready && result.subscription) primeSubscriptionCache(result.subscription)
         const needsSync = (result.order.status === 'PENDING' && !cancelled) || (result.order.status === 'PAID' && !ready)
-        const keepPolling = needsSync && poll < 4
+        const keepPolling = needsSync && poll < paymentStatusPollDelays.length
         setState({ ...result, loading: keepPolling, error: null })
-        if (keepPolling) timer = setTimeout(() => void check(poll + 1), 2000)
+        if (keepPolling) {
+          const nextVerifiedOrder = result.order.status === 'PAID' ? result.order : null
+          timer = setTimeout(
+            () => void check(poll + 1, nextVerifiedOrder),
+            paymentStatusPollDelays[poll],
+          )
+        }
       } catch (requestError) {
         if (active) setState((current) => ({ ...current, loading: false, error: requestError instanceof Error ? requestError.message : 'Chưa thể kiểm tra trạng thái thanh toán.' }))
       }

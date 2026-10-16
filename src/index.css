@@ -5,6 +5,8 @@
 @import "./shared/styles/authenticated.css";
 @import "./shared/styles/scroll-progress.css";
 @import "./shared/styles/product-ui.css";
+@import "./features/calendar/styles/calendar.css";
+@import "./features/notifications/styles/notifications.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -1390,9 +1392,14 @@ input:focus-visible {
 .compact-form textarea { min-height: 78px; resize: vertical; }
 .custom-select { position: relative; }
 .select-trigger { display: flex; min-height: 52px; width: 100%; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--text); background: var(--surface); text-align: left; cursor: pointer; }
-.select-menu { position: absolute; z-index: 20; top: calc(100% + 6px); width: 100%; max-height: min(320px, 50vh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+.select-trigger > svg { flex: none; transition: transform 300ms cubic-bezier(.22,1,.36,1); }
+.select-trigger[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.select-menu { position: absolute; z-index: 20; top: calc(100% + 6px); width: 100%; display: grid; grid-template-rows: 0fr; overflow: hidden; border: 1px solid transparent; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-6px); transform-origin: top; transition: grid-template-rows 300ms cubic-bezier(.22,1,.36,1), transform 300ms cubic-bezier(.22,1,.36,1), opacity 240ms ease, border-color 240ms ease, visibility 0s linear 300ms; }
+.select-menu[data-open="true"] { grid-template-rows: 1fr; border-color: var(--border); opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
+.select-menu-scroll { min-height: 0; max-height: min(320px, 50vh); overflow-y: auto; overscroll-behavior: contain; }
 .select-menu button { display: block; width: 100%; border: 0; padding: 11px 14px; color: var(--text); background: transparent; text-align: left; cursor: pointer; }
 .select-menu button:hover, .select-menu button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+@media (prefers-reduced-motion: reduce) { .select-menu, .select-trigger > svg { transition: none; } }
 .milestone-list { display: grid; gap: 12px; margin-top: 20px; }
 .milestone-list article { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; border-radius: 14px; padding: 14px; background: var(--surface-muted); }
 .milestone-list article > span { border-radius: 9px; padding: 7px; color: var(--accent-strong); background: var(--accent-soft); font-size: 12px; font-weight: 700; }
@@ -1413,6 +1420,7 @@ input:focus-visible {
 .icon-button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--border); border-radius: 10px; color: var(--accent-strong); background: var(--surface-muted); cursor: pointer; }
 .attachment-button { display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 0 0; border: 0; padding: 5px 0; color: var(--accent-strong); background: transparent; cursor: pointer; font-size: 12px; font-weight: 680; text-decoration: underline; text-underline-offset: 3px; }
 .record-attachments { display: grid; gap: 9px; min-width: 0; margin-top: 10px; }
+.record-attachment-list { display: grid; gap: 9px; min-width: 0; }
 .record-attachment { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-muted); }
 .record-thumbnail { flex: none; width: 96px; height: 72px; overflow: hidden; padding: 0; border: 0; border-radius: 8px; background: var(--surface); cursor: zoom-in; }
 .record-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }

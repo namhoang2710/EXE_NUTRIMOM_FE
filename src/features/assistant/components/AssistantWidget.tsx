@@ -1,8 +1,8 @@
-import { ChatCircleDots, X } from '@phosphor-icons/react'
 import { useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAssistant } from '../hooks/useAssistant'
 import { AssistantPanel } from './AssistantPanel'
+import { NutriMomBotAvatar } from './NutriMomBotAvatar'
 import '../styles/assistant.css'
 
 export function AssistantWidget() {
@@ -13,6 +13,8 @@ export function AssistantWidget() {
   function close() { assistant.setOpen(false); launcher.current?.focus() }
   return <div className="nm-assistant-widget">
     {assistant.open && <div id="nutrimom-assistant-window" className="nm-assistant-window" role="dialog" aria-modal="false" aria-label="Trợ lý NutriMom" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}><AssistantPanel onClose={close} /></div>}
-    <button ref={launcher} type="button" className={`nm-assistant-launcher${assistant.open ? ' is-open' : ''}`} aria-expanded={assistant.open} aria-controls={assistant.open ? 'nutrimom-assistant-window' : undefined} aria-label={assistant.open ? 'Đóng trợ lý NutriMom' : 'Mở trợ lý NutriMom'} onClick={() => assistant.open ? close() : assistant.setOpen(true)}>{assistant.open ? <X size={23} /> : <ChatCircleDots size={25} weight="duotone" />}<span>Hỏi NutriMom</span></button>
+    <button ref={launcher} type="button" className={`nm-assistant-launcher${assistant.open ? ' is-open' : ''}`} aria-expanded={assistant.open} aria-controls={assistant.open ? 'nutrimom-assistant-window' : undefined} aria-label={assistant.open ? 'Đóng trợ lý NutriMom' : 'Mở trợ lý NutriMom'} title={assistant.open ? 'Đóng trợ lý NutriMom' : 'Mở trợ lý NutriMom'} onClick={() => assistant.open ? close() : assistant.setOpen(true)}>
+      <NutriMomBotAvatar state={assistant.busy ? 'working' : 'default'} size={56} interactive={!assistant.open} decorative />
+    </button>
   </div>
 }

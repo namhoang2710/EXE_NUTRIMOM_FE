@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-12",
+  "frontend": "http://127.0.0.1:5173",
+  "backend": "http://localhost:8080",
+  "browser": {
+    "chrome": "Browser is not available: chrome",
+    "iab": "Browser is not available: iab"
+  },
+  "liveAccountProvided": false,
+  "privateR2Enabled": false,
+  "checks": [
+    {
+      "url": "http://127.0.0.1:5173/app/profile",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:8080/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "url": "http://127.0.0.1:5173/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:8080/v3/api-docs",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:8080/actuator/health",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:8080/api/v1/files/unavailable-test-id/download-url",
+      "status": 401,
+      "errorCode": "UNAUTHORIZED"
+    },
+    {
+      "url": "http://localhost:8080/api/v1/medical-records",
+      "status": 401,
+      "errorCode": "UNAUTHORIZED"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { ArrowLeft, CheckCircle, PhoneCall, Tray } from '@phosphor-icons/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { PageHeading, ResourceState } from '@/features/admin/components/AdminUI'
 import { contactAdminApi } from '../api/contact-api'
@@ -12,6 +12,11 @@ import { contactGenderLabel, contactTopicLabel } from '../model/contact-labels'
 import '../styles/contact-admin.css'
 
 export function AdminContactDetailPage() {
+  const { requestId = '' } = useParams()
+  return <AdminContactDetail key={requestId} />
+}
+
+function AdminContactDetail() {
   const { requestId = '' } = useParams()
   const location = useLocation()
   const inboxSearch = (location.state as { inboxSearch?: string } | null)?.inboxSearch ?? ''
@@ -26,6 +31,12 @@ export function AdminContactDetailPage() {
   const [completeBusy, setCompleteBusy] = useState(false)
   const [completeError, setCompleteError] = useState('')
   const [notice, setNotice] = useState('')
+  const completionLock = useRef(false)
+  const alive = useRef(false)
+  useEffect(() => {
+    alive.current = true
+    return () => { alive.current = false }
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -48,15 +59,19 @@ export function AdminContactDetailPage() {
   }, [requestId, reload])
 
   async function confirmComplete() {
+    if (completionLock.current || !alive.current) return
+    completionLock.current = true
     setCompleteBusy(true)
     setCompleteError('')
     try {
       // `complete` trả về bản chi tiết mới nên cập nhật tại chỗ, không cần tải lại.
       const updated = await contactAdminApi.complete(requestId)
+      if (!alive.current) return
       setDetail(updated)
       setConfirmOpen(false)
       setNotice('Đã đánh dấu yêu cầu là hoàn tất.')
     } catch (reason) {
+      if (!alive.current) return
       if (isInvalidContactState(reason)) {
         setConfirmOpen(false)
         setNotice('Yêu cầu này đã được hủy hoặc hoàn tất ở nơi khác. Đang tải lại thông tin mới nhất.')
@@ -65,7 +80,8 @@ export function AdminContactDetailPage() {
         setCompleteError(contactErrorMessage(reason, 'Không thể đánh dấu hoàn tất.'))
       }
     } finally {
-      setCompleteBusy(false)
+      completionLock.current = false
+      if (alive.current) setCompleteBusy(false)
     }
   }
 
@@ -89,7 +105,7 @@ export function AdminContactDetailPage() {
     <PageHeading
       eyebrow="Hỗ trợ khách hàng"
       title="Chi tiết yêu cầu"
-      description="Gọi điện cho người dùng theo số bên dưới, sau đó đánh dấu yêu cầu là đã hoàn tất."
+      description="Liên hệ với người dùng theo thông tin bên dưới, sau đó đánh dấu yêu cầu là đã hoàn tất."
       actions={<Link className="admin-button secondary" to={backTo}><ArrowLeft size={17} />Quay lại hộp thư</Link>}
     />
 
@@ -119,10 +135,10 @@ export function AdminContactDetailPage() {
           </section>
 
           <section className="admin-card admin-contact-panel">
-            <div className="admin-card-heading"><div><h2>Thông tin liên hệ</h2><p>Dùng để gọi điện giải đáp trực tiếp.</p></div></div>
+            <div className="admin-card-heading"><div><h2>Thông tin liên hệ</h2><p>Liên hệ để giải đáp yêu cầu hỗ trợ.</p></div></div>
             <dl className="admin-contact-meta">
               <dt>Họ tên</dt><dd>{detail.user.display_name}</dd>
-              <dt>Số điện thoại</dt><dd><a className="admin-contact-phone" href={`tel:${detail.user.phone.replace(/[^\d+]/g, '')}`}><PhoneCall size={17} weight="duotone" aria-hidden="true" />{detail.user.phone}</a></dd>
+              <dt>Số điện thoại</dt><dd>{detail.user.phone ? <a className="admin-contact-phone" href={`tel:${detail.user.phone.replace(/[^\d+]/g, '')}`}><PhoneCall size={17} weight="duotone" aria-hidden="true" />{detail.user.phone}</a> : 'Chưa cung cấp'}</dd>
               <dt>Email</dt><dd>{detail.user.email || '—'}</dd>
               <dt>Giới tính</dt><dd>{contactGenderLabel(detail.user.gender)}</dd>
               <dt>Ngày sinh</dt><dd>{formatPlainDate(detail.user.date_of_birth)}</dd>

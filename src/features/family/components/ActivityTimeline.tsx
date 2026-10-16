@@ -1,4 +1,5 @@
 import { ArrowClockwise, CalendarCheck, CheckCircle, ClipboardText, Handshake, Lifebuoy, XCircle } from '@phosphor-icons/react'
+import { useState } from 'react'
 import { activityDayKey, formatVietnamDateTime, memberLabel } from '../model/family-formatters'
 import type { ActivityEvent, FamilyMember } from '../model/family-types'
 import { useActivityFeed } from '../hooks/useActivityFeed'
@@ -10,14 +11,16 @@ const activityIcons = {
   CONSULTATION_CANCELLED: XCircle,
   CONTACT_COMPLETED: Lifebuoy,
   FAMILY_TASK_ASSIGNED: ClipboardText,
+  FAMILY_TASK_STATUS_CHANGED: ArrowClockwise,
   FAMILY_TASK_COMPLETED: CheckCircle,
 } satisfies Record<ActivityEvent['type'], typeof CheckCircle>
 
-interface Props { enabled: boolean; members: FamilyMember[] }
+interface Props { enabled: boolean; members: FamilyMember[]; onRefreshPermissions?: () => Promise<void> }
 
-export function ActivityTimeline({ enabled, members }: Props) {
+export function ActivityTimeline({ enabled, members, onRefreshPermissions }: Props) {
   const feed = useActivityFeed(enabled)
-  if (!enabled) return <div className="family-no-access"><ClipboardText size={36} weight="duotone" aria-hidden="true" /><h2>Hoạt động chưa được chia sẻ</h2><p>Chủ nhóm chưa cấp quyền Hoạt động cho tài khoản của bạn.</p></div>
+  const [refreshingPermissions, setRefreshingPermissions] = useState(false)
+  if (!enabled) return <div className="family-no-access"><ClipboardText size={36} weight="duotone" aria-hidden="true" /><h2>Hoạt động chưa được chia sẻ</h2><p>Chủ nhóm chưa cấp quyền Hoạt động cho tài khoản của bạn.</p>{onRefreshPermissions && <button className="secondary-button" type="button" disabled={refreshingPermissions} onClick={() => { if (refreshingPermissions) return; setRefreshingPermissions(true); void onRefreshPermissions().finally(() => setRefreshingPermissions(false)) }}>{refreshingPermissions ? 'Đang kiểm tra...' : 'Kiểm tra lại quyền'}</button>}</div>
   const groups = feed.items.reduce<Array<{ day: string; items: ActivityEvent[] }>>((result, item) => {
     const day = activityDayKey(item.created_at)
     const existing = result.find((group) => group.day === day)

@@ -1,3 +1,4 @@
+import type { AcceptanceTimingDto } from '../../consultation/model/consultation-timing'
 import type { ExpertSpecialty, ExpertStatus } from '@/features/admin/model/admin-experts'
 import type { ConsultationStatus, ScheduleSlotState } from './expert-console-types'
 
@@ -55,7 +56,7 @@ export interface SlotInfoDto {
   end_time: string
 }
 
-export interface ConsultationDto {
+export interface ConsultationDto extends AcceptanceTimingDto {
   id: string
   user_id: string
   user_display_name: string | null
@@ -91,5 +92,10 @@ export interface PageDto<T> {
   page_size: number
   total_items: number
   total_pages: number
+}
+
+export interface ConsultationPageDto extends PageDto<ConsultationDto> {
+  next_consultation?:ConsultationDto|null
+  server_time?:string|null
 }
 

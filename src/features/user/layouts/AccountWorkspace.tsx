@@ -1,7 +1,8 @@
-import { BookmarkSimple, CaretDown, ClockCounterClockwise, FileText, FirstAidKit, GearSix, Headset, Heartbeat, House, List, LockKey, SignOut, Sparkle, UserCircle, X } from '@phosphor-icons/react'
+import { BookmarkSimple, CaretDown, ClockCounterClockwise, FileText, FirstAidKit, GearSix, Headset, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { getSessionScope } from '@/core/auth/token-store'
 import { useSubscription } from '@/features/payment/hooks/useSubscription'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
 import { focusTargetForTab, getFocusableElements } from '@/shared/model/dialog-focus'
@@ -9,11 +10,11 @@ import './account-workspace.css'
 
 export function AccountWorkspace() {
   const { profile, logout } = useAuth()
-  const { subscription } = useSubscription()
+  const { subscription, loading: subscriptionLoading, error: subscriptionError, reload: reloadSubscription } = useSubscription()
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(() => location.pathname.startsWith('/app/profile/account/'))
+  const [settingsOpen, setSettingsOpen] = useState(() => location.pathname === '/app/profile' || location.pathname.startsWith('/app/profile/account/'))
   const [loggingOut, setLoggingOut] = useState(false)
   const sidebarRef = useRef<HTMLElement>(null)
   const mobileToggleRef = useRef<HTMLButtonElement>(null)
@@ -21,7 +22,7 @@ export function AccountWorkspace() {
 
   useEffect(() => {
     setMobileOpen(false)
-    if (location.pathname.startsWith('/app/profile/account/')) setSettingsOpen(true)
+    if (location.pathname === '/app/profile' || location.pathname.startsWith('/app/profile/account/')) setSettingsOpen(true)
   }, [location.pathname])
   useEffect(() => {
     if (!mobileOpen) return
@@ -53,9 +54,8 @@ export function AccountWorkspace() {
 
   const name = profile?.display_name || 'Thành viên NutriMom'
   const initial = name.trim().charAt(0).toUpperCase()
-  const accountActive = location.pathname.startsWith('/app/profile/account/')
+  const accountActive = location.pathname === '/app/profile' || location.pathname.startsWith('/app/profile/account/')
   const links = [
-    { to: '/app/profile', end: true, label: 'Hồ sơ cá nhân', icon: UserCircle },
     { to: '/app/profile/health', end: false, label: 'Thai kỳ & sức khỏe', icon: Heartbeat },
     { to: '/app/profile/care', end: false, label: 'Kế hoạch chăm sóc', icon: FirstAidKit },
     { to: '/app/profile/records', end: false, label: 'Hồ sơ y tế', icon: FileText },
@@ -70,24 +70,24 @@ export function AccountWorkspace() {
       <div className="nm-account-sidebar-top"><div className="nm-account-sidebar-avatar" aria-hidden="true">{initial}</div><div><strong>{name}</strong><span>Không gian cá nhân</span></div><div className="nm-account-sidebar-actions"><ThemeToggle /><button ref={mobileCloseRef} className="nm-account-sidebar-close" type="button" aria-label="Đóng danh mục" onClick={() => setMobileOpen(false)}><X size={20} /></button></div></div>
       <div style={{ margin: '8px 16px 12px', padding: '10px 12px', borderRadius: '12px', background: 'var(--color-surface-subtle, #fff1f2)', border: '1px solid #fecdd3' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-          <span style={{ fontWeight: 700, color: '#e11d48' }}>{subscription?.plan_name || 'Gói Free'}</span>
+          <span style={{ fontWeight: 700, color: '#e11d48' }}>{subscription?.plan_name || (subscriptionLoading ? 'Đang tải gói...' : 'Chưa tải được gói')}</span>
           {subscription?.active && subscription.plan_tier !== 'FREE' ? (
             <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>Còn {subscription.days_remaining} ngày</span>
-          ) : (
+          ) : subscription ? (
             <Link to="/pricing" style={{ fontSize: '11px', color: '#e11d48', fontWeight: 600, textDecoration: 'underline' }}>Nâng cấp</Link>
-          )}
+          ) : null}
         </div>
+        {subscriptionError && <div><small role="alert">Không thể tải thông tin gói.</small><button className="attachment-button" type="button" onClick={() => void reloadSubscription()}>Thử lại</button></div>}
       </div>
       <nav className="nm-account-side-nav" aria-label="Điều hướng tài khoản"><p className="nm-account-side-label">Tài khoản của bạn</p>
         {links.map(({ to, end, label, icon: Icon }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><Icon size={20} weight="duotone" aria-hidden="true" />{label}</NavLink>)}
-        <NavLink to="/pricing" className="nm-account-side-link"><Sparkle size={20} weight="duotone" aria-hidden="true" />Gói dịch vụ & Bảng giá</NavLink>
         <button className={`nm-account-side-link nm-account-settings-trigger${accountActive ? ' is-active' : ''}`} type="button" aria-expanded={settingsOpen} aria-controls="nm-account-settings-submenu" onClick={() => setSettingsOpen((open) => !open)}><GearSix size={20} weight="duotone" aria-hidden="true" />Thiết lập tài khoản<CaretDown className={settingsOpen ? 'is-rotated' : ''} size={16} aria-hidden="true" /></button>
-        <div className={`nm-account-submenu${settingsOpen ? ' is-open' : ''}`} id="nm-account-settings-submenu" aria-hidden={!settingsOpen}><NavLink to="/app/profile/account/password" tabIndex={settingsOpen ? 0 : -1} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><LockKey size={18} aria-hidden="true" />Mật khẩu</NavLink><NavLink to="/app/profile/account/disable" tabIndex={settingsOpen ? 0 : -1} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><UserCircle size={18} aria-hidden="true" />Vô hiệu hóa tài khoản</NavLink></div>
+        <div className={`nm-account-submenu${settingsOpen ? ' is-open' : ''}`} id="nm-account-settings-submenu" aria-hidden={!settingsOpen}><NavLink to="/app/profile" end tabIndex={settingsOpen ? 0 : -1} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><UserCircle size={18} aria-hidden="true" />Hồ sơ cá nhân</NavLink><NavLink to="/app/profile/account/password" tabIndex={settingsOpen ? 0 : -1} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><LockKey size={18} aria-hidden="true" />Mật khẩu</NavLink><NavLink to="/app/profile/account/disable" tabIndex={settingsOpen ? 0 : -1} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><UserCircle size={18} aria-hidden="true" />Vô hiệu hóa tài khoản</NavLink></div>
         <NavLink to="/app" className="nm-account-side-link"><House size={20} weight="duotone" aria-hidden="true" />Về trang chủ</NavLink>
       </nav>
       <button className="nm-account-side-link nm-account-side-logout" type="button" onClick={() => void signOut()} disabled={loggingOut}><SignOut size={20} aria-hidden="true" />{loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}</button>
     </aside>
     {mobileOpen && <button className="nm-account-sidebar-backdrop" type="button" aria-label="Đóng danh mục" onClick={() => setMobileOpen(false)} />}
-    <div className="nm-account-workspace-main"><Outlet /></div>
+    <div className="nm-account-workspace-main"><Outlet key={getSessionScope()} /></div>
   </div>
 }

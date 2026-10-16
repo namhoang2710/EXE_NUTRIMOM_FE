@@ -24,7 +24,7 @@ export async function loadCurrentPregnancy(getCurrentPregnancy: () => Promise<Pr
 export function createCurrentPregnancyLoader(getCurrentPregnancy: () => Promise<Pregnancy>) {
   let request: Promise<Pregnancy | null> | null = null
   return () => {
-    request ??= loadCurrentPregnancy(getCurrentPregnancy)
+    request ??= loadCurrentPregnancy(getCurrentPregnancy).finally(() => { request = null })
     return request
   }
 }

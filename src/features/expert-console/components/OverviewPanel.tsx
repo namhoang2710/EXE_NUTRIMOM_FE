@@ -1,7 +1,9 @@
 import { ArrowRight, CalendarCheck, CalendarDots, ChatCenteredDots, Clock, Star } from '@phosphor-icons/react'
+import { useMemo } from 'react'
 import { expertConsoleApi } from '../api/expert-console-api'
 import { useExpertResource } from '../hooks/useExpertResource'
 import { formatDate, formatTime } from '../model/expert-console-formatters'
+import { sortConsultationsNewestFirst } from '../model/expert-console-time'
 import type { ExpertOverview, ExpertProfile } from '../model/expert-console-types'
 import { PanelHeading, ResourceState } from './ExpertUI'
 
@@ -15,6 +17,7 @@ export function OverviewPanel({ profile, overview, loading, error, retry, onNavi
   refreshToken: number
 }) {
   const upcoming = useExpertResource((signal) => expertConsoleApi.consultations({ type: 'assigned', status: 'PENDING_CONSULTATION', page: 1, pageSize: 4 }, signal), [refreshToken])
+  const orderedUpcoming = useMemo(() => sortConsultationsNewestFirst(upcoming.data?.items ?? []), [upcoming.data?.items])
   return (
     <section className="expert-overview">
       <PanelHeading eyebrow="Tổng quan hôm nay" title={`Chào ${profile?.title ? `${profile.title} ` : ''}${profile?.fullName || 'bạn'}`} description="Một góc nhìn nhanh về lịch làm việc và những việc cần ưu tiên." />
@@ -30,7 +33,7 @@ export function OverviewPanel({ profile, overview, loading, error, retry, onNavi
         <section className="expert-panel compact">
           <header className="expert-card-title"><div><span>Lịch kế tiếp</span><h2>Các buổi sắp diễn ra</h2></div><button type="button" onClick={() => onNavigate('schedule')}>Xem tất cả <ArrowRight size={15} /></button></header>
           <ResourceState loading={upcoming.loading} error={upcoming.error} empty={!upcoming.data?.items.length} onRetry={upcoming.reload} emptyTitle="Chưa có lịch tư vấn sắp tới" emptyMessage="Các lịch được đặt sẽ xuất hiện tại đây.">
-            <div className="expert-upcoming-list">{upcoming.data?.items.map((item) => <article key={item.id}><div className="expert-upcoming-time"><strong>{item.slot ? formatTime(item.slot.startTime) : 'Chưa xếp lịch'}</strong><small>{item.slot ? formatDate(item.slot.date) : 'Chưa xếp lịch'}</small></div><span className="expert-timeline-dot" /><div><strong>{item.userDisplayName || 'Người dùng'}</strong><p>{item.note || 'Tư vấn sức khỏe'}</p></div></article>)}</div>
+            <div className="expert-upcoming-list">{orderedUpcoming.map((item) => <article key={item.id}><div className="expert-upcoming-time"><strong>{item.slot ? formatTime(item.slot.startTime) : 'Chưa xếp lịch'}</strong><small>{item.slot ? formatDate(item.slot.date) : 'Chưa xếp lịch'}</small></div><span className="expert-timeline-dot" /><div><strong>{item.userDisplayName || 'Người dùng'}</strong><p>{item.note || 'Tư vấn sức khỏe'}</p></div></article>)}</div>
           </ResourceState>
         </section>
         <aside className="expert-focus-card">

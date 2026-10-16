@@ -38,6 +38,7 @@ export const activityTypeLabels: Record<ActivityEvent['type'], string> = {
   CONSULTATION_CANCELLED: 'Tư vấn đã hủy',
   CONTACT_COMPLETED: 'Yêu cầu hỗ trợ đã hoàn tất',
   FAMILY_TASK_ASSIGNED: 'Đã giao việc gia đình',
+  FAMILY_TASK_STATUS_CHANGED: 'Trạng thái việc gia đình đã thay đổi',
   FAMILY_TASK_COMPLETED: 'Việc gia đình đã hoàn thành',
 }
 
@@ -58,15 +59,29 @@ export function toIsoTimestamp(localValue: string) {
   return Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString()
 }
 
-export function shortUserId(userId: string) {
-  if (userId.length <= 12) return userId
-  return `${userId.slice(0, 6)}...${userId.slice(-4)}`
+export function memberRelationshipLabel(member?: FamilyMember) {
+  if (!member) return 'Thành viên gia đình'
+  return relationshipLabels[member.relationship as FamilyRelationship]
+    || (member.membership_role === 'PARTNER' ? 'Bạn đời' : 'Thành viên gia đình')
+}
+
+export function memberDisplayName(member?: FamilyMember) {
+  if (!member) return 'Một thành viên gia đình'
+  return member.display_name?.trim() || memberRelationshipLabel(member)
 }
 
 export function memberLabel(member?: FamilyMember) {
   if (!member) return 'Một thành viên gia đình'
-  const relationship = relationshipLabels[member.relationship as FamilyRelationship] || member.relationship
-  return `${relationship} (${shortUserId(member.user_id)})`
+  const displayName = member.display_name?.trim()
+  const relationship = memberRelationshipLabel(member)
+  return displayName ? `${displayName} · ${relationship}` : relationship
+}
+
+export function memberDialogLabel(member?: FamilyMember) {
+  if (!member) return 'Một thành viên gia đình'
+  const displayName = member.display_name?.trim()
+  const relationship = memberRelationshipLabel(member)
+  return displayName ? `${displayName} (${relationship})` : relationship
 }
 
 export function activityDayKey(createdAt: string) {

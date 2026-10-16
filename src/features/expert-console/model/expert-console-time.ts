@@ -2,6 +2,7 @@ import {
   VIETNAM_TIME_ZONE,
   vietnamToday,
 } from '../../consultation/model/slot-grid.ts'
+import type { Consultation } from './expert-console-types.ts'
 
 type VietnamDateTimeParts = {
   date: string
@@ -31,4 +32,18 @@ export function vietnamDateTimeParts(now = new Date()): VietnamDateTimeParts {
 
 export function vietnamTodayIso(now = new Date()): string {
   return vietnamToday(now)
+}
+
+function appointmentKey(consultation: Consultation) {
+  return consultation.slot ? `${consultation.slot.date}T${consultation.slot.startTime}` : ''
+}
+
+/** Returns a new array with the latest appointment first and unscheduled rows last. */
+export function sortConsultationsNewestFirst(items: readonly Consultation[]) {
+  return items.map((item, index) => ({ item, index })).sort((left, right) => {
+    const byAppointment = appointmentKey(right.item).localeCompare(appointmentKey(left.item))
+    if (byAppointment !== 0) return byAppointment
+    const byCreation = right.item.createdAt.localeCompare(left.item.createdAt)
+    return byCreation !== 0 ? byCreation : left.index - right.index
+  }).map(({ item }) => item)
 }

@@ -1,18 +1,15 @@
 import {
   ArrowRight,
-  Check,
   CheckCircle,
   Heart,
-  ShieldCheck,
   Sparkle,
-  X,
 } from '@phosphor-icons/react'
 import { useEffect } from 'react'
 import type { MouseEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useSubscription } from '@/features/payment/hooks/useSubscription'
-import type { PlanTier } from '@/features/payment/model/payment-types'
+import { PublicPricingSection } from '../components/PublicPricingSection'
 import { ServiceIcon } from '../components/ServiceIcon'
 import { services, type ServiceContent } from '../model/service-content'
 import './services-premium.css'
@@ -20,61 +17,6 @@ import './services-premium.css'
 function includesSearch(values: string[], search: string) {
   return values.join(' ').toLocaleLowerCase('vi-VN').includes(search)
 }
-
-const pricingPlans: Array<{
-  name: string
-  tier: PlanTier
-  price: string
-  cadence: string
-  description: string
-  featured: boolean
-  features: Array<{ label: string; included: boolean }>
-}> = [
-  {
-    name: 'Free',
-    tier: 'FREE',
-    price: '0đ',
-    cadence: 'mãi mãi',
-    description: 'Đủ để mẹ bắt đầu lưu lại hành trình của mình.',
-    featured: false,
-    features: [
-      { label: 'Không liên kết gia đình', included: false },
-      { label: 'Không tính ngày thụ thai', included: false },
-      { label: 'Có lưu hồ sơ sức khỏe', included: true },
-      { label: 'AI scan', included: true },
-    ],
-  },
-  {
-    name: '99K',
-    tier: 'PLAN_99K',
-    price: '99.000đ',
-    cadence: 'mỗi tháng',
-    description: 'Thêm công cụ chủ động cho hành trình thai kỳ.',
-    featured: false,
-    features: [
-      { label: 'Không liên kết gia đình', included: false },
-      { label: 'Có tính ngày thụ thai', included: true },
-      { label: 'Không lưu hồ sơ nâng cao', included: false },
-      { label: 'Dùng AI scan 2 lần / ngày', included: true },
-    ],
-  },
-  {
-    name: '399K',
-    tier: 'PLAN_399K',
-    price: '399.000đ',
-    cadence: 'mỗi tháng',
-    description: 'Trọn vẹn trải nghiệm chăm sóc cho cả gia đình.',
-    featured: true,
-    features: [
-      { label: 'Được tất cả tính năng', included: true },
-      { label: 'Liên kết gia đình', included: true },
-      { label: 'Tính ngày thụ thai', included: true },
-      { label: 'Lưu hồ sơ trọn đời', included: true },
-      { label: 'AI scan không giới hạn', included: true },
-      { label: 'Gợi ý cá nhân hóa toàn diện', included: true },
-    ],
-  },
-]
 
 function ServiceCard({ service, featured = false }: { service: ServiceContent; featured?: boolean }) {
   return (
@@ -165,7 +107,13 @@ export function ServicesPage() {
           <p>Sáu dịch vụ được kết nối quanh một mục tiêu: giúp mẹ hiểu thai kỳ, chăm sóc dinh dưỡng và chủ động cùng gia đình trong từng giai đoạn.</p>
           <div className="servicesHero__actions">
             <a className="landing-primary-button" href="#pricing" onClick={scrollToPricing}>Xem gói phù hợp <ArrowRight size={18} weight="bold" /></a>
-            <Link className="landing-secondary-button" to="/register">Bắt đầu miễn phí</Link>
+            <Link
+              className="landing-secondary-button"
+              to={status === 'authenticated' ? '/app' : '/login'}
+              state={status === 'authenticated' ? undefined : { from: '/app' }}
+            >
+              Bắt đầu miễn phí
+            </Link>
           </div>
         </div>
         <aside className="servicesHero__summary" aria-label="Tổng quan hệ sinh thái NutriMom">
@@ -227,63 +175,10 @@ export function ServicesPage() {
         </div>
       </section>
 
-      <section className="premiumPricing" id="pricing" aria-labelledby="pricing-title">
-        <div className="premiumPricing__inner landing-section">
-          <div className="premiumPricing__heading">
-            <span className="premiumEyebrow">GÓI ĐỒNG HÀNH</span>
-            <h2 id="pricing-title">Chọn mức chăm sóc<br /><em>vừa vặn với gia đình.</em></h2>
-            <p>Quyền lợi rõ ràng, không điều khoản mơ hồ. Mẹ có thể bắt đầu miễn phí và nâng cấp khi cần.</p>
-          </div>
-
-          <div className="premiumPricing__grid">
-            {pricingPlans.map((plan) => {
-              const isCurrentPlan = subscription?.active && subscription.plan_tier === plan.tier
-              return (
-                <article className={`premiumPlan${plan.featured ? ' premiumPlan--featured' : ''}`} key={plan.name}>
-                  {plan.featured && <span className="premiumPlan__badge"><Sparkle size={13} weight="fill" /> TOÀN DIỆN NHẤT</span>}
-                  <div className="premiumPlan__nameRow">
-                    <h3>{plan.name}</h3>
-                    {plan.featured ? <Heart size={24} weight="fill" /> : <ShieldCheck size={24} weight="duotone" />}
-                  </div>
-                  <p className="premiumPlan__description">{plan.description}</p>
-                  <div className="premiumPlan__price"><strong>{plan.price}</strong><span>/ {plan.cadence}</span></div>
-                  <div className="premiumPlan__divider" />
-                  <ul>
-                    {plan.features.map((feature) => (
-                      <li className={feature.included ? '' : 'is-muted'} key={feature.label}>
-                        {feature.included ? <Check size={17} weight="bold" /> : <X size={17} weight="bold" />}
-                        <span>{feature.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {isCurrentPlan ? (
-                    <span className="premiumPlan__button is-active-plan" style={{ background: '#10b981', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                      <CheckCircle size={17} weight="fill" /> Gói hiện tại của bạn
-                    </span>
-                  ) : plan.tier === 'FREE' ? (
-                    <Link className="premiumPlan__button" to={status === 'authenticated' ? '/app' : '/register'}>
-                      {status === 'authenticated' ? 'Vào không gian của bạn' : 'Bắt đầu miễn phí'}
-                      <ArrowRight size={17} weight="bold" />
-                    </Link>
-                  ) : status === 'authenticated' ? (
-                    <Link className="premiumPlan__button" to={`/app/pricing?plan=${plan.tier}&step=review#pricing`}>
-                      Chọn gói {plan.name}
-                      <ArrowRight size={17} weight="bold" />
-                    </Link>
-                  ) : (
-                    <Link className="premiumPlan__button" to="/login" state={{ from: `/app/pricing?plan=${plan.tier}&step=review#pricing` }}>
-                      Đăng nhập để chọn gói {plan.name}
-                      <ArrowRight size={17} weight="bold" />
-                    </Link>
-                  )}
-                </article>
-              )
-            })}
-          </div>
-          <p className="premiumPricing__note"><ShieldCheck size={17} weight="fill" /> Thông tin sức khỏe được quản lý riêng tư và minh bạch theo lựa chọn của bạn.</p>
-        </div>
-      </section>
+      <PublicPricingSection
+        isAuthenticated={status === 'authenticated'}
+        currentPlanTier={subscription?.active ? subscription.plan_tier : undefined}
+      />
 
     </main>
   )

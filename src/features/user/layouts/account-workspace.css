@@ -18,7 +18,7 @@
 .nm-account-settings-trigger svg:last-child { margin-left: auto; transition: transform 200ms ease; }
 .nm-account-settings-trigger svg.is-rotated { transform: rotate(180deg); }
 .nm-account-submenu { display: grid; max-height: 0; overflow: hidden; opacity: 0; transition: max-height 250ms ease,opacity 200ms ease; }
-.nm-account-submenu.is-open { max-height: 110px; opacity: 1; }
+.nm-account-submenu.is-open { max-height: 165px; opacity: 1; }
 .nm-account-submenu > a { min-height: 0; overflow: hidden; margin-left: 20px; padding-top: 0; padding-bottom: 0; visibility: hidden; transition: padding 250ms ease,visibility 0s linear 250ms; }
 .nm-account-submenu.is-open > a { min-height: 42px; padding-top: 9px; padding-bottom: 9px; visibility: visible; transition: padding 250ms ease,visibility 0s; }
 .nm-account-side-logout { margin: auto 13px 18px; width: calc(100% - 26px); color: #f0c7c9; }

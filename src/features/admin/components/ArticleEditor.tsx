@@ -14,6 +14,7 @@ import {
 } from '@/features/knowledge/model/article-form'
 import type { ArticleFormDraft, ArticleImageDraft } from '@/features/knowledge/model/article-form'
 import { SimpleRichTextEditor } from './SimpleRichTextEditor'
+import { AdminDropdown } from './AdminDropdown'
 
 interface ArticleEditorProps {
   articleId?: string
@@ -157,9 +158,9 @@ export function ArticleEditor({ articleId, onClose, onSaved }: ArticleEditorProp
       <section className="admin-editor-section"><div className="admin-editor-section-heading"><span>01</span><div><h3>Thông tin cơ bản</h3><p>Tiêu đề, slug và phân loại hiển thị trên thư viện.</p></div></div><div className="admin-form-grid admin-knowledge-grid">
         <label className="admin-field-wide"><span>Tiêu đề *</span><input maxLength={300} value={form.title} onChange={(event) => { const title = event.target.value; setForm((current) => ({ ...current, title, ...(slugTouched ? {} : { slug: slugifyArticleTitle(title) }) })); setErrors((current) => { const next = { ...current }; delete next.title; return next }) }} />{errors.title && <small>{errors.title}</small>}</label>
         <label><span>Slug *</span><input maxLength={180} value={form.slug} onChange={(event) => { setSlugTouched(true); update('slug', event.target.value.toLowerCase()) }} />{errors.slug && <small>{errors.slug}</small>}</label>
-        <label><span>Trạng thái *</span><select value={form.status} onChange={(event) => update('status', event.target.value as ArticleFormDraft['status'])}><option value="draft">Bản nháp</option><option value="published">Xuất bản</option><option value="archived">Lưu trữ</option></select></label>
-        <label><span>Danh mục *</span><select value={form.category} onChange={(event) => update('category', event.target.value)}>{articleCategories.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-        <label><span>Giai đoạn *</span><select value={form.stage} onChange={(event) => update('stage', event.target.value)}>{articleStages.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+        <AdminDropdown label="Trạng thái *" name="articleStatus" value={form.status} onChange={(value) => update('status', value as ArticleFormDraft['status'])} options={[{ value: 'draft', label: 'Bản nháp' }, { value: 'published', label: 'Xuất bản' }, { value: 'archived', label: 'Lưu trữ' }]} />
+        <AdminDropdown label="Danh mục *" name="articleCategory" value={form.category} onChange={(value) => update('category', value)} options={articleCategories} />
+        <AdminDropdown label="Giai đoạn *" name="articleStage" value={form.stage} onChange={(value) => update('stage', value)} options={articleStages} />
         <label><span>Thời gian xuất bản</span><input type="datetime-local" disabled={form.status !== 'published'} value={form.publishedAt} onChange={(event) => update('publishedAt', event.target.value)} />{errors.publishedAt && <small>{errors.publishedAt}</small>}</label>
         <label><span>Chủ đề</span><input maxLength={3029} placeholder="vitamin, chăm sóc hằng ngày" value={form.topics} onChange={(event) => update('topics', event.target.value)} />{errors.topics && <small>{errors.topics}</small>}</label>
         <label className="admin-field-wide"><span>Mô tả ngắn</span><textarea rows={3} maxLength={2000} value={form.excerpt} onChange={(event) => update('excerpt', event.target.value)} />{errors.excerpt && <small>{errors.excerpt}</small>}</label>

@@ -38,8 +38,9 @@ export class ApiClientError extends Error {
   readonly retryable: boolean
   readonly requestId?: string
   readonly serverMessage: string
+  readonly retryAfterMs?: number
 
-  constructor(status: number, error: ApiErrorBody) {
+  constructor(status: number, error: ApiErrorBody, retryAfterMs?: number) {
     super(friendlyMessages[error.code] || error.message || 'Không thể kết nối với máy chủ.')
     this.name = 'ApiClientError'
     this.status = status
@@ -48,13 +49,24 @@ export class ApiClientError extends Error {
     this.retryable = Boolean(error.retryable)
     this.requestId = error.request_id
     this.serverMessage = error.message || ''
+    this.retryAfterMs = retryAfterMs
   }
 }
 
+export function parseRetryAfterMs(value: string | null, now = Date.now()) {
+  if (!value) return undefined
+  const seconds = Number(value)
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1_000)
+  const timestamp = Date.parse(value)
+  if (!Number.isFinite(timestamp)) return undefined
+  return Math.max(0, timestamp - now)
+}
+
 export async function parseApiError(response: Response) {
+  const retryAfterMs = parseRetryAfterMs(response.headers.get('Retry-After'))
   try {
     const payload = (await response.json()) as Partial<ApiErrorResponse>
-    if (payload.error) return new ApiClientError(response.status, payload.error)
+    if (payload.error) return new ApiClientError(response.status, payload.error, retryAfterMs)
   } catch {
     // Fall through to a readable error for non-JSON responses.
   }
@@ -64,5 +76,10 @@ export async function parseApiError(response: Response) {
     message: response.status >= 500
       ? 'Máy chủ đang bận. Vui lòng thử lại sau.'
       : 'Yêu cầu chưa được xử lý. Vui lòng kiểm tra lại thông tin.',
-  })
+  }, retryAfterMs)
+}
+
+export function isAuthenticationError(reason: unknown) {
+  return reason instanceof ApiClientError
+    && (reason.status === 401 || reason.code === ErrorCodes.sessionExpired)
 }
