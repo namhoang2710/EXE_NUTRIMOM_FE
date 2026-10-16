@@ -30,7 +30,7 @@ export function SchedulePanel({ search, setParams, notify, onMutate, refreshToke
   const page = Math.max(1, Number(search.get('schedule_page')) || 1)
   const key = `${status}|${from}|${to}|${page}|${refreshToken}`
   const resource = useExpertResource(
-    (signal) => expertConsoleApi.consultations({ type: 'assigned', status: status || 'PENDING_CONSULTATION', from: from || undefined, to: to || undefined, page, pageSize: 10 }, signal),
+    (signal) => expertConsoleApi.consultations({ type: 'assigned', status: status || 'PENDING_CONSULTATION', from: from || undefined, to: to || undefined, page, pageSize: 10,includeNext:!status?true:undefined }, signal),
     [key],
   )
   const [confirming, setConfirming] = useState<Consultation | null>(null)
@@ -38,7 +38,7 @@ export function SchedulePanel({ search, setParams, notify, onMutate, refreshToke
   const completionLock = useRef(false)
   const reduceMotion = useReducedMotion()
   const orderedConsultations = useMemo(() => sortConsultationsNewestFirst(resource.data?.items ?? []), [resource.data?.items])
-  const nextAppointment = orderedConsultations[0] ?? null
+  const nextAppointment = !resource.loading&&!resource.error?resource.data?.nextConsultation??null:null
 
   async function complete() {
     if (!confirming || completionLock.current || completingId) return

@@ -16,6 +16,7 @@ import {
 } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatedNumber } from '@/shared/components/AnimatedNumber'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { paymentApi } from '../api/payment-api'
 import { PaymentSteps } from '../components/PaymentSteps'
@@ -59,35 +60,6 @@ function PlanIcon({ tier, size = 24 }: { tier: PlanTier; size?: number }) {
 
 function AnimatedPaymentAmount({ value }: { value: number }) {
   const reduceMotion = useReducedMotion()
-  const displayedValue = useRef(value)
-  const [visibleValue, setVisibleValue] = useState(value)
-
-  useEffect(() => {
-    if (reduceMotion) {
-      displayedValue.current = value
-      setVisibleValue(value)
-      return
-    }
-
-    const startValue = displayedValue.current
-    const difference = value - startValue
-    const durationMs = 680
-    let frame = 0
-    let startedAt: number | null = null
-
-    const update = (timestamp: number) => {
-      startedAt ??= timestamp
-      const progress = Math.min((timestamp - startedAt) / durationMs, 1)
-      const easedProgress = 1 - Math.pow(1 - progress, 4)
-      const roundedValue = Math.round(startValue + difference * easedProgress)
-      displayedValue.current = roundedValue
-      setVisibleValue(roundedValue)
-      if (progress < 1) frame = window.requestAnimationFrame(update)
-    }
-
-    frame = window.requestAnimationFrame(update)
-    return () => window.cancelAnimationFrame(frame)
-  }, [reduceMotion, value])
 
   return (
     <span className="nm-payment-animated-amount">
@@ -99,7 +71,7 @@ function AnimatedPaymentAmount({ value }: { value: number }) {
         transition={{ duration: reduceMotion ? 0.01 : 0.42, ease: [0.22, 1, 0.36, 1] }}
         aria-hidden="true"
       >
-        {formatPaymentAmount(visibleValue)}
+        <AnimatedNumber value={value} formatter={formatPaymentAmount} fromZero={false} animateChanges />
       </motion.span>
       <span className="sr-only">{formatPaymentAmount(value)}</span>
     </span>

@@ -4,6 +4,7 @@ import test from 'node:test'
 import { ApiClientError } from '../src/core/api/api-error.ts'
 import { clearDiagnosticEvents, diagnosticSummary, getDiagnosticEvents, logDiagnostic, redactDiagnosticValue } from '../src/core/diagnostics/logger.ts'
 import { authenticatedDestination } from '../src/features/auth/model/role-routing.ts'
+import type { User } from '../src/features/auth/model/auth-types.ts'
 import { buildSharedEventsPath, buildSharedMonthPath } from '../src/features/calendar/model/calendar-helpers.ts'
 import { normalizeSharedCalendarEvents, normalizeSharedCalendarMonth } from '../src/features/calendar/model/calendar-normalizers.ts'
 import { normalizeCreatedInvitation, normalizeInvitationList, normalizeInvitationPreview } from '../src/features/family/model/invitation-normalizers.ts'
@@ -56,7 +57,7 @@ test('family invitation deep links are allowlisted and malicious variants are re
 })
 
 test('login preserves only the exact internal invitation return URL', () => {
-  const user = { id: 'u1', phone: '0900000000', displayName: 'An', roles: ['USER'] }
+  const user: User = { id: 'u1', phone: '0900000000', displayName: 'An', role: 'MOM', roles: ['USER'], status: 'ACTIVE', createdAt: '2026-10-01T00:00:00Z' }
   assert.equal(authenticatedDestination(user, 'COMPLETED', '/family/invite?token=abc123'), '/family/invite?token=abc123')
   assert.equal(authenticatedDestination(user, 'COMPLETED', '//evil.test/family/invite?token=x'), '/app')
   assert.equal(authenticatedDestination(user, 'COMPLETED', '/family/invite?next=https://evil.test&token=x'), '/app')

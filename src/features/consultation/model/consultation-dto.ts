@@ -1,3 +1,4 @@
+import type { AcceptanceTimingDto } from './consultation-timing'
 export type ConsultationSpecialtyDto = 'PSYCHOLOGY' | 'OBSTETRICS' | 'HEALTH'
 export type ConsultationAssignmentTypeDto = 'DIRECT' | 'RANDOM'
 export type ConsultationStatusDto = 'PENDING_EXPERT' | 'PENDING_CONSULTATION' | 'COMPLETED' | 'CANCELLED'
@@ -34,7 +35,7 @@ export interface ConsultationSlotInfoDto {
   end_time: string
 }
 
-export interface ConsultationRequestDto {
+export interface ConsultationRequestDto extends AcceptanceTimingDto {
   id: string
   user_id: string
   user_display_name: string | null
@@ -81,6 +82,7 @@ export interface CreateDirectConsultationDto {
 
 export interface CreateRandomConsultationDto {
   assignment_type: 'RANDOM'
+  preferred_date?: string
   specialty: ConsultationSpecialtyDto
   note?: string
 }

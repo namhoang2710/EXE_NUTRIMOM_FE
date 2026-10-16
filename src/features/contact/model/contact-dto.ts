@@ -25,7 +25,7 @@ export interface AdminContactSummaryDto {
   status: ContactRequestStatus
   user_id: string
   user_display_name: string
-  user_phone: string
+  user_phone?: string | null
   created_at: string
   completed_at?: string | null
 }
@@ -33,7 +33,7 @@ export interface AdminContactSummaryDto {
 export interface ContactUserInfoDto {
   id: string
   display_name: string
-  phone: string
+  phone?: string | null
   email?: string | null
   gender?: Gender | null
   date_of_birth?: string | null

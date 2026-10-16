@@ -9,6 +9,7 @@ function parsePositiveInteger(value: string | undefined, fallback: number) {
 }
 
 export const env = {
+  adminRealtimeEnabled: viteEnv?.VITE_ADMIN_REALTIME_ENABLED === 'true',
   apiBaseUrl: (viteEnv?.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, ''),
   apiTimeoutMs: parsePositiveInteger(viteEnv?.VITE_API_TIMEOUT_MS, DEFAULT_API_TIMEOUT_MS),
 } as const
