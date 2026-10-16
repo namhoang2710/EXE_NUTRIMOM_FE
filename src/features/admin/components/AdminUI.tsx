@@ -1,3 +1,4 @@
+import { AdminDropdown } from './AdminDropdown'
 import {
   ArrowClockwise,
   ArrowLeft,
@@ -13,6 +14,7 @@ import {
 } from '@phosphor-icons/react'
 import type { ReactNode } from 'react'
 import type { AdminMetric } from '../model/admin-types'
+import { adminLabel } from '../model/admin-workspace-query'
 
 export function StatusBadge({ value }: { value: string }) {
   const normalized = value.toUpperCase().replaceAll(' ', '_')
@@ -23,7 +25,7 @@ export function StatusBadge({ value }: { value: string }) {
       : ['PENDING', 'SCHEDULED', 'PROCESSING', 'REVIEW', 'MEDIUM', 'IN_PROGRESS', 'PROFILE_REQUIRED', 'CONTEXT_REQUIRED', 'DRAFT'].includes(normalized)
         ? 'warning'
         : 'neutral'
-  return <span className={`admin-badge ${tone}`}>{value.replaceAll('_', ' ')}</span>
+  return <span className={`admin-badge ${tone}`}>{adminLabel(value)}</span>
 }
 
 const metricIcons = {
@@ -99,7 +101,7 @@ export function ResourceState({ status, empty, error, onRetry, children }: {
 }) {
   if (status === 'loading') {
     return (
-      <div className="admin-loading" aria-label="Loading data">
+      <div className="admin-loading" aria-label="Đang tải dữ liệu">
         <span /><span /><span /><span />
       </div>
     )
@@ -108,9 +110,9 @@ export function ResourceState({ status, empty, error, onRetry, children }: {
     return (
       <div className="admin-state">
         <span className="admin-state-icon error"><ArrowClockwise size={24} /></span>
-        <h3>Something went wrong</h3>
+        <h3>Chưa thể tải dữ liệu</h3>
         <p>{error}</p>
-        <button className="admin-button secondary" type="button" onClick={onRetry}><ArrowClockwise size={17} />Try again</button>
+        <button className="admin-button secondary" type="button" onClick={onRetry}><ArrowClockwise size={17} />Thử lại</button>
       </div>
     )
   }
@@ -118,8 +120,8 @@ export function ResourceState({ status, empty, error, onRetry, children }: {
     return (
       <div className="admin-state">
         <span className="admin-state-icon"><Tray size={25} /></span>
-        <h3>No records found</h3>
-        <p>New records will appear here when they become available.</p>
+        <h3>Chưa có bản ghi</h3>
+        <p>Không có dữ liệu phù hợp với bộ lọc.</p>
       </div>
     )
   }
@@ -164,9 +166,7 @@ export function TablePagination({ page, pageSize, totalItems, totalPages, pageSi
   return (
     <footer className="admin-table-pagination">
       <span>{text.summary(paginationNumber.format(firstShown), paginationNumber.format(lastShown), paginationNumber.format(totalItems), itemNoun)}</span>
-      <label>{text.rows} <select value={pageSize} disabled={busy} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
-        {pageSizes.map((size) => <option key={size} value={size}>{size}</option>)}
-      </select></label>
+      <AdminDropdown className="admin-page-size" label={text.rows} name="pageSize" value={String(pageSize)} disabled={busy} onChange={(value) => onPageSizeChange(Number(value))} options={pageSizes.map((size) => ({ value: String(size), label: String(size) }))} />
       <nav aria-label={text.nav}>
         <button type="button" disabled={busy || page <= 1} onClick={() => onPageChange(page - 1)}><ArrowLeft size={16} />{text.previous}</button>
         <span>{text.page(page, lastPage)}</span>

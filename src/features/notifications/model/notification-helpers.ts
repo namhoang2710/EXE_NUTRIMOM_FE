@@ -71,6 +71,13 @@ export function adaptDeepLink(deepLink?: string): DeepLinkResult {
   return { message: 'Liên kết này chưa được hỗ trợ trên phiên bản web.' }
 }
 
+export function adaptExpertDeepLink(link?:string):DeepLinkResult {
+  if(link==='nutrimom://expert/consultations')return {path:'/expert?section=requests&request_type=pool'}
+  const match=link?.match(/^nutrimom:\/\/expert\/consultations\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i)
+  if(match)return {path:`/expert?section=requests&request_focus=${encodeURIComponent(match[1])}`}
+  return {message:'Thông báo này không có liên kết phù hợp với không gian chuyên gia.'}
+}
+
 export function notificationTypeLabel(type: string) {
   return ({ CONSULTATION: 'Tư vấn', CONTACT: 'Hỗ trợ', FAMILY: 'Gia đình', REMINDER: 'Nhắc lịch', SYSTEM: 'Hệ thống' } as Record<string, string>)[type] || 'Thông báo'
 }

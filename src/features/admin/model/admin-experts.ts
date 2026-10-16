@@ -1,3 +1,5 @@
+import { isValidPhone } from '../../auth/model/auth-validation.ts'
+import { adminLabel } from './admin-workspace-query.ts'
 export const expertSpecialties = ['PSYCHOLOGY', 'OBSTETRICS', 'HEALTH'] as const
 export const expertStatuses = ['ACTIVE', 'INACTIVE'] as const
 
@@ -52,7 +54,7 @@ export interface UpdateAdminExpertInput {
 }
 
 export type ExpertFormErrors = Partial<Record<
-  'phone' | 'password' | 'fullName' | 'specialty' | 'title' | 'workplace' | 'yearsOfExperience' | 'bio' | 'avatar',
+  'phone' | 'password' | 'fullName' | 'specialty' | 'title' | 'workplace' | 'yearsOfExperience' | 'bio' | 'avatar' | 'status',
   string
 >>
 
@@ -69,33 +71,41 @@ export function validateExpertProfile(input: {
   bio: string
 }, requireFullName = true): ExpertFormErrors {
   const errors: ExpertFormErrors = {}
-  if (requireFullName && !input.fullName.trim()) errors.fullName = 'Full name is required.'
-  else if (input.fullName.trim().length > 100) errors.fullName = 'Full name must not exceed 100 characters.'
-  if (!isExpertSpecialty(input.specialty)) errors.specialty = 'Select a specialty.'
-  if (input.title.trim().length > 100) errors.title = 'Professional title must not exceed 100 characters.'
-  if (input.workplace.trim().length > 255) errors.workplace = 'Workplace must not exceed 255 characters.'
+  if (requireFullName && !input.fullName.trim()) errors.fullName = 'Vui lòng nhập họ tên.'
+  else if (input.fullName.trim().length > 100) errors.fullName = 'Họ tên tối đa 100 ký tự.'
+  if (!isExpertSpecialty(input.specialty)) errors.specialty = 'Vui lòng chọn chuyên khoa.'
+  if (input.title.trim().length > 100) errors.title = 'Chức danh tối đa 100 ký tự.'
+  if (input.workplace.trim().length > 255) errors.workplace = 'Nơi làm việc tối đa 255 ký tự.'
   const experience = Number(input.yearsOfExperience)
-  if (!Number.isInteger(experience) || experience < 0 || experience > 80) errors.yearsOfExperience = 'Experience must be a whole number from 0 to 80.'
-  if (input.bio.length > 4000) errors.bio = 'Bio must not exceed 4,000 characters.'
+  if (!Number.isInteger(experience) || experience < 0 || experience > 80) errors.yearsOfExperience = 'Kinh nghiệm phải là số nguyên từ 0 đến 80.'
+  if (input.bio.length > 4000) errors.bio = 'Giới thiệu tối đa 4.000 ký tự.'
   return errors
 }
 
 export function validateCreateExpert(input: Parameters<typeof validateExpertProfile>[0] & { phone: string; password: string }) {
   const errors = validateExpertProfile(input)
-  if (!input.phone.trim()) errors.phone = 'Phone is required.'
-  if (!input.password) errors.password = 'Password is required.'
-  else if (input.password.length < 8 || input.password.length > 72) errors.password = 'Password must contain 8–72 characters.'
+  if (!input.phone.trim()) errors.phone = 'Vui lòng nhập số điện thoại.'
+  else if (!isValidPhone(input.phone.trim())) errors.phone = 'Số điện thoại Việt Nam chưa hợp lệ.'
+  if (!input.password) errors.password = 'Vui lòng nhập mật khẩu.'
+  else if (input.password.length < 8 || input.password.length > 72) errors.password = 'Mật khẩu cần từ 8 đến 72 ký tự.'
   return errors
 }
 
 export function validateExpertAvatar(file: File | null): string | null {
   if (!file) return null
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return 'Choose a JPEG, PNG or WebP image.'
-  if (file.size > 10 * 1024 * 1024) return 'The image must not exceed 10 MiB.'
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return 'Chọn ảnh JPEG, PNG hoặc WebP.'
+  if (file.size > 10 * 1024 * 1024) return 'Ảnh tối đa 10 MiB.'
   return null
 }
 
 export function formatExpertSpecialty(code: ExpertSpecialty, options: readonly ExpertSpecialtyOption[]) {
   return options.find((option) => option.code === code)?.displayName
-    ?? code.toLowerCase().replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase())
+    ?? adminLabel(code)
+}
+
+export function mapExpertFieldErrors(fields: Record<string, string>): ExpertFormErrors {
+  const names: Record<string, keyof ExpertFormErrors> = { phone:'phone', password:'password', full_name:'fullName', fullName:'fullName', specialty:'specialty', title:'title', workplace:'workplace', years_of_experience:'yearsOfExperience', yearsOfExperience:'yearsOfExperience', bio:'bio', avatar:'avatar', file:'avatar', status:'status' }
+  const result: ExpertFormErrors = {}
+  for (const [name,message] of Object.entries(fields)) if (names[name]) result[names[name]] = message
+  return result
 }

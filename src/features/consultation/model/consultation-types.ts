@@ -1,3 +1,4 @@
+import type { AcceptanceTiming } from './consultation-timing'
 export type ConsultationSpecialty = 'PSYCHOLOGY' | 'OBSTETRICS' | 'HEALTH'
 export type ConsultationAssignmentType = 'DIRECT' | 'RANDOM'
 export type ConsultationStatus = 'PENDING_EXPERT' | 'PENDING_CONSULTATION' | 'COMPLETED' | 'CANCELLED'
@@ -36,7 +37,7 @@ export interface ConsultationSlotInfo {
   endTime: string
 }
 
-export interface ConsultationRequest {
+export interface ConsultationRequest extends Partial<AcceptanceTiming> {
   id: string
   userId: string
   userDisplayName: string | null
@@ -71,6 +72,7 @@ export interface DirectConsultationInput {
 }
 
 export interface RandomConsultationInput {
+  preferredDate?: string
   specialty: ConsultationSpecialty
   note?: string
 }

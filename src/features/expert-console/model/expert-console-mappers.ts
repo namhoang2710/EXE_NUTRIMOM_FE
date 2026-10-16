@@ -1,4 +1,5 @@
-import type { ConsultationDto, DayScheduleDto, DaySummaryDto, ExpertProfileDto, PageDto, ReviewDto, ScheduleSlotDto, SlotInfoDto } from './expert-console-dto'
+import { mapAcceptanceTiming } from '../../consultation/model/consultation-timing.ts'
+import type { ConsultationDto, ConsultationPageDto, DayScheduleDto, DaySummaryDto, ExpertProfileDto, PageDto, ReviewDto, ScheduleSlotDto, SlotInfoDto } from './expert-console-dto'
 import type { Consultation, DaySchedule, DaySummary, ExpertProfile, ExpertReview, Page, ScheduleSlot } from './expert-console-types'
 import { normalizeSlotTime } from '../../consultation/model/slot-grid.ts'
 
@@ -43,6 +44,7 @@ function mapSlotInfo(dto: SlotInfoDto | null): Consultation['slot'] {
 
 export function mapConsultation(dto: ConsultationDto): Consultation {
   return {
+    ...mapAcceptanceTiming(dto),
     id: dto.id,
     userId: dto.user_id,
     userDisplayName: dto.user_display_name,
@@ -54,6 +56,13 @@ export function mapConsultation(dto: ConsultationDto): Consultation {
     completedAt: dto.completed_at,
     createdAt: dto.created_at,
   }
+}
+
+export function mapConsultationPage(dto:ConsultationPageDto) {
+  const page=mapPage(dto,mapConsultation)
+  const next=dto.next_consultation?mapConsultation(dto.next_consultation):null
+  if(next&&(next.status!=='PENDING_CONSULTATION'||!next.slot))throw new Error('Buổi tư vấn gần nhất từ server không hợp lệ.')
+  return {...page,nextConsultation:next}
 }
 
 export function mapReview(dto: ReviewDto): ExpertReview {

@@ -5,6 +5,9 @@ import { AdminOnly, ExpertOnly, GuestOnly, OnboardingRoute, ProtectedRoute } fro
 const AdminLayout = lazy(() => import('@/features/admin/layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage').then((module) => ({ default: module.AdminDashboardPage })))
 const AdminUsersPage = lazy(() => import('@/features/admin/pages/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })))
+const AdminExpertsPage = lazy(() => import('@/features/admin/pages/AdminExpertsPage').then((module) => ({ default: module.AdminExpertsPage })))
+const AdminRevenuePage = lazy(() => import('@/features/admin/pages/AdminRevenuePage').then((module) => ({ default: module.AdminRevenuePage })))
+const AdminNotificationsPage = lazy(() => import('@/features/admin/pages/AdminNotificationsPage').then((module) => ({ default: module.AdminNotificationsPage })))
 const AdminAppointmentsPage = lazy(() => import('@/features/admin/pages/AdminAppointmentsPage').then((module) => ({ default: module.AdminAppointmentsPage })))
 const AdminConsultationsPage = lazy(() => import('@/features/admin/pages/AdminConsultationsPage').then((module) => ({ default: module.AdminConsultationsPage })))
 const AdminHealthPage = lazy(() => import('@/features/admin/pages/AdminHealthPage').then((module) => ({ default: module.AdminHealthPage })))
@@ -140,6 +143,7 @@ export function AppRouter() {
       <Route path="admin" element={<AdminOnly><Suspense fallback={<AdminRouteFallback />}><AdminLayout /></Suspense></AdminOnly>}>
         <Route index element={<AdminDashboardPage />} />
         <Route path="users" element={<AdminUsersPage />} />
+        <Route path="experts" element={<AdminExpertsPage />} />
         <Route path="appointments" element={<AdminAppointmentsPage />} />
         <Route path="consultations" element={<AdminConsultationsPage />} />
         <Route path="support" element={<AdminContactInboxPage />} />
@@ -148,6 +152,8 @@ export function AppRouter() {
         <Route path="nutrition" element={<AdminNutritionPage />} />
         <Route path="knowledge" element={<AdminKnowledgePage />} />
         <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="revenue" element={<AdminRevenuePage />} />
+        <Route path="notifications" element={<AdminNotificationsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
 

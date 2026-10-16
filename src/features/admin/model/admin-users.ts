@@ -1,3 +1,4 @@
+import { adminLabel } from './admin-workspace-query.ts'
 export const adminUserRoles = [
   'USER',
   'EXPERT',
@@ -21,7 +22,7 @@ export type AdminUserSortDirection = 'asc' | 'desc'
 export interface AdminUserListItem {
   id: string
   displayName: string | null
-  phone: string
+  phone: string | null
   email: string | null
   avatarKey: string | null
   roles: AdminUserRole[]
@@ -111,7 +112,7 @@ export function readAdminUsersQuery(search: URLSearchParams | string): AdminUser
 
   return {
     page: positiveInteger(params.get('page'), defaultAdminUsersQuery.page),
-    pageSize: adminUserPageSizes.includes(requestedPageSize as (typeof adminUserPageSizes)[number])
+    pageSize: requestedPageSize >= 1 && requestedPageSize <= 100
       ? requestedPageSize
       : defaultAdminUsersQuery.pageSize,
     q: q || undefined,
@@ -139,6 +140,7 @@ export function buildAdminUsersQueryString(query: AdminUsersQuery) {
 }
 
 export function formatAdminUserEnum(value: string) {
+  if (adminLabel(value) !== value) return adminLabel(value)
   return value
     .toLowerCase()
     .split('_')

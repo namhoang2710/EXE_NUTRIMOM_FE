@@ -1,3 +1,4 @@
+import { AcceptanceDeadline } from './AcceptanceDeadline'
 import { ArrowClockwise, CalendarBlank, CaretLeft, CaretRight, ChatText, Clock, Star, UserCircle } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
 import { VideoRoomLink } from '@/features/consultation-video/components/VideoRoomLink'
@@ -14,6 +15,7 @@ export function ConsultationCard({ item, highlighted = false, index = 0, onCance
       <div><dt><Clock size={17} aria-hidden="true" />Thời gian</dt><dd>{item.slot ? `${formatConsultationTime(item.slot.startTime)} - ${formatConsultationTime(item.slot.endTime)}` : 'Chưa xác định'}</dd></div>
       <div><dt><ChatText size={17} aria-hidden="true" />Loại yêu cầu</dt><dd>{consultationAssignmentLabels[item.assignmentType]}</dd></div>
     </dl>
+    {item.assignmentType==='RANDOM'&&item.status!=='CANCELLED'&&<AcceptanceDeadline timing={item} pending={item.status==='PENDING_EXPERT'}/>}
     {item.note && <div className="consultation-card__note"><span>Ghi chú</span><p>{item.note}</p></div>}
     <div className="consultation-card__footer"><p>Tạo lúc {formatConsultationDateTime(item.createdAt)}</p><div className="consultation-card__actions">
       {item.reviewed && <span className="consultation-reviewed"><Star size={16} weight="fill" aria-hidden="true" />Đã đánh giá</span>}

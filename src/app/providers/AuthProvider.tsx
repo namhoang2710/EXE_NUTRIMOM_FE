@@ -7,6 +7,7 @@ import { AuthContext, type AuthContextValue, type AuthStatus } from '@/features/
 import { userApi } from '@/features/user/api/user-api'
 import type { UserProfile, ProfilePatch } from '@/features/user/model/user-types'
 import { isAdminUser, isExpertUser } from '@/features/auth/model/role-routing'
+import { adminLoginAnimation } from '@/features/admin/model/admin-login-animation'
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>('loading')
@@ -70,7 +71,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return sessionUser
   }, [reloadProfile])
 
-  const login = useCallback(async (payload: LoginInput) => acceptSession((await authApi.login(payload)).user), [acceptSession])
+  const login = useCallback(async (payload: LoginInput) => {
+    const session = await authApi.login(payload)
+    if (isAdminUser(session.user)) adminLoginAnimation.arm(getSessionScope())
+    return acceptSession(session.user)
+  }, [acceptSession])
   const register = useCallback(async (payload: RegisterInput) => {
     const session = await authApi.register(payload)
     if (session) {

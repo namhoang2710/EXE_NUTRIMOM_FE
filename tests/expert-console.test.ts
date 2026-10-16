@@ -4,7 +4,8 @@ import test from 'node:test'
 import { ApiClientError } from '../src/core/api/api-error.ts'
 import { authenticatedDestination, isExpertUser } from '../src/features/auth/model/role-routing.ts'
 import { expertActionErrorMessage, REQUEST_ALREADY_CLAIMED_MESSAGE, SLOT_UNAVAILABLE_MESSAGE } from '../src/features/expert-console/model/expert-console-errors.ts'
-import { mapConsultation, mapDaySchedule, mapDaySummary, mapExpertProfile, mapPage, mapReview, mapScheduleSlot } from '../src/features/expert-console/model/expert-console-mappers.ts'
+import { mapConsultation, mapConsultationPage, mapDaySchedule, mapDaySummary, mapExpertProfile, mapPage, mapReview, mapScheduleSlot } from '../src/features/expert-console/model/expert-console-mappers.ts'
+import type { ConsultationDto } from '../src/features/expert-console/model/expert-console-dto.ts'
 import { buildConsultationQuery, buildReviewQuery, toQueryString } from '../src/features/expert-console/model/expert-console-query.ts'
 import { sortConsultationsNewestFirst } from '../src/features/expert-console/model/expert-console-time.ts'
 import { createExpertReadCoordinator } from '../src/features/expert-console/model/expert-read-coordinator.ts'
@@ -76,6 +77,18 @@ test('expert appointments are copied and ordered by latest slot before rendering
   ]
   assert.deepEqual(sortConsultationsNewestFirst(original).map((item) => item.id), ['new', 'old', 'unscheduled'])
   assert.deepEqual(original.map((item) => item.id), ['old', 'unscheduled', 'new'])
+})
+
+test('nearest banner uses the server appointment across pages instead of the first descending list row',()=>{
+  const dto=(id:string,hour:string):ConsultationDto=>({id,user_id:'user-1',user_display_name:id,expert_user_id:'expert-1',expert_name:'Expert',specialty:'HEALTH',assignment_type:'DIRECT',status:'PENDING_CONSULTATION',slot:{id:`slot-${id}`,slot_date:'2026-10-16',start_time:hour,end_time:hour==='14:00'?'14:30':'15:30'},note:null,reviewed:false,can_review:false,completed_at:null,version:1,created_at:'2026-10-15T01:00:00Z',updated_at:'2026-10-15T01:00:00Z'})
+  const raw={items:[dto('later','15:00')],page:1,page_size:1,total_items:3,total_pages:3,next_consultation:dto('nearest','14:00')}
+  const mapped=mapConsultationPage(raw)
+  assert.equal(mapped.items[0].slot?.startTime,'15:00')
+  assert.equal(mapped.nextConsultation?.slot?.startTime,'14:00')
+  assert.equal(mapped.nextConsultation?.id,'nearest')
+  assert.equal(mapConsultationPage({...raw,next_consultation:null}).nextConsultation,null)
+  assert.throws(()=>mapConsultationPage({...raw,next_consultation:{...raw.next_consultation,status:'COMPLETED'}}))
+  assert.match(buildConsultationQuery({type:'assigned',page:1,pageSize:10,includeNext:true}),/includeNext=true/)
 })
 
 test('expert read coordinator shares duplicate loads and blocks all reads during a 429 cooldown', async () => {

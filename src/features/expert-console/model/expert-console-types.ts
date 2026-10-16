@@ -1,3 +1,4 @@
+import type { AcceptanceTiming } from '../../consultation/model/consultation-timing'
 import type { ExpertSpecialty, ExpertStatus } from '@/features/admin/model/admin-experts'
 
 export type ScheduleSlotState = 'OPEN' | 'BOOKED' | 'CLOSED'
@@ -48,7 +49,7 @@ export interface DaySummary {
   dayOff: boolean
 }
 
-export interface Consultation {
+export interface Consultation extends Partial<AcceptanceTiming> {
   id: string
   userId: string
   userDisplayName: string | null
@@ -90,6 +91,7 @@ export interface ConsultationQuery extends DateRangeQuery {
   query?: string
   page: number
   pageSize: number
+  includeNext?: boolean
 }
 
 export interface ReviewQuery extends DateRangeQuery {
