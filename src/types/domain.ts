@@ -62,31 +62,11 @@ export interface PregnancyCalculation {
   calculation_source: string
 }
 
-export interface WeekContent {
-  week: number
-  title?: string | null
-  summary?: string | null
-  baby_development?: string | null
-  mother_changes?: string | null
-  care_tips?: string | null
-  warning_signs?: string | null
-  sources?: string | null
-  disclaimer?: string | null
-  development_summary?: string | null
-  maternal_changes?: string[]
-  care_topics?: string[]
-  reviewed_by?: string | null
-  reviewed_at?: string | null
-  content_version?: number
-  baby?: { length_cm_range?: number[] | null; weight_g_range?: number[] | null; comparison_label?: string | null } | null
-}
-
 import type { CalendarEventItem } from '@/features/calendar/model/calendar-types'
 
 export interface MomDashboard {
   profile_summary?: { display_name: string; salutation?: string | null; role: string } | null
   pregnancy_summary?: Pregnancy | null
-  baby_summary?: { week: number; title?: string | null; summary?: string | null; baby_development?: string | null; disclaimer?: string | null } | null
   next_appointment?: CalendarEventItem | null
   health_snapshot?: { title?: string | null; value?: string | number | null; unit?: string | null; trend?: string | null } | null
   care_progress?: { completed: number; total: number } | null
