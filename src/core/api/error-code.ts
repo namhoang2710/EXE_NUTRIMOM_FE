@@ -7,6 +7,7 @@ export const ErrorCodes = {
   slotUnavailable: 'SLOT_UNAVAILABLE',
   contactRequestLimitReached: 'CONTACT_REQUEST_LIMIT_REACHED',
   invalidContactRequestState: 'INVALID_CONTACT_REQUEST_STATE',
+  invalidActivationToken: 'INVALID_ACTIVATION_TOKEN',
 } as const
 
 export type KnownErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
