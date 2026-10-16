@@ -25,7 +25,7 @@ const { profileRead, invalidateProfileResources } = await import('../src/core/ap
 const { env } = await import('../src/core/config/env.ts')
 const { userApi } = await import('../src/features/user/api/user-api.ts')
 const { authApi } = await import('../src/features/auth/api/auth-api.ts')
-const { filesApi, pregnancyApi, recordsApi, sha256, uploadContent } = await import('../src/features/maternity/api/domain-api.ts')
+const { filesApi, recordsApi, sha256, uploadContent } = await import('../src/features/maternity/api/domain-api.ts')
 const { clearDiagnosticEvents, getDiagnosticEvents } = await import('../src/core/diagnostics/logger.ts')
 
 function response(user = 'u1', access = 'secret-jwt'): AuthResponseDto {
@@ -201,17 +201,13 @@ test('download coalesces link and binary, renews an expired link once, and keeps
   await filesApi.downloadBlob('f'); assert.equal(links, 3)
 })
 
-test('foreign-user and storage errors are surfaced; CONTENT_NOT_REVIEWED has no automatic retry', async () => {
+test('foreign-user and storage errors are surfaced', async () => {
   reset(); let calls = 0
   globalThis.fetch = (async () => { calls += 1; return json({ code: 'FORBIDDEN', message: 'foreign' }, 403) }) as typeof fetch
   await assert.rejects(filesApi.downloadBlob('foreign'), /foreign/)
   assert.equal(calls, 1)
   globalThis.fetch = (async () => json({ code: 'FILE_STORAGE_UNAVAILABLE', message: 'storage offline', retryable: true }, 502)) as typeof fetch
   await assert.rejects(filesApi.createSession({ purpose: 'MEDICAL_RECORD', file_name: 'synthetic.pdf', mime_type: 'application/pdf', size_bytes: 5, sha256: 'hash' }), /storage offline/)
-  calls = 0
-  globalThis.fetch = (async () => { calls += 1; return json({ code: 'CONTENT_NOT_REVIEWED', message: 'pending review' }, 409) }) as typeof fetch
-  await assert.rejects(pregnancyApi.weekContent(24), /pending review/)
-  assert.equal(calls, 1)
 })
 
 test('SHA-256 uses actual bytes rather than metadata', async () => {

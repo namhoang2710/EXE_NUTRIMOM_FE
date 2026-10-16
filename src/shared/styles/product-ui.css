@@ -121,7 +121,6 @@ body { overflow-x: hidden; }
 .pregnancy-chart-empty span { max-width: 30ch; color: var(--muted); font-size: .9rem; }
 .pregnancy-chart-skeleton { min-height: 340px; border-radius: 22px; background: linear-gradient(90deg, var(--surface-muted), var(--surface-strong), var(--surface-muted)); background-size: 200% 100%; animation: skeleton-pulse 1.4s infinite; }
 .pregnancy-journey-hero { scroll-margin-top: 24px; }
-.pregnancy-content-card small { display: block; margin-top: 7px; color: var(--subtle); }
 
 .pregnancy-save-dialog { width: min(100%, 580px); }
 .pregnancy-confirm-summary { display: grid; gap: 12px; }

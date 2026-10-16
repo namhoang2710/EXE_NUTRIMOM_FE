@@ -29,17 +29,17 @@ test('single-flight shares one concurrent request and permits a fresh request af
 test('single-flight isolates keys and releases failed requests for retry', async () => {
   const coordinator = createSingleFlight()
   let calls = 0
-  const failure = new Error('not reviewed')
+  const failure = new Error('temporary failure')
 
-  const failed = coordinator.run('pregnancy:week:24', async () => { calls += 1; throw failure })
-  const sameFailure = coordinator.run('pregnancy:week:24', async () => { calls += 1; return 'must-not-run' })
-  const anotherWeek = coordinator.run('pregnancy:week:25', async () => { calls += 1; return 'week-25' })
+  const failed = coordinator.run('pregnancy:resource-a', async () => { calls += 1; throw failure })
+  const sameFailure = coordinator.run('pregnancy:resource-a', async () => { calls += 1; return 'must-not-run' })
+  const anotherResource = coordinator.run('pregnancy:resource-b', async () => { calls += 1; return 'resource-b' })
 
   assert.equal(failed, sameFailure)
   await assert.rejects(failed, failure)
   await assert.rejects(sameFailure, failure)
-  assert.equal(await anotherWeek, 'week-25')
-  assert.equal(await coordinator.run('pregnancy:week:24', async () => { calls += 1; return 'retried' }), 'retried')
+  assert.equal(await anotherResource, 'resource-b')
+  assert.equal(await coordinator.run('pregnancy:resource-a', async () => { calls += 1; return 'retried' }), 'retried')
   assert.equal(calls, 3)
 })
 
@@ -52,7 +52,9 @@ test('pregnancy page ignores stale loads and charts start with valid dimensions'
   assert.match(health, /loadGenerationRef/)
   assert.match(health, /generation !== loadGenerationRef\.current/)
   assert.match(api, /pregnancyReads\.run\(pregnancyReadKey\('current'\)/)
-  assert.match(api, /pregnancyReads\.run\(pregnancyReadKey\(`week:\$\{week\}`\)/)
+  // Weekly pregnancy articles were dropped: the page and API layer must not request them at all.
+  assert.doesNotMatch(api, /pregnancy-content|weekContent/)
+  assert.doesNotMatch(health, /pregnancy-content|weekContent|CONTENT_NOT_REVIEWED/)
   assert.match(weekChart, /initialDimension=\{initialWeekChartSize\}/)
   assert.match(radialChart, /initialDimension=\{initialRadialChartSize\}/)
 })

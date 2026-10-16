@@ -43,17 +43,12 @@ socket.addEventListener('message', (event) => {
   if (payload.method === 'Runtime.exceptionThrown') browserErrors.push(payload.params.exceptionDetails?.text ?? 'Runtime exception')
   if (payload.method === 'Log.entryAdded' && payload.params.entry.level === 'error') browserErrors.push(payload.params.entry.text)
   if (payload.method === 'Fetch.requestPaused') {
-    const { requestId, request } = payload.params
-    const pathname = new URL(request.url).pathname
-    const data = pathname.endsWith('/pregnancies/current') ? {
+    const { requestId } = payload.params
+    const data = {
       id: 'qa-pregnancy-week-29', status: 'ACTIVE', last_menstrual_period: '2026-03-06', conception_date: null,
       estimated_due_date: '2026-12-11', is_first_pregnancy: true, multiple_pregnancy: false,
       timezone: 'Asia/Ho_Chi_Minh', gestational_week: 29, gestational_day: 3, trimester: 3,
       days_until_due: 77, calculation_source: 'MANUAL', care_facility_name: null, care_provider_name: null, version: 1,
-    } : {
-      week: 29, title: 'Phát triển tuần 29', summary: 'Nội dung QA.', baby_development: 'Nội dung QA.',
-      mother_changes: 'Nội dung QA.', care_tips: 'Nội dung QA.', warning_signs: 'Nội dung QA.',
-      sources: 'Nguồn QA.', disclaimer: 'Thông tin chỉ mang tính tham khảo.',
     }
     void command('Fetch.fulfillRequest', { requestId, ...jsonResponse(data) }).catch((error) => browserErrors.push(error.message))
   }
@@ -78,7 +73,6 @@ await command('Log.enable')
 await command('Page.enable')
 await command('Fetch.enable', { patterns: [
   { urlPattern: '*api/v1/pregnancies/current*', requestStage: 'Request' },
-  { urlPattern: '*api/v1/pregnancy-content/weeks/29*', requestStage: 'Request' },
 ] })
 
 await evaluate(`(async () => {
