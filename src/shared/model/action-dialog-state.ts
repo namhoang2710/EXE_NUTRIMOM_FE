@@ -22,14 +22,17 @@ export async function performDialogAction(
   action: () => Promise<void>,
   dispatch: (event: ActionDialogEvent) => void,
   errorMessage: (error: unknown) => string,
+  completion: { closeOnSuccess?: boolean; onCompleted?: () => void; onClose?: () => void } = {},
 ) {
   dispatch({ type: 'START' })
   try {
     await action()
-    dispatch({ type: 'SUCCEED' })
-    return true
   } catch (error) {
     dispatch({ type: 'FAIL', error: errorMessage(error) })
     return false
   }
+  dispatch({ type: completion.closeOnSuccess ? 'RESET' : 'SUCCEED' })
+  completion.onCompleted?.()
+  if (completion.closeOnSuccess) completion.onClose?.()
+  return true
 }

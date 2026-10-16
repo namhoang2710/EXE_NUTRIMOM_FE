@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-12",
+  "checks": [
+    {
+      "command": "npm.cmd test",
+      "exitCode": 0
+    },
+    {
+      "command": "npm.cmd run lint",
+      "exitCode": 0
+    },
+    {
+      "command": "npm.cmd run build",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "testSummary": {
+    "tests": 323,
+    "pass": 323,
+    "fail": 0,
+    "skipped": 0
+  },
+  "targetedUiTests": {
+    "tests": 50,
+    "pass": 50,
+    "fail": 0
+  },
+  "browserVerified": false,
+  "privateR2SmokeVerified": false
+}

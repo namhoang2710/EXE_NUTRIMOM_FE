@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 import type { LoginInput, OtpChallenge, RegisterInput, RequestOtpInput, User, VerifyOtpInput } from './auth-types'
-import type { UserProfile } from '@/features/user/model/user-types'
+import type { UserProfile, ProfilePatch } from '@/features/user/model/user-types'
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous'
 
@@ -10,6 +10,7 @@ export interface AuthContextValue {
   profile: UserProfile | null
   profileError: string | null
   reloadProfile: () => Promise<UserProfile>
+  updateProfile: (body: ProfilePatch) => Promise<UserProfile>
   login: (payload: LoginInput) => Promise<User>
   register: (payload: RegisterInput) => Promise<void>
   activateAccount: (token: string, email?: string) => Promise<User>

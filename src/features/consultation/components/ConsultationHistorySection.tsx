@@ -1,3 +1,4 @@
+import { invalidateProfileResources } from '@/core/api/profile-requests'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { consultationApi } from '../api/consultation-api'
@@ -37,28 +38,31 @@ export function ConsultationHistorySection({ onCancelled, showHeading = true }: 
     const controller = new AbortController()
     let reviewRetryTimer: number | undefined
     setFocused(null); setFocusError('')
-    const loadFocused = (allowReviewRetry: boolean) => void consultationApi.get(focusedId, controller.signal).then((item) => {
-      if (controller.signal.aborted) return
-      setFocused(item)
-      const shouldOpenReview = reviewRequested && item.canReview && autoReviewOpened.current !== item.id
-      if (shouldOpenReview) {
-        autoReviewOpened.current = item.id
-        openReviewRef.current(item)
-      }
-      if (reviewRequested && !item.canReview && item.status === 'PENDING_CONSULTATION' && allowReviewRetry) {
-        // The expiry scheduler runs every 15 seconds. One delayed refresh bridges that hand-off
-        // window without polling or issuing requests from the in-call countdown.
-        reviewRetryTimer = window.setTimeout(() => loadFocused(false), POST_CALL_REVIEW_RETRY_MS)
-      }
-      if (!shouldOpenReview) {
-        window.requestAnimationFrame(() => {
-          focusedRef.current?.focus({ preventScroll: true })
-          focusedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        })
-      }
-    }).catch(() => {
-      if (!controller.signal.aborted) setFocusError('Không thể mở nội dung tư vấn này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.')
-    })
+    const loadFocused = (allowReviewRetry: boolean) => {
+      if (!allowReviewRetry) invalidateProfileResources(`consultation:detail:${focusedId}`)
+      return void consultationApi.get(focusedId, controller.signal).then((item) => {
+        if (controller.signal.aborted) return
+        setFocused(item)
+        const shouldOpenReview = reviewRequested && item.canReview && autoReviewOpened.current !== item.id
+        if (shouldOpenReview) {
+          autoReviewOpened.current = item.id
+          openReviewRef.current(item)
+        }
+        if (reviewRequested && !item.canReview && item.status === 'PENDING_CONSULTATION' && allowReviewRetry) {
+          // The expiry scheduler runs every 15 seconds. One delayed refresh bridges that hand-off
+          // window without polling or issuing requests from the in-call countdown.
+          reviewRetryTimer = window.setTimeout(() => loadFocused(false), POST_CALL_REVIEW_RETRY_MS)
+        }
+        if (!shouldOpenReview) {
+          window.requestAnimationFrame(() => {
+            focusedRef.current?.focus({ preventScroll: true })
+            focusedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          })
+        }
+      }).catch(() => {
+        if (!controller.signal.aborted) setFocusError('Không thể mở nội dung tư vấn này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.')
+      })
+    }
     loadFocused(true)
     return () => {
       controller.abort()

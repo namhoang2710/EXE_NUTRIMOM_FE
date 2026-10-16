@@ -1,3 +1,4 @@
+import { profileRead, invalidateProfileResources } from '@/core/api/profile-requests'
 import { apiClient } from '@/core/api/api-client'
 import type {
   AdminArticleListQuery,
@@ -14,28 +15,36 @@ import { knowledgeEndpoints } from '../model/knowledge-endpoints'
 
 export const knowledgeApi = {
   listArticles(query: PublicArticleListQuery, signal?: AbortSignal) {
-    return apiClient.request<ArticlePageDto<ArticleSummaryDto>>(`${knowledgeEndpoints.publicArticles}${buildKnowledgeQueryString(query)}`, { signal })
+    const path = `${knowledgeEndpoints.publicArticles}${buildKnowledgeQueryString(query)}`
+    if (query.savedOnly) return profileRead(`saved:list:${path}`, () => apiClient.request<ArticlePageDto<ArticleSummaryDto>>(path), signal)
+    return apiClient.request<ArticlePageDto<ArticleSummaryDto>>(path, { signal })
   },
   getArticle(slug: string, signal?: AbortSignal) {
     return apiClient.request<ArticleDetailDto>(knowledgeEndpoints.publicArticle(slug), { signal })
   },
-  saveBookmark(slug: string) {
-    return apiClient.request<boolean>(knowledgeEndpoints.bookmark(slug), { method: 'PUT' })
+  async saveBookmark(slug: string) {
+    const result = await apiClient.request<boolean>(knowledgeEndpoints.bookmark(slug), { method: 'PUT' })
+    invalidateProfileResources('saved:')
+    return result
   },
-  removeBookmark(slug: string) {
-    return apiClient.request<boolean>(knowledgeEndpoints.bookmark(slug), { method: 'DELETE' })
+  async removeBookmark(slug: string) {
+    const result = await apiClient.request<boolean>(knowledgeEndpoints.bookmark(slug), { method: 'DELETE' })
+    invalidateProfileResources('saved:')
+    return result
   },
-  async listAllSavedSlugs(signal?: AbortSignal) {
-    const saved: string[] = []
-    let page = 1
-    let totalPages = 1
-    do {
-      const response = await this.listArticles({ page, pageSize: 100, savedOnly: true, sort: 'publishedAt:desc' }, signal)
-      saved.push(...response.items.map((article) => article.slug))
-      totalPages = response.totalPages
-      page += 1
-    } while (page <= totalPages)
-    return saved
+  listAllSavedSlugs(signal?: AbortSignal) {
+    return profileRead('saved:slugs', async () => {
+      const saved: string[] = []
+      let page = 1
+      let totalPages = 1
+      do {
+        const response = await this.listArticles({ page, pageSize: 100, savedOnly: true, sort: 'publishedAt:desc' })
+        saved.push(...response.items.map((article) => article.slug))
+        totalPages = response.totalPages
+        page += 1
+      } while (page <= totalPages)
+      return saved
+    }, signal)
   },
 }
 

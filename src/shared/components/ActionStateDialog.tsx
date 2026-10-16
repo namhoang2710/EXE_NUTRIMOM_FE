@@ -14,6 +14,7 @@ interface ActionStateDialogProps {
   successMessage: string
   danger?: boolean
   compact?: boolean
+  closeOnSuccess?: boolean
   onAction: () => Promise<void>
   onClose: () => void
   onCompleted?: () => void
@@ -30,6 +31,7 @@ export function ActionStateDialog({
   successMessage,
   danger = false,
   compact = false,
+  closeOnSuccess = false,
   onAction,
   onClose,
   onCompleted,
@@ -42,8 +44,7 @@ export function ActionStateDialog({
 
   async function confirm() {
     await gate.current.run(async () => {
-      const completed = await performDialogAction(onAction, dispatch, errorMessage)
-      if (completed) onCompleted?.()
+      await performDialogAction(onAction, dispatch, errorMessage, { closeOnSuccess, onCompleted, onClose })
     })
   }
 

@@ -1,5 +1,6 @@
+import { resolveBinaryUrl } from './binary-url.ts'
 import { getDeviceId } from '../auth/device.ts'
-import { getSession } from '../auth/token-store.ts'
+import { getSession, getSessionScope } from '../auth/token-store.ts'
 import { env } from '../config/env.ts'
 import { ApiClientError, parseApiError } from './api-error.ts'
 import { ErrorCodes } from './error-code.ts'
@@ -20,7 +21,13 @@ let refreshInFlight: Promise<unknown> | null = null
 const protectedRequests = new Set<AbortController>()
 
 if (typeof window !== 'undefined') {
+  window.addEventListener('nutrimom:session-changed', () => {
+    refreshInFlight = null
+    for (const controller of protectedRequests) controller.abort('session-changed')
+    protectedRequests.clear()
+  })
   window.addEventListener('nutrimom:session-cleared', () => {
+    refreshInFlight = null
     logDiagnostic({ level: 'warn', category: 'api', event: 'session_cleared', reason: 'auth-event' })
     for (const controller of protectedRequests) controller.abort('session-cleared')
     protectedRequests.clear()
@@ -46,10 +53,11 @@ function refreshOnce() {
   if (!refreshHandler) return Promise.reject(new Error('Refresh handler is unavailable.'))
   if (!refreshInFlight) {
     logDiagnostic({ level: 'info', category: 'api', event: 'token_refresh_started' })
-    refreshInFlight = Promise.resolve().then(refreshHandler)
+    const pending = Promise.resolve().then(refreshHandler)
       .then((result) => { logDiagnostic({ level: 'info', category: 'api', event: 'token_refresh_succeeded' }); return result })
       .catch((reason: unknown) => { logDiagnostic({ level: 'error', category: 'api', event: 'token_refresh_failed', reason: reason instanceof Error ? reason.name : 'unknown' }); throw reason })
-      .finally(() => { refreshInFlight = null })
+      .finally(() => { if (refreshInFlight === pending) refreshInFlight = null })
+    refreshInFlight = pending
   }
   return refreshInFlight
 }
@@ -62,7 +70,7 @@ function abortedError(timedOut = false) {
   })
 }
 
-async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+async function request<T>(path: string, options: ApiRequestOptions = {}, mode: 'json' | 'blob' | 'void' = 'json'): Promise<T> {
   const {
     authenticated = true,
     idempotencyKey,
@@ -73,19 +81,21 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
     ...fetchOptions
   } = options
   const headers = new Headers(providedHeaders)
+  const url = mode === 'json' ? `${env.apiBaseUrl}${path}` : resolveBinaryUrl(path, env.apiBaseUrl, window.location.origin)
+  const scope = getSessionScope()
   const current = getSession()
   const method = fetchOptions.method || 'GET'
   const routeTemplate = path.split('?')[0]
   const startedAt = Date.now()
 
-  headers.set('Accept', 'application/json')
+  if (!headers.has('Accept')) headers.set('Accept', mode === 'json' ? 'application/json' : '*/*')
   headers.set('Accept-Language', preferredLanguage())
   headers.set('X-Device-Id', getDeviceId())
   headers.set('X-Request-Id', headers.get('X-Request-Id') || createRequestId())
   const clientRequestId = headers.get('X-Request-Id') || undefined
   logDiagnostic({ level: 'debug', category: 'api', event: 'request_started', method, route_template: routeTemplate, client_request_id: clientRequestId })
 
-  if (fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
+  if (mode === 'json' && fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
   if (idempotencyKey) headers.set('Idempotency-Key', idempotencyKey)
@@ -106,14 +116,16 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
 
   let response: Response
   try {
-    response = await fetch(`${env.apiBaseUrl}${path}`, {
+    response = await fetch(url, {
       ...fetchOptions,
       headers,
       signal: controller.signal,
     })
   } catch (error) {
     if (authenticated) protectedRequests.delete(controller)
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    window.clearTimeout(timeoutId)
+    providedSignal?.removeEventListener('abort', abortRequest)
+    if (controller.signal.aborted || error instanceof DOMException && error.name === 'AbortError') {
       logDiagnostic({ level: timedOut ? 'warn' : 'info', category: 'api', event: timedOut ? 'request_timeout' : 'request_aborted', method, route_template: routeTemplate, client_request_id: clientRequestId, duration_ms: Date.now() - startedAt })
       throw abortedError(timedOut)
     }
@@ -123,23 +135,21 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
       message: 'Không kết nối được backend. Hãy kiểm tra Spring Boot đang chạy ở cổng 8080.',
       retryable: true,
     })
-  } finally {
-    window.clearTimeout(timeoutId)
-    providedSignal?.removeEventListener('abort', abortRequest)
   }
 
   try {
+    if (authenticated && (scope !== getSessionScope() || controller.signal.aborted)) throw abortedError(timedOut)
     if (response.status === 401 && authenticated && retryAfterRefresh) {
       const latest = getSession()
       if (latest && latest !== current) {
         logDiagnostic({ level: 'info', category: 'api', event: 'retry_after_refresh', method, route_template: routeTemplate, client_request_id: clientRequestId, retry_attempt: 1, reason: 'session-already-rotated' })
-        return request<T>(path, { ...options, retryAfterRefresh: false })
+        return request<T>(path, { ...options, retryAfterRefresh: false }, mode)
       }
       if (current?.refreshToken && refreshHandler) {
         await refreshOnce()
-        if (controller.signal.aborted) throw abortedError()
+        if (controller.signal.aborted || scope !== getSessionScope()) throw abortedError()
         logDiagnostic({ level: 'info', category: 'api', event: 'retry_after_refresh', method, route_template: routeTemplate, client_request_id: clientRequestId, retry_attempt: 1 })
-        return request<T>(path, { ...options, retryAfterRefresh: false })
+        return request<T>(path, { ...options, retryAfterRefresh: false }, mode)
       }
     }
 
@@ -148,17 +158,34 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
       logDiagnostic({ level: 'warn', category: 'api', event: 'request_failed', method, route_template: routeTemplate, status: response.status, error_code: parsed.code, client_request_id: clientRequestId, server_request_id: parsed.requestId || response.headers.get('X-Request-Id') || undefined, duration_ms: Date.now() - startedAt })
       throw parsed
     }
-    if (response.status === 204) {
-      logDiagnostic({ level: 'debug', category: 'api', event: 'request_succeeded', method, route_template: routeTemplate, status: 204, client_request_id: clientRequestId, server_request_id: response.headers.get('X-Request-Id') || undefined, duration_ms: Date.now() - startedAt })
+    if (response.status === 204 || mode === 'void') {
+      logDiagnostic({ level: 'debug', category: 'api', event: 'request_succeeded', method, route_template: routeTemplate, status: response.status, client_request_id: clientRequestId, server_request_id: response.headers.get('X-Request-Id') || undefined, duration_ms: Date.now() - startedAt })
       return undefined as T
     }
 
+    if (mode === 'blob') {
+      const blob = await response.blob()
+      if (authenticated && (scope !== getSessionScope() || controller.signal.aborted)) throw abortedError(timedOut)
+      logDiagnostic({ level: 'debug', category: 'api', event: 'request_succeeded', method, route_template: routeTemplate, status: response.status, client_request_id: clientRequestId, duration_ms: Date.now() - startedAt })
+      return blob as T
+    }
+
     const payload = (await response.json()) as ApiResponse<T>
+    if (authenticated && (scope !== getSessionScope() || controller.signal.aborted)) throw abortedError(timedOut)
     logDiagnostic({ level: 'debug', category: 'api', event: 'request_succeeded', method, route_template: routeTemplate, status: response.status, client_request_id: clientRequestId, server_request_id: payload.meta?.request_id || response.headers.get('X-Request-Id') || undefined, duration_ms: Date.now() - startedAt })
     return payload.data
+  } catch (error) {
+    if (controller.signal.aborted) throw abortedError(timedOut)
+    throw error
   } finally {
+    window.clearTimeout(timeoutId)
+    providedSignal?.removeEventListener('abort', abortRequest)
     if (authenticated) protectedRequests.delete(controller)
   }
 }
 
-export const apiClient = { request }
+export const apiClient = {
+  request,
+  binary: (url: string, options: ApiRequestOptions = {}) => request<Blob>(url, options, 'blob'),
+  upload: (url: string, options: ApiRequestOptions) => request<void>(url, options, 'void'),
+}
