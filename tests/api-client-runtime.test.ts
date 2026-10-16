@@ -73,6 +73,26 @@ test('protected requests attach the current Bearer token', async () => {
   assert.equal(authorization, 'Bearer access-one')
 })
 
+test('CSV endpoint downloads keep the API base, Bearer auth and server filename metadata', async () => {
+  resetSession(); saveApiSession(authResponse('csv-access','csv-refresh'))
+  let url='',authorization=''
+  globalThis.fetch = (async (input: RequestInfo | URL,init?:RequestInit) => {
+    url=String(input); authorization=new Headers(init?.headers).get('Authorization') ?? ''
+    return new Response('\ufeffid,title\n1,QA\n',{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="report.csv"'}})
+  }) as typeof fetch
+  const result=await apiClient.download('/admin/reports/OPERATIONS/export?fromDate=2026-10-01&toDate=2026-10-12')
+  assert.ok(url.startsWith('/api/v1/admin/reports/OPERATIONS/export?')); assert.equal(authorization,'Bearer csv-access'); assert.ok(result.blob.type.startsWith('text/csv')); assert.equal(result.contentDisposition,'attachment; filename="report.csv"')
+})
+
+test('CSV 422 and 429 failures throw once and preserve Retry-After without returning a fake blob',async()=>{
+  for(const status of [422,429]) {
+    resetSession(); saveApiSession(authResponse('csv-access','csv-refresh'));let calls=0
+    globalThis.fetch=(async()=>{calls++;return new Response(JSON.stringify({error:{code:'EXPORT_LIMIT',message:'Export failed',retryable:false}}),{status,headers:{'Content-Type':'application/json','Retry-After':'12'}})}) as typeof fetch
+    await assert.rejects(apiClient.download('/admin/reports/REVENUE/export'),(reason:unknown)=>reason instanceof Error && 'status' in reason && reason.status===status && 'retryAfterMs' in reason && reason.retryAfterMs===12000)
+    assert.equal(calls,1)
+  }
+})
+
 test('API diagnostics correlate client/server request ids without retaining query values', async () => {
   resetSession(); clearDiagnosticEvents(); saveApiSession(authResponse('access-one', 'refresh-one'))
   let clientRequestId = ''

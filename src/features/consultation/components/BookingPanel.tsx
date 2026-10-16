@@ -36,6 +36,8 @@ interface BookingPanelProps {
   onDirectSubmit: () => Promise<boolean>
   specialty: ConsultationSpecialty | null
   onSpecialtyChange: (specialty: ConsultationSpecialty) => void
+  preferredDate:string
+  onPreferredDateChange:(value:string)=>void
   randomNote: string
   onRandomNoteChange: (note: string) => void
   randomError: string | null
@@ -174,6 +176,8 @@ export function BookingPanel(props: BookingPanelProps) {
         <motion.div key="random" id="random-panel" role="tabpanel" aria-labelledby="random-tab" className="consultation-booking-panel" initial={reduceMotion ? false : { opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -10 }} transition={{ duration: reduceMotion ? 0 : 0.18 }}>
           <div className="consultation-random-intro"><h3>Chọn chuyên khoa bạn cần</h3><p>Chuyên gia phù hợp sẽ tiếp nhận yêu cầu và sắp xếp vào khung giờ thuận tiện.</p></div>
           <div className="consultation-specialty-options" role="radiogroup" aria-label="Chuyên khoa tư vấn">{specialties.map((option) => <button key={option.value} type="button" role="radio" aria-checked={props.specialty === option.value} className={props.specialty === option.value ? 'is-selected' : ''} onClick={() => props.onSpecialtyChange(option.value)}><span>{consultationSpecialtyLabels[option.value]}</span><small>{option.description}</small></button>)}</div>
+          <div className="consultation-slot-block"><h3>Ngày mong muốn tư vấn</h3><DateStrip selectedDate={props.preferredDate} onSelect={props.onPreferredDateChange} disabled={props.randomBusy}/><p>Chọn ngày trong 30 ngày tới; chuyên gia sẽ xác nhận khung giờ khi tiếp nhận.</p></div>
+          <p className="consultation-acceptance-note">Hạn nhận tính theo giờ Việt Nam khi gửi: trước 08:00 là 08:30 hôm nay; từ 08:00 đến trước 19:00 là 30 phút; từ 19:00 là 08:30 ngày mai. Có thể nhận sớm hơn, kể cả khi chọn ngày tư vấn ở tương lai.</p>
           <NoteField id="random-note" value={props.randomNote} onChange={props.onRandomNoteChange} />
           {props.randomError && <p className="consultation-form-error" role="alert">{props.randomError}</p>}
           <div className="consultation-random-actions"><StatefulButton className="consultation-stateful-button" type="button" disabled={!props.specialty || props.randomBusy} onAction={props.onRandomSubmit}>Gửi yêu cầu tư vấn</StatefulButton></div>

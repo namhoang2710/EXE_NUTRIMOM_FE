@@ -163,7 +163,7 @@ test('occurrence actions and all reminder statuses use clear Vietnamese labels',
   assert.equal(occurrenceActionMode('SCHEDULED'), 'SET')
   assert.equal(occurrenceActionMode('DONE'), 'UNDO')
   assert.equal(occurrenceActionMode('SKIPPED'), 'UNDO')
-  assert.deepEqual(['SCHEDULED', 'DONE', 'SKIPPED', 'CANCELLED'].map(calendarStatusLabel), ['Đã lên lịch', 'Đã làm', 'Đã bỏ qua', 'Đã hủy'])
+  assert.deepEqual((['SCHEDULED', 'DONE', 'SKIPPED', 'CANCELLED'] as const).map(calendarStatusLabel), ['Đã lên lịch', 'Đã làm', 'Đã bỏ qua', 'Đã hủy'])
 })
 
 test('medical-record reminder uses the record endpoint and documented defaults', async () => {
@@ -187,7 +187,7 @@ test('calendar and notification API modules expose every required endpoint', asy
   for (const endpoint of ['/calendar/reminders', '/occurrences', '/medical-records/', '/reminders']) assert.ok(calendar.includes(endpoint))
   assert.match(notifications, /buildNotificationsPath\(cursor, unreadOnly\)/)
   assert.match(notifications, /`\/notifications\/\$\{encodeURIComponent\(id\)\}\/read`/)
-  assert.match(notifications, /'\/notifications\/read-all'/)
+  assert.match(notifications, /'\/notifications\/read-all\?audience=USER'/)
 })
 
 test('notification cursor stays opaque, appends on load more, and resets on refresh', () => {

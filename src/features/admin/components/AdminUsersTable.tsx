@@ -27,21 +27,21 @@ export function AdminUsersTable({ users, sortBy, sortDirection, onSort, onView }
     <div className="admin-table-scroll">
       <table className="admin-table admin-users-table">
         <thead><tr>
-          <th><SortButton label="User" field="displayName" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
-          <th>Phone</th><th>Roles</th>
-          <th><SortButton label="Status" field="status" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
-          <th><SortButton label="Joined" field="createdAt" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
-          <th><span className="sr-only">Actions</span></th>
+          <th><SortButton label="Người dùng" field="displayName" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
+          <th>Số điện thoại</th><th>Vai trò</th>
+          <th><SortButton label="Trạng thái" field="status" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
+          <th><SortButton label="Ngày đăng ký" field="createdAt" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
+          <th><span className="sr-only">Thao tác</span></th>
         </tr></thead>
         <tbody>{users.map((user) => {
-          const displayName = user.displayName?.trim() || 'Unnamed user'
+          const displayName = user.displayName?.trim() || 'Chưa có tên'
           return <tr key={user.id}>
             <td><div className="admin-user-cell"><span className="admin-avatar small">{getInitials(displayName)}</span><div><strong>{displayName}</strong>{user.email && <span>{user.email}</span>}</div></div></td>
-            <td><span className="admin-table-primary">{user.phone}</span></td>
+            <td><span className="admin-table-primary">{user.phone || '—'}</span></td>
             <td><div className="admin-user-badges">{user.roles.map((role) => <span className="admin-role-badge" key={role}>{formatAdminUserEnum(role)}</span>)}</div></td>
-            <td><StatusBadge value={formatAdminUserEnum(user.status)} /></td>
+            <td><StatusBadge value={user.status} /></td>
             <td>{formatAdminDate(user.createdAt)}</td>
-            <td><button className="admin-row-action" type="button" aria-label={`View details for ${displayName}`} title="View details" onClick={() => onView(user)}><Eye size={18} /></button></td>
+            <td><button className="admin-row-action" type="button" aria-label={`Xem chi tiết ${displayName}`} title="Xem chi tiết" onClick={() => onView(user)}><Eye size={18} /></button></td>
           </tr>
         })}</tbody>
       </table>

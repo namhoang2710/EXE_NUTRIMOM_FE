@@ -1,4 +1,4 @@
-import type { NotificationItem, NotificationPage, NotificationType } from './notification-types.ts'
+import type { NotificationAudience, NotificationCategory, NotificationItem, NotificationPage, NotificationType } from './notification-types.ts'
 import { logDiagnostic } from '../../../core/diagnostics/logger.ts'
 
 type JsonRecord = Record<string, unknown>
@@ -25,7 +25,7 @@ function optionalString(value: unknown) {
   return typeof value === 'string' ? value : undefined
 }
 
-function normalizeNotificationItem(value: unknown): NotificationItem | undefined {
+export function normalizeNotificationItem(value: unknown): NotificationItem | undefined {
   const item = record(value)
   if (!item) return undefined
   const id = nonEmptyString(item.id)
@@ -41,6 +41,8 @@ function normalizeNotificationItem(value: unknown): NotificationItem | undefined
     title,
     body,
     created_at: createdAt,
+    ...(['USER', 'ADMIN'].includes(item.audience as string) ? { audience: item.audience as NotificationAudience } : {}),
+    ...(['ACCOUNT', 'PAYMENT', 'APPOINTMENT', 'SUPPORT', 'GENERAL'].includes(item.category as string) ? { category: item.category as NotificationCategory } : {}),
     ...(optionalString(item.deep_link) !== undefined ? { deep_link: optionalString(item.deep_link) } : {}),
     ...(optionalString(item.source_type) !== undefined ? { source_type: optionalString(item.source_type) } : {}),
     ...(optionalString(item.source_id) !== undefined ? { source_id: optionalString(item.source_id) } : {}),

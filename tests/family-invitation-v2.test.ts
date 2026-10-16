@@ -2,14 +2,15 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { authenticatedDestination } from '../src/features/auth/model/role-routing.ts'
+import type { User } from '../src/features/auth/model/auth-types.ts'
 import { identifyTimedOutInvitation, reconcileTimedOutInvitation } from '../src/features/family/model/invitation-reconciliation.ts'
 import { FamilyInvitationContractError, normalizeInvitationList, normalizeReceivedInvitations } from '../src/features/family/model/invitation-normalizers.ts'
 import { createAbortableRequestCoordinator, createInvitationPreviewRequestCoordinator } from '../src/features/family/model/received-invitation-requests.ts'
-import type { FamilyInvitationSummary } from '../src/features/family/model/family-types.ts'
+import type { FamilyInvitationSummary, ReceivedFamilyInvitation } from '../src/features/family/model/family-types.ts'
 import { adaptDeepLink } from '../src/features/notifications/model/notification-helpers.ts'
 import { normalizeNotificationPage } from '../src/features/notifications/model/notification-normalizers.ts'
 
-const received = {
+const received: ReceivedFamilyInvitation = {
   id: 'invitation-1',
   inviter_display_name: 'Mẹ An',
   relationship: 'PARTNER',
@@ -164,7 +165,7 @@ test('timeout reconciliation refuses to claim success for ambiguous matches', ()
 })
 
 test('login preserves exact ID invitation return path and rejects redirect variants', () => {
-  const user = { id: 'u1', phone: '0900000000', displayName: 'An', roles: ['USER'] }
+  const user: User = { id: 'u1', phone: '0900000000', displayName: 'An', role: 'MOM', roles: ['USER'], status: 'ACTIVE', createdAt: '2026-10-01T00:00:00Z' }
   assert.equal(authenticatedDestination(user, 'COMPLETED', '/app/family/invitations/invitation-1'), '/app/family/invitations/invitation-1')
   for (const path of [
     '//evil.test/app/family/invitations/invitation-1',

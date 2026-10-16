@@ -7,11 +7,13 @@ import type {
   AdminUsersSummary,
   AdminUserStatus,
 } from './admin-users'
+import { adminUserRoles, adminUserStatuses, adminOnboardingStatuses } from './admin-users.ts'
+import { mapAdminPage, AdminContractError, count } from './admin-workspace-contract.ts'
 
 export interface AdminUserListItemDto {
   id: string
   display_name: string | null
-  phone: string
+  phone?: string | null
   email: string | null
   avatar_key: string | null
   roles: AdminUserRole[]
@@ -58,10 +60,11 @@ export interface AdminUsersSummaryDto {
 }
 
 export function mapAdminUserListItem(dto: AdminUserListItemDto): AdminUserListItem {
+  if (!dto || typeof dto.id !== 'string' || (dto.phone != null && typeof dto.phone !== 'string') || !Array.isArray(dto.roles) || dto.roles.some((role) => !adminUserRoles.includes(role)) || !adminUserStatuses.includes(dto.status) || !adminOnboardingStatuses.includes(dto.onboarding_status)) throw new AdminContractError('user')
   return {
     id: dto.id,
     displayName: dto.display_name,
-    phone: dto.phone,
+    phone: dto.phone ?? null,
     email: dto.email,
     avatarKey: dto.avatar_key,
     roles: [...dto.roles],
@@ -73,8 +76,9 @@ export function mapAdminUserListItem(dto: AdminUserListItemDto): AdminUserListIt
 }
 
 export function mapAdminUsersPage(dto: AdminUsersPageDto): AdminUsersPage {
+  const page = mapAdminPage(dto,(row) => mapAdminUserListItem(row as AdminUserListItemDto))
   return {
-    items: dto.items.map(mapAdminUserListItem),
+    items: page.items,
     page: dto.page,
     pageSize: dto.page_size,
     totalItems: dto.total_items,
@@ -94,6 +98,8 @@ export function mapAdminUserDetail(dto: AdminUserDetailDto): AdminUserDetail {
 }
 
 export function mapAdminUsersSummary(dto: AdminUsersSummaryDto): AdminUsersSummary {
+  for (const key of ['total_users','active_users','new_users_this_month'] as const) count(dto[key],key)
+  if (!Array.isArray(dto.monthly_progress) || dto.active_users > dto.total_users || dto.new_users_this_month > dto.total_users) throw new AdminContractError('users.summary')
   return {
     totalUsers: dto.total_users,
     activeUsers: dto.active_users,

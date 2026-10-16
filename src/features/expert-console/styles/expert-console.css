@@ -325,3 +325,5 @@
   .expert-sidebar-profile { transition: none; }
   .expert-shell *, .expert-shell *::before, .expert-shell *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.consultation-acceptance-note{display:grid;gap:.35rem;padding:.9rem 1rem;border:1px solid #b7a8d3;border-radius:12px;background:color-mix(in srgb,#a78bfa 8%,transparent);font-size:.875rem;line-height:1.5;color:inherit;margin-block:.8rem}.consultation-acceptance-note.is-priority{border-color:#cc626d;background:color-mix(in srgb,#dc5869 8%,transparent)}.consultation-acceptance-note.is-priority>strong{color:#bc3949}[data-theme="dark"] .consultation-acceptance-note.is-priority>strong{color:#ff9aa7}

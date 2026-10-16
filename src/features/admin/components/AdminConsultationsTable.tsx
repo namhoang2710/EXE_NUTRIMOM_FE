@@ -39,11 +39,11 @@ function Specialty({ consultation }: { consultation: AdminConsultation }) {
   </span>
 }
 
-export function AdminConsultationsTable({ consultations }: { consultations: AdminConsultation[] }) {
+export function AdminConsultationsTable({ consultations, onView }: { consultations: AdminConsultation[]; onView?: (id: string) => void }) {
   return <>
     <div className="admin-table-scroll admin-consultations-table-wrap">
       <table className="admin-table admin-consultations-table">
-        <thead><tr><th>Khách hàng</th><th>Chuyên gia</th><th>Tư vấn</th><th>Lịch tư vấn</th><th>Hoàn thành</th><th>Feedback</th></tr></thead>
+        <thead><tr><th>Khách hàng</th><th>Chuyên gia</th><th>Tư vấn</th><th>Lịch tư vấn</th><th>Hoàn thành</th><th>Đánh giá</th>{onView && <th>Chi tiết</th>}</tr></thead>
         <tbody>{consultations.map((consultation) => <tr key={consultation.id}>
           <td><strong className="admin-consultation-person">{consultation.userDisplayName?.trim() || fallbackUserName}</strong></td>
           <td><strong className="admin-consultation-person">{consultation.expertName?.trim() || fallbackExpertName}</strong></td>
@@ -51,6 +51,7 @@ export function AdminConsultationsTable({ consultations }: { consultations: Admi
           <td><div className="admin-consultation-schedule"><Schedule consultation={consultation} /></div></td>
           <td><div className="admin-consultation-completed"><CompletedAt value={consultation.completedAt} /></div></td>
           <td><Review review={consultation.review} /></td>
+          {onView && <td><button type="button" className="admin-button secondary compact" onClick={() => onView(consultation.id)}>Xem</button></td>}
         </tr>)}</tbody>
       </table>
     </div>
@@ -64,6 +65,7 @@ export function AdminConsultationsTable({ consultations }: { consultations: Admi
         <div><dt>Hoàn thành</dt><dd><CompletedAt value={consultation.completedAt} /></dd></div>
         <div><dt>Feedback</dt><dd><Review review={consultation.review} /></dd></div>
       </dl>
+      {onView && <button type="button" className="admin-button secondary compact" onClick={() => onView(consultation.id)}>Xem chi tiết</button>}
     </article>)}</div>
   </>
 }

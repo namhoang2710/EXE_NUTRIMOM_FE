@@ -32,7 +32,7 @@ export function useNotifications(authenticated: boolean, listEnabled: boolean) {
   }, [])
 
   const refreshUnreadCount = useCallback(async () => {
-    if (!authenticated) return undefined
+    if (!authenticated||notificationsApi.isCoolingDown()) return undefined
     const sequence = ++unreadSequence.current
     try {
       const count = await notificationsApi.unreadCount()
@@ -45,7 +45,7 @@ export function useNotifications(authenticated: boolean, listEnabled: boolean) {
   }, [authenticated])
 
   const load = useCallback(async (cursor?: string, reset = false) => {
-    if (!authenticated || !listEnabled) return
+    if (!authenticated || !listEnabled||notificationsApi.isCoolingDown()) return
     const requestKey = cursor ? `cursor:${cursor}` : 'first-page'
     if (!requestCoordinator.current.canStart(requestKey) && !controller.current?.signal.aborted) return
     controller.current?.abort()
@@ -103,6 +103,7 @@ export function useNotifications(authenticated: boolean, listEnabled: boolean) {
         await refreshUnreadCount()
         return updated
       } catch (reason) {
+        if(reason instanceof ApiClientError&&reason.status===429)throw reason
         try {
           if (isRetryableNotificationError(reason)) {
             const retried = await notificationsApi.markRead(id)
@@ -129,6 +130,7 @@ export function useNotifications(authenticated: boolean, listEnabled: boolean) {
         await refreshUnreadCount()
         return updated
       } catch (reason) {
+        if(reason instanceof ApiClientError&&reason.status===429)throw reason
         try {
           if (isRetryableNotificationError(reason)) {
             const retried = await notificationsApi.markAllRead()
@@ -159,7 +161,8 @@ export function useNotifications(authenticated: boolean, listEnabled: boolean) {
       return
     }
     void refreshUnreadCount()
-    const refreshWhenActive = () => { if (document.visibilityState === 'visible') void refreshUnreadCount() }
+    let lastActive=Date.now()
+    const refreshWhenActive=()=>{if(document.visibilityState==='visible'&&navigator.onLine&&Date.now()-lastActive>=15_000){lastActive=Date.now();void refreshUnreadCount()}}
     const timer = window.setInterval(refreshWhenActive, 60_000)
     window.addEventListener('focus', refreshWhenActive)
     document.addEventListener('visibilitychange', refreshWhenActive)

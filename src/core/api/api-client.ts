@@ -49,7 +49,7 @@ export function setRefreshHandler(handler: RefreshHandler | null) {
   if (!handler) refreshInFlight = null
 }
 
-function refreshOnce() {
+export function refreshOnce() {
   if (!refreshHandler) return Promise.reject(new Error('Refresh handler is unavailable.'))
   if (!refreshInFlight) {
     logDiagnostic({ level: 'info', category: 'api', event: 'token_refresh_started' })
@@ -70,7 +70,7 @@ function abortedError(timedOut = false) {
   })
 }
 
-async function request<T>(path: string, options: ApiRequestOptions = {}, mode: 'json' | 'blob' | 'void' = 'json'): Promise<T> {
+async function request<T>(path: string, options: ApiRequestOptions = {}, mode: 'json' | 'blob' | 'download' | 'void' = 'json'): Promise<T> {
   const {
     authenticated = true,
     idempotencyKey,
@@ -81,7 +81,7 @@ async function request<T>(path: string, options: ApiRequestOptions = {}, mode: '
     ...fetchOptions
   } = options
   const headers = new Headers(providedHeaders)
-  const url = mode === 'json' ? `${env.apiBaseUrl}${path}` : resolveBinaryUrl(path, env.apiBaseUrl, window.location.origin)
+  const url = mode === 'json' || mode === 'download' ? `${env.apiBaseUrl}${path}` : resolveBinaryUrl(path, env.apiBaseUrl, window.location.origin)
   const scope = getSessionScope()
   const current = getSession()
   const method = fetchOptions.method || 'GET'
@@ -163,11 +163,11 @@ async function request<T>(path: string, options: ApiRequestOptions = {}, mode: '
       return undefined as T
     }
 
-    if (mode === 'blob') {
+    if (mode === 'blob' || mode === 'download') {
       const blob = await response.blob()
       if (authenticated && (scope !== getSessionScope() || controller.signal.aborted)) throw abortedError(timedOut)
       logDiagnostic({ level: 'debug', category: 'api', event: 'request_succeeded', method, route_template: routeTemplate, status: response.status, client_request_id: clientRequestId, duration_ms: Date.now() - startedAt })
-      return blob as T
+      return (mode === 'download' ? { blob, contentDisposition: response.headers.get('Content-Disposition') } : blob) as T
     }
 
     const payload = (await response.json()) as ApiResponse<T>
@@ -187,5 +187,6 @@ async function request<T>(path: string, options: ApiRequestOptions = {}, mode: '
 export const apiClient = {
   request,
   binary: (url: string, options: ApiRequestOptions = {}) => request<Blob>(url, options, 'blob'),
+  download: (url: string, options: ApiRequestOptions = {}) => request<{ blob: Blob; contentDisposition: string | null }>(url, options, 'download'),
   upload: (url: string, options: ApiRequestOptions) => request<void>(url, options, 'void'),
 }
