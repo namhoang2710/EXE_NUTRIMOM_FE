@@ -27,6 +27,7 @@ export function PasswordField({ label, hint, error, id, ...inputProps }: Passwor
         <button
           className="input-action"
           type="button"
+          disabled={inputProps.disabled}
           onClick={() => setVisible((value) => !value)}
           aria-label={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
         >
@@ -34,7 +35,7 @@ export function PasswordField({ label, hint, error, id, ...inputProps }: Passwor
         </button>
       </div>
       {error
-        ? <p className="field-error" id={`${inputId}-error`}>{error}</p>
+        ? <p className="field-error" id={`${inputId}-error`} aria-live="polite">{error}</p>
         : hint && <p className="field-hint" id={`${inputId}-hint`}>{hint}</p>}
     </div>
   )

@@ -9,6 +9,7 @@ interface AuthLayoutProps extends PropsWithChildren {
   footer?: ReactNode
   panelVariant?: 'login' | 'register'
   showHomeLink?: boolean
+  error?: string
 }
 
 const panelContent = {
@@ -39,44 +40,47 @@ export function AuthLayout({
   footer,
   panelVariant = 'login',
   showHomeLink = false,
+  error,
 }: AuthLayoutProps) {
   const panel = panelContent[panelVariant]
 
   return (
-    <main className="auth-page">
+    <main className={`auth-page auth-page--${panelVariant}`}>
       <section className={`brand-panel brand-panel--${panelVariant}`} aria-label="Giới thiệu NutriMom">
-        <Link className="brand-lockup" to="/login" aria-label="NutriMom, về trang đăng nhập">
-          <img src="/nutrimom-logo.png" width="46" height="46" alt="" />
-          <span>NutriMom</span>
-        </Link>
+        <div className="brand-panel-content">
+          <Link className="brand-lockup" to="/" aria-label="NutriMom, về trang chủ">
+            <img src="/nutrimom-logo.png" width="46" height="46" alt="" />
+            <span>NutriMom</span>
+          </Link>
 
-        <div className="brand-copy">
-          <div className="brand-eyebrow">
-            <Heart size={17} weight="fill" aria-hidden="true" />
-            {panel.eyebrow}
+          <div className="brand-copy">
+            <div className="brand-eyebrow">
+              <Heart size={17} weight="fill" aria-hidden="true" />
+              {panel.eyebrow}
+            </div>
+            <h1>{panel.heading}</h1>
+            <p>{panel.description}</p>
           </div>
-          <h1>{panel.heading}</h1>
-          <p>{panel.description}</p>
-        </div>
 
-        <figure className="brand-visual">
-          <img
-            src={panel.image}
-            alt={panel.imageAlt}
-            width={panel.imageWidth}
-            height={panel.imageHeight}
-          />
-        </figure>
+          <figure className="brand-visual">
+            <img
+              src={panel.image}
+              alt={panel.imageAlt}
+              width={panel.imageWidth}
+              height={panel.imageHeight}
+            />
+          </figure>
 
-        <div className="privacy-note">
-          <ShieldCheck size={21} aria-hidden="true" />
-          <span>Dữ liệu phiên được bảo vệ và không hiển thị công khai.</span>
+          <div className="privacy-note">
+            <ShieldCheck size={21} aria-hidden="true" />
+            <span>Dữ liệu phiên được bảo vệ và không hiển thị công khai.</span>
+          </div>
         </div>
       </section>
 
       <section className="form-panel">
         <div className="form-panel-toolbar">
-          <Link className="mobile-brand" to="/login">
+          <Link className="mobile-brand" to="/" aria-label="NutriMom, về trang chủ">
             <img src="/nutrimom-logo.png" width="38" height="38" alt="" />
             <span>NutriMom</span>
           </Link>
@@ -94,7 +98,7 @@ export function AuthLayout({
         <div className="form-frame">
           <header className="form-heading">
             <h2>{title}</h2>
-            <p>{subtitle}</p>
+            <p className={error ? 'auth-heading-error' : undefined} role={error ? 'alert' : undefined}>{error || subtitle}</p>
           </header>
           {children}
           {footer && <footer className="form-footer">{footer}</footer>}

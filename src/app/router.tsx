@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AdminOnly, ExpertOnly, GuestOnly, OnboardingRoute, ProtectedRoute } from './routing/RouteGuards'
+import { AuthScene } from '@/shared/layouts/AuthScene'
 
 const AdminLayout = lazy(() => import('@/features/admin/layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage').then((module) => ({ default: module.AdminDashboardPage })))
@@ -70,8 +71,11 @@ function UserRouteFallback() {
 }
 
 export function AppRouter() {
+  const location = useLocation()
+  const enteringWorkspace = Boolean((location.state as { authEntry?: boolean } | null)?.authEntry)
   return (
     <Suspense fallback={<UserRouteFallback />}>
+    <div className={enteringWorkspace ? 'auth-workspace-entry' : undefined}>
     <Routes>
       <Route element={<LandingLayout />}>
         <Route index element={<HomePage />} />
@@ -84,8 +88,10 @@ export function AppRouter() {
         <Route path="contact" element={<ContactPage />} />
       </Route>
 
-      <Route path="login" element={<GuestOnly><LoginPage /></GuestOnly>} />
-      <Route path="register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
+      <Route element={<GuestOnly animateExit><AuthScene /></GuestOnly>}>
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+      </Route>
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
       <Route path="auth/activate" element={<ActivateAccountPage />} />
       <Route path="auth/verify" element={<MagicLinkVerifyPage />} />
@@ -159,6 +165,7 @@ export function AppRouter() {
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </div>
     </Suspense>
   )
 }

@@ -1,25 +1,18 @@
 import { ArrowRight, EnvelopeSimple, Phone, User } from '@phosphor-icons/react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
-import { StatusMessage } from '@/shared/components/StatusMessage'
 import { OtpInput } from '@/shared/components/OtpInput'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
-import { isValidEmail, isValidPhone, isValidRegisterPassword } from '../model/auth-validation'
+import { mapRegisterFieldErrors, registerFieldError, type RegisterFormValues } from '../model/auth-validation'
+import { activateOnce } from '../model/activation-request'
 import { authenticatedDestination } from '../model/role-routing'
 
-interface RegisterForm {
-  displayName: string
-  email: string
-  phone: string
-  password: string
-  confirmPassword: string
-  accepted: boolean
-}
+type RegisterForm = RegisterFormValues
 
 const initialForm: RegisterForm = {
   displayName: '',
@@ -34,12 +27,14 @@ export function RegisterPage() {
   const [form, setForm] = useState(initialForm)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const touched = useRef(new Set<keyof RegisterForm>())
   const [submitting, setSubmitting] = useState(false)
   const [registeredSuccess, setRegisteredSuccess] = useState(false)
 
   // Activation OTP state
   const [otpCode, setOtpCode] = useState('')
   const [activating, setActivating] = useState(false)
+  const activationInFlight = useRef(false)
   const [activationError, setActivationError] = useState('')
   const [countdown, setCountdown] = useState(0)
   const [resending, setResending] = useState(false)
@@ -64,63 +59,64 @@ export function RegisterPage() {
       const res = await resendActivation(form.email.trim())
       setResendStatus(res.message || 'Đã gửi lại mã kích hoạt thành công!')
       setCountdown(45)
-    } catch {
-      setResendStatus('Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
+    } catch (err) {
+      setResendStatus(null)
+      setActivationError(err instanceof ApiClientError ? err.serverMessage || err.message : 'Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
     } finally {
       setResending(false)
     }
   }
 
   async function handleActivate(codeToVerify: string) {
-    if (codeToVerify.length < 6 || activating) return
+    if (!/^\d{6}$/.test(codeToVerify) || activationInFlight.current) return
+    activationInFlight.current = true
     setActivating(true)
     setActivationError('')
     try {
-      const user = await activateAccount(codeToVerify, form.email.trim())
+      const user = await activateOnce(codeToVerify, form.email.trim(), () => activateAccount(codeToVerify, form.email.trim()))
       navigate(authenticatedDestination(user), { replace: true })
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setActivationError(err.message || 'Mã xác thực kích hoạt không chính xác hoặc đã hết hạn.')
+        setActivationError(err.serverMessage || err.message || 'Mã xác thực kích hoạt không chính xác hoặc đã hết hạn.')
       } else {
         setActivationError('Kích hoạt tài khoản thất bại. Vui lòng thử lại.')
       }
     } finally {
+      activationInFlight.current = false
       setActivating(false)
     }
   }
 
   function update<K extends keyof RegisterForm>(key: K, value: RegisterForm[K]) {
-    setForm((current) => ({ ...current, [key]: value }))
-    setFieldErrors((current) => ({ ...current, [key]: '' }))
+    const next = { ...form, [key]: value }
+    setForm(next)
+    setError('')
+    setFieldErrors((current) => ({
+      ...current,
+      [key]: touched.current.has(key) ? registerFieldError(key, next) : '',
+      ...(key === 'password' && touched.current.has('confirmPassword')
+        ? { confirmPassword: registerFieldError('confirmPassword', next) } : {}),
+    }))
+  }
+
+  function validateField(key: keyof RegisterForm) {
+    touched.current.add(key)
+    setFieldErrors((current) => ({ ...current, [key]: registerFieldError(key, form) }))
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting) return
     setError('')
     const nextErrors: Record<string, string> = {}
     const trimmedDisplayName = form.displayName.trim()
     const trimmedEmail = form.email.trim()
     const trimmedPhone = form.phone.trim()
 
-    if (!trimmedDisplayName || trimmedDisplayName.length > 100) {
-      nextErrors.displayName = 'Tên hiển thị cần từ 1 đến 100 ký tự.'
-    }
-    if (!trimmedEmail) {
-      nextErrors.email = 'Vui lòng nhập địa chỉ email.'
-    } else if (!isValidEmail(trimmedEmail)) {
-      nextErrors.email = 'Địa chỉ email chưa đúng định dạng.'
-    }
-    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
-      nextErrors.phone = 'Số điện thoại Việt Nam chưa hợp lệ.'
-    }
-    if (!isValidRegisterPassword(form.password)) {
-      nextErrors.password = 'Mật khẩu cần 8–72 ký tự, có ít nhất một chữ cái và một chữ số.'
-    }
-    if (form.password !== form.confirmPassword) {
-      nextErrors.confirmPassword = 'Mật khẩu xác nhận chưa khớp.'
-    }
-    if (!form.accepted) {
-      nextErrors.accepted = 'Bạn cần đồng ý với điều khoản sử dụng và chính sách riêng tư.'
+    for (const key of Object.keys(initialForm) as (keyof RegisterForm)[]) {
+      touched.current.add(key)
+      const message = registerFieldError(key, form)
+      if (message) nextErrors[key] = message
     }
 
     setFieldErrors(nextErrors)
@@ -141,10 +137,14 @@ export function RegisterPage() {
       setOtpCode('')
     } catch (requestError) {
       setError(requestError instanceof ApiClientError
-        ? requestError.message
+        ? requestError.serverMessage || requestError.message
         : 'Không thể tạo tài khoản. Vui lòng thử lại.')
-      if (requestError instanceof ApiClientError && requestError.fields) {
-        setFieldErrors(requestError.fields)
+      if (requestError instanceof ApiClientError) {
+        const errors = mapRegisterFieldErrors(requestError.fields)
+        if (requestError.code === 'EMAIL_ALREADY_EXISTS') errors.email = requestError.serverMessage || requestError.message
+        if (requestError.code === 'PHONE_ALREADY_EXISTS' || requestError.code === 'INVALID_PHONE') errors.phone = requestError.serverMessage || requestError.message
+        if (requestError.code === 'TERMS_NOT_ACCEPTED') errors.accepted = requestError.serverMessage || requestError.message
+        setFieldErrors(errors)
       }
     } finally {
       setSubmitting(false)
@@ -164,8 +164,8 @@ export function RegisterPage() {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            background: '#ecfdf5',
-            color: '#10b981',
+            background: 'var(--success-soft)',
+            color: 'var(--success)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -173,14 +173,14 @@ export function RegisterPage() {
           }}>
             <EnvelopeSimple size={36} weight="duotone" />
           </div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
             Xác thực tài khoản NutriMom
           </h3>
-          <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 6px' }}>
+          <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 6px' }}>
             Mã kích hoạt gồm 6 chữ số đã được gửi tới:
           </p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-            <span style={{ fontWeight: 600, color: '#0f172a', fontSize: 15 }}>{form.email}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, overflowWrap: 'anywhere' }}>{form.email}</span>
             <button
               type="button"
               onClick={() => {
@@ -191,7 +191,7 @@ export function RegisterPage() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#0d9488',
+                color: 'var(--accent-strong)',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -203,15 +203,10 @@ export function RegisterPage() {
             </button>
           </div>
 
-          {activationError && (
-            <div style={{ marginBottom: 16 }}>
-              <StatusMessage tone="error">{activationError}</StatusMessage>
-            </div>
-          )}
-
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
             <OtpInput
               value={otpCode}
+              error={activationError}
               onChange={(val) => {
                 setOtpCode(val)
                 setActivationError('')
@@ -236,12 +231,12 @@ export function RegisterPage() {
 
           <div style={{ marginTop: 20 }}>
             {resendStatus && (
-              <p style={{ fontSize: 13, color: '#0d9488', marginBottom: 8, fontWeight: 500 }}>
+              <p style={{ fontSize: 13, color: 'var(--accent-strong)', marginBottom: 8, fontWeight: 500 }}>
                 {resendStatus}
               </p>
             )}
             {countdown > 0 ? (
-              <span style={{ fontSize: 13, color: '#64748b' }}>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>
                 Gửi lại mã sau <strong>{countdown}s</strong>
               </span>
             ) : (
@@ -250,7 +245,7 @@ export function RegisterPage() {
                 className="text-button"
                 onClick={handleResend}
                 disabled={resending}
-                style={{ fontSize: 13, color: '#0d9488', fontWeight: 600, textDecoration: 'underline' }}
+                style={{ fontSize: 13, color: 'var(--accent-strong)', fontWeight: 600, textDecoration: 'underline' }}
               >
                 {resending ? 'Đang gửi lại...' : 'Chưa nhận được mã? Gửi lại mã kích hoạt'}
               </button>
@@ -264,13 +259,13 @@ export function RegisterPage() {
   return (
     <AuthLayout
       title="Tạo tài khoản NutriMom"
+      error={error}
       subtitle="Bắt đầu hồ sơ chăm sóc thai kỳ của bạn chỉ trong vài phút."
       footer={<p>Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>}
       panelVariant="register"
       showHomeLink
     >
-      <form className="auth-form" onSubmit={handleSubmit} noValidate>
-        {error && <StatusMessage tone="error">{error}</StatusMessage>}
+      <form className="auth-form auth-form--register" onSubmit={handleSubmit} noValidate>
 
         <FormField
           label="Tên hiển thị"
@@ -280,9 +275,9 @@ export function RegisterPage() {
           placeholder="Ví dụ: Nguyễn An"
           value={form.displayName}
           onChange={(event) => update('displayName', event.target.value)}
+          onBlur={() => validateField('displayName')}
           icon={<User size={20} />}
           disabled={submitting}
-          autoFocus
         />
 
         <FormField
@@ -295,6 +290,7 @@ export function RegisterPage() {
           placeholder="Ví dụ: nguyennan@gmail.com"
           value={form.email}
           onChange={(event) => update('email', event.target.value)}
+          onBlur={() => validateField('email')}
           icon={<EnvelopeSimple size={20} />}
           disabled={submitting}
         />
@@ -309,6 +305,7 @@ export function RegisterPage() {
           placeholder="Ví dụ: 0901 234 567"
           value={form.phone}
           onChange={(event) => update('phone', event.target.value)}
+          onBlur={() => validateField('phone')}
           icon={<Phone size={20} />}
           disabled={submitting}
         />
@@ -318,9 +315,11 @@ export function RegisterPage() {
           name="password"
           error={fieldErrors.password}
           autoComplete="new-password"
-          placeholder="Tối thiểu 8 ký tự (chữ cái và chữ số)"
+          placeholder="8–20 ký tự, gồm Aa, số và ký tự đặc biệt"
+          hint="8–20 ký tự, chữ hoa, chữ thường, số, ký tự đặc biệt; không khoảng trắng."
           value={form.password}
           onChange={(event) => update('password', event.target.value)}
+          onBlur={() => validateField('password')}
           disabled={submitting}
         />
 
@@ -332,19 +331,26 @@ export function RegisterPage() {
           placeholder="Nhập lại mật khẩu"
           value={form.confirmPassword}
           onChange={(event) => update('confirmPassword', event.target.value)}
+          onBlur={() => validateField('confirmPassword')}
           disabled={submitting}
         />
 
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={form.accepted}
-            onChange={(event) => update('accepted', event.target.checked)}
-            disabled={submitting}
-          />
-          <span>Tôi đồng ý với <a href="#terms">điều khoản sử dụng</a> và <a href="#privacy">chính sách riêng tư</a>.</span>
-        </label>
-        {fieldErrors.accepted && <p className="field-error">{fieldErrors.accepted}</p>}
+        <div className="auth-terms">
+          <label className="check-row">
+            <input
+              type="checkbox"
+              name="accepted"
+              aria-invalid={Boolean(fieldErrors.accepted)}
+              aria-describedby="accepted-error"
+              checked={form.accepted}
+              onChange={(event) => update('accepted', event.target.checked)}
+              onBlur={() => validateField('accepted')}
+              disabled={submitting}
+            />
+            <span>Tôi đồng ý với <a href="#terms">điều khoản sử dụng</a> và <a href="#privacy">chính sách riêng tư</a>.</span>
+          </label>
+          <p className="field-error" id="accepted-error" aria-live="polite">{fieldErrors.accepted || '\u00a0'}</p>
+        </div>
 
         <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting}>
           <span>{submitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}</span>
