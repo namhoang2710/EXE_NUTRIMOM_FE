@@ -53,7 +53,14 @@ Backend hiện trả refresh token trong JSON nên frontend giữ phiên ở `se
 
 ## Kiểm tra
 
+Dùng Node.js theo phiên bản trong `.nvmrc`.
+
 ```powershell
+npm ci
 npm run lint
+npm test
 npm run build
 ```
+
+GitHub Actions chạy các bước này trong workflow `Frontend CI` khi push lên nhánh
+hoặc tạo/cập nhật PR vào `dev`/`main`. Xem [cấu hình CI và điều kiện merge](docs/frontend-ci.md).
