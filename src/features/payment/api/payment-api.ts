@@ -1,4 +1,6 @@
 import { apiClient } from '../../../core/api/api-client.ts'
+import type { MyEntitlementsDto, SubscriptionPlanDto } from '../model/entitlement-types.ts'
+export type { PlanFeatureDto, ScanQuotaDto, SubscriptionPlanDto, MyEntitlementsDto } from '../model/entitlement-types.ts'
 import type {
   PaymentOrderResponse,
   PaymentResponse,
@@ -28,6 +30,8 @@ function getOrderDetails(orderCode: number) {
 }
 
 export const paymentApi = {
+  listPlans: (signal?: AbortSignal) => apiClient.request<SubscriptionPlanDto[]>('/subscription-plans', { method: 'GET', authenticated: false, signal }),
+  getMyEntitlements: (signal?: AbortSignal) => apiClient.request<MyEntitlementsDto>('/subscriptions/me', { method: 'GET', signal }),
   createCheckout: (planTier: PlanTier, idempotencyKey?: string) =>
     apiClient.request<PaymentResponse>('/payments/subscription-checkout', {
       method: 'POST',

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { getPricingComparisonRows, getPublicPricingLink, pricingPlans } from '../src/features/payment/model/pricing-catalog.ts'
+import { getPricingComparisonRows, getPublicPricingLink } from '../src/features/payment/model/pricing-catalog.ts'
+import { pricingPlans } from './fixtures/subscription-plans.ts'
 import { getPricingReviewUrl, getPricingSelectUrl, parsePricingFlow } from '../src/features/payment/model/pricing-flow.ts'
 
 const pricingPageSource = readFileSync(new URL('../src/features/payment/pages/PricingPage.tsx', import.meta.url), 'utf8')
@@ -29,7 +30,7 @@ test('review is valid only for a paid tier', () => {
 })
 
 test('comparison is derived from the shared catalog in visual order', () => {
-  const rows = getPricingComparisonRows()
+  const rows = getPricingComparisonRows(pricingPlans)
   assert.deepEqual(pricingPlans.map((plan) => plan.tier), ['FREE', 'PLAN_399K', 'PLAN_99K'])
   assert.equal(rows.length, pricingPlans[0]!.features.length)
   for (const [index, row] of rows.entries()) {
@@ -38,15 +39,16 @@ test('comparison is derived from the shared catalog in visual order', () => {
   }
 })
 
-test('member catalog keeps Free current and paid CTAs explicit without checkout', () => {
+test('member catalog derives current tier and provides renewal without creating checkout', () => {
   assert.match(catalogCardSource, /Đang dùng/)
-  assert.match(catalogCardSource, /Nhận gói 399K/)
-  assert.match(catalogCardSource, /Nhận gói 99K/)
+  assert.match(catalogCardSource, /Gia hạn gói/)
+  assert.match(catalogCardSource, /Nâng cấp gói/)
   assert.doesNotMatch(catalogCardSource, /createCheckout|getMySubscription|useSubscription/)
 })
 
-test('selection and review do not request subscription state', () => {
-  assert.doesNotMatch(pricingPageSource, /useSubscription|getMySubscription/)
+test('selection and review load entitlements while preserving explicit checkout', () => {
+  assert.match(pricingPageSource, /useEntitlements/)
+  assert.match(pricingPageSource, /refreshEntitlements/)
   assert.match(pricingPageSource, /screen !== 'review'/)
   assert.match(pricingPageSource, /submitting\.current/)
 })

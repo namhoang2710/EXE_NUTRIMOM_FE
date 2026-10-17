@@ -68,3 +68,21 @@ test('checkout forwards a stable idempotency key to the API client', async () =>
     apiClient.request = originalRequest
   }
 })
+
+test('catalog is public and entitlements use the new authenticated endpoint', async () => {
+  const originalRequest = apiClient.request
+  const calls: Array<{ path: string; authenticated?: boolean; signal?: AbortSignal | null }> = []
+  const signal = new AbortController().signal
+  apiClient.request = (async (path: string, options?: { authenticated?: boolean; signal?: AbortSignal | null }) => {
+    calls.push({ path, ...options })
+    return []
+  }) as typeof apiClient.request
+  try {
+    await paymentApi.listPlans(signal)
+    await paymentApi.getMyEntitlements(signal)
+    assert.deepEqual(calls.map((call) => call.path), ['/subscription-plans', '/subscriptions/me'])
+    assert.equal(calls[0]?.authenticated, false)
+    assert.equal(calls[1]?.authenticated, undefined)
+    assert.ok(calls.every((call) => call.signal === signal))
+  } finally { apiClient.request = originalRequest }
+})

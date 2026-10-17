@@ -65,6 +65,8 @@ export interface PregnancyCalculation {
 import type { CalendarEventItem } from '@/features/calendar/model/calendar-types'
 
 export interface MomDashboard {
+  subscription?: { plan_id: import('../features/payment/model/payment-types').PlanTier; plan_name: string; paid: boolean; end_date: string | null; days_remaining: number } | null
+  scan_quota?: null
   profile_summary?: { display_name: string; salutation?: string | null; role: string } | null
   pregnancy_summary?: Pregnancy | null
   next_appointment?: CalendarEventItem | null

@@ -1,8 +1,9 @@
 import type { PlanTier } from '../model/payment-types'
-import { pricingPlans, type PaidPlanTier, type PricingContext } from '../model/pricing-catalog'
+import { type PricingPlan, type PaidPlanTier, type PricingContext } from '../model/pricing-catalog'
 import { PricingCatalogCard } from './PricingCatalogCard'
 
 interface PricingCatalogGridProps {
+  plans: PricingPlan[]
   context: PricingContext
   isAuthenticated?: boolean
   currentPlanTier?: PlanTier
@@ -10,6 +11,7 @@ interface PricingCatalogGridProps {
 }
 
 export function PricingCatalogGrid({
+  plans,
   context,
   isAuthenticated = false,
   currentPlanTier,
@@ -17,14 +19,15 @@ export function PricingCatalogGrid({
 }: PricingCatalogGridProps) {
   return (
     <div className="publicPricing__grid">
-      {pricingPlans.map((plan, index) => (
+      {plans.map((plan, index) => (
         <PricingCatalogCard
           key={plan.tier}
           context={context}
           plan={plan}
           index={index}
           isAuthenticated={isAuthenticated}
-          isCurrentPlan={context === 'member' ? plan.tier === 'FREE' : currentPlanTier === plan.tier}
+          isCurrentPlan={currentPlanTier === plan.tier}
+          currentPlanTier={currentPlanTier}
           onSelectPlan={onSelectPlan}
         />
       ))}

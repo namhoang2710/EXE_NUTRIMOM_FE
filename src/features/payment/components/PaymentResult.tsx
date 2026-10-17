@@ -39,7 +39,10 @@ export function PaymentResult({ cancelled = false }: { cancelled?: boolean }) {
           : await loadPaymentOutcome(code, paymentApi)
         if (!active) return
         const ready = result.subscription?.active && result.subscription.plan_tier === result.order.plan_tier
-        if (ready && result.subscription) primeSubscriptionCache(result.subscription)
+        if (ready && result.subscription) {
+          primeSubscriptionCache(result.subscription)
+          window.dispatchEvent(new CustomEvent('nutrimom:subscription-changed'))
+        }
         const needsSync = (result.order.status === 'PENDING' && !cancelled) || (result.order.status === 'PAID' && !ready)
         const keepPolling = needsSync && poll < paymentStatusPollDelays.length
         setState({ ...result, loading: keepPolling, error: null })

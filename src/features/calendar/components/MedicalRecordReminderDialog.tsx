@@ -1,3 +1,6 @@
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
+import { UpgradePrompt } from '@/features/payment/components/UpgradePrompt'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { AnimatedSelect } from '@/components/ui/animated-select'
 import { Switch } from '@/components/ui/switch'
@@ -13,6 +16,10 @@ const types = [{ value: 'FOLLOW_UP', label: 'Tái khám' }, { value: 'ROUTINE_CH
 interface Props { open: boolean; records: MedicalRecord[]; initialRecordId?: string; onClose: () => void; onSaved: () => void }
 
 export function MedicalRecordReminderDialog({ open, records, initialRecordId, onClose, onSaved }: Props) {
+  const access = useFeatureAccess('CALENDAR_REMINDERS', open)
+  const clearUpgrade = access.clearUpgrade
+  const cooldown = usePaymentCooldown('calendar-reminders')
+  const upgradeHint = access.upgrade ?? access.hint
   const [recordId, setRecordId] = useState(initialRecordId || records[0]?.id || '')
   const [type, setType] = useState<ReminderType>('FOLLOW_UP')
   const [startsAtLocal, setStartsAtLocal] = useState('')
@@ -30,9 +37,9 @@ export function MedicalRecordReminderDialog({ open, records, initialRecordId, on
     if (!open) return
     const nextId = initialRecordId || records[0]?.id || ''
     const record = records.find((item) => item.id === nextId)
-    setRecordId(nextId); setType('FOLLOW_UP'); setRemindEnabled(true); setRemindMinutes(1440); setTitle(''); setNote(''); setError('')
+    clearUpgrade(); setRecordId(nextId); setType('FOLLOW_UP'); setRemindEnabled(true); setRemindMinutes(1440); setTitle(''); setNote(''); setError('')
     setStartsAtLocal(record ? medicalRecordReminderDefaults(record.occurred_at).startsAtLocal : '')
-  }, [initialRecordId, open, records])
+  }, [initialRecordId, open, records, clearUpgrade])
 
   function chooseRecord(id: string) {
     setRecordId(id)
@@ -42,19 +49,20 @@ export function MedicalRecordReminderDialog({ open, records, initialRecordId, on
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!selected || gate.current) return
+    if (!selected || gate.current || cooldown.blocked) return
     if (!startsAtLocal || new Date(startsAtLocal) <= new Date()) { setError('Thời gian bắt đầu phải ở tương lai.'); return }
     if (remindEnabled && (remindMinutes < 0 || remindMinutes > 10080)) { setError('Thời gian nhắc phải từ 0 đến 10080 phút.'); return }
     gate.current = true; setSaving(true); setError('')
     try {
+      if (!await access.checkAccess()) return
       await calendarApi.createFromMedicalRecord(selected.id, medicalRecordReminderPayload({ type, recordTitle: selected.title, startsAtLocal, remindEnabled, remindMinutesBefore: remindMinutes, title, note }))
       onSaved()
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể tạo lịch từ hồ sơ.') }
+    } catch (reason) { if (access.handleError(reason)) return; cooldown.handleRateLimit(reason); setError(reason instanceof Error ? reason.message : 'Không thể tạo lịch từ hồ sơ.') }
     finally { gate.current = false; setSaving(false) }
   }
 
-  return <AccessibleDialog open={open} title="Thêm lịch nhắc nhở" description="Chọn hồ sơ và thời gian bạn muốn được nhắc." onClose={onClose} busy={saving} className="medical-record-reminder-dialog" footer={<><button className="secondary-button" type="button" disabled={saving} onClick={onClose}>Đóng</button><button className="primary-button" type="submit" form={formId} disabled={saving || !selected}>{saving ? 'Đang tạo...' : 'Tạo lịch nhắc'}</button></>}>
-    <form id={formId} className="calendar-reminder-form" onSubmit={submit} aria-busy={saving}>
+  return <AccessibleDialog open={open} title="Thêm lịch nhắc nhở" description="Chọn hồ sơ và thời gian bạn muốn được nhắc." onClose={onClose} busy={saving} className="medical-record-reminder-dialog" footer={upgradeHint ? undefined : <><button className="secondary-button" type="button" disabled={saving} onClick={onClose}>Đóng</button><button className="primary-button" type="submit" form={formId} disabled={saving || !selected || cooldown.remaining > 0}>{cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining}s` : saving ? 'Đang tạo...' : 'Tạo lịch nhắc'}</button></>}>
+    {upgradeHint ? <UpgradePrompt hint={upgradeHint} onDismiss={access.upgrade && !access.hint ? clearUpgrade : onClose} /> : <form id={formId} className="calendar-reminder-form" onSubmit={submit} aria-busy={saving}>
       <fieldset disabled={saving} className="medical-record-reminder-fields">
         <AnimatedSelect label="Hồ sơ y tế" value={recordId} options={records.map((record) => ({ value: record.id, label: record.title }))} onValueChange={chooseRecord} />
         <AnimatedSelect label="Loại nhắc" value={type} options={types} onValueChange={setType} />
@@ -65,6 +73,6 @@ export function MedicalRecordReminderDialog({ open, records, initialRecordId, on
         <label>Ghi chú <span>Không bắt buộc</span><textarea maxLength={2000} value={note} onChange={(event) => setNote(event.target.value)} /></label>
       </fieldset>
       {error && <p className="nm-dialog-error" role="alert">{error}</p>}
-    </form>
+    </form>}
   </AccessibleDialog>
 }

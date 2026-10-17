@@ -1,3 +1,5 @@
+import { LockKey } from '@phosphor-icons/react'
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
 import { CalendarBlank, CaretLeft, CaretRight, Clock, GridFour, ListBullets, Plus } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -39,6 +41,7 @@ function EventList({ events, loading, error, empty, onOpen, onRetry }: { events:
 
 export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, shared = false, sharedOwnerName }: Props) {
   const { status: authStatus } = useAuth()
+  const reminderAccess = useFeatureAccess('CALENDAR_REMINDERS', !shared)
   const [view, setView] = useState<CalendarView>('MONTH')
   const [anchor, setAnchor] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState(initialCalendarDate)
@@ -160,7 +163,7 @@ export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, sha
       <div className="calendar-header-actions">
         <div className="calendar-view-mobile"><AnimatedSelect label="Chế độ xem" labelClassName="calendar-visually-hidden" value={view} options={views} onValueChange={setView} /></div>
         <div className="calendar-view-tabs" role="tablist" aria-label="Chế độ xem lịch">{views.map((item) => <button type="button" role="tab" aria-selected={view === item.value} key={item.value} onClick={() => setView(item.value)}>{viewIcon(item.value)}<span>{item.label}</span></button>)}</div>
-        {!shared && <button className="primary-button calendar-create-button" type="button" onClick={() => setCreateOpen(true)}><Plus size={19} />Thêm lịch nhắc nhở</button>}
+        {!shared && <button className="primary-button calendar-create-button" type="button" onClick={() => setCreateOpen(true)}>{reminderAccess.locked ? <LockKey size={19} /> : <Plus size={19} />}{reminderAccess.locked ? 'Mở quyền nhắc nhở' : 'Thêm lịch nhắc nhở'}</button>}
       </div>
     </header>
     <div className="calendar-support-row"><p>{shared ? `Lịch được chia sẻ bởi ${data.sharedMetadata?.owner_display_name || sharedOwnerName || 'chủ thai kỳ'}. Chỉ có quyền xem.` : 'Mốc chăm sóc, tư vấn và nhắc nhở của riêng bạn.'}</p><div className="calendar-legend" aria-label="Lọc nguồn lịch">{availableSources.map((source) => <button type="button" key={source} aria-pressed={selectedSources.includes(source)} onClick={() => toggleSource(source)}><i className={`source-${source.toLowerCase()}`} />{sourceLabels[source]}</button>)}</div></div>

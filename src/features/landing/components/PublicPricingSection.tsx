@@ -1,3 +1,6 @@
+import { usePricingCatalog } from '@/features/payment/hooks/useEntitlements'
+import { PricingSkeleton, ResourceFeedback } from '@/features/payment/components/ResourceFeedback'
+import '@/features/payment/styles/entitlements.css'
 import { CheckCircle, LockKey, Lifebuoy, ShieldCheck, Sparkle } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { PlanTier } from '@/features/payment/model/payment-types'
@@ -10,6 +13,7 @@ interface PublicPricingSectionProps {
 }
 
 export function PublicPricingSection({ isAuthenticated, currentPlanTier }: PublicPricingSectionProps) {
+  const catalog = usePricingCatalog()
   const reduceMotion = useReducedMotion()
 
   return (
@@ -23,15 +27,16 @@ export function PublicPricingSection({ isAuthenticated, currentPlanTier }: Publi
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
           <span className="publicPricing__eyebrow"><Sparkle size={15} weight="fill" aria-hidden="true" /> GÓI ĐỒNG HÀNH CÙNG MẸ</span>
-          <h2 id="pricing-title">Chọn sự đồng hành phù hợp<br /> <em>cho hành trình của mẹ.</em></h2>
+          <h2 id="pricing-title">Chọn gói đồng hành phù hợp với mẹ.</h2>
           <p>Bắt đầu miễn phí, nâng cấp khi cần thêm công cụ theo dõi và chăm sóc toàn diện trong suốt thai kỳ.</p>
         </motion.header>
 
-        <PricingCatalogGrid
+        {catalog.loading && !catalog.data ? <PricingSkeleton /> : catalog.error ? <ResourceFeedback error={catalog.error} retryAt={catalog.retryAt} onRetry={catalog.reload} /> : <PricingCatalogGrid
+          plans={catalog.plans}
           context="public"
           isAuthenticated={isAuthenticated}
           currentPlanTier={currentPlanTier}
-        />
+        />}
 
         <motion.ul
           className="publicPricing__trust"

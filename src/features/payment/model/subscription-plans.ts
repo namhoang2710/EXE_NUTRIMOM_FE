@@ -1,5 +1,5 @@
 import type { PlanTier } from './payment-types'
-import { pricingPlans } from './pricing-catalog.ts'
+import type { PricingPlan } from './pricing-catalog.ts'
 
 const paymentAmountFormatter = new Intl.NumberFormat('vi-VN')
 
@@ -11,7 +11,7 @@ export interface SubscriptionPlan {
   benefits: string[]
 }
 
-export const subscriptionPlans: SubscriptionPlan[] = pricingPlans.map((plan) => ({
+export const subscriptionPlans = (pricingPlans: PricingPlan[]): SubscriptionPlan[] => pricingPlans.map((plan) => ({
   tier: plan.tier,
   name: plan.name,
   amount: plan.amount,

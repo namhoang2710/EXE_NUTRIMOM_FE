@@ -1,3 +1,6 @@
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
+import { UpgradePrompt } from '@/features/payment/components/UpgradePrompt'
 import { CheckCircle, Copy, LinkSimple } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { AnimatedSelect, type AnimatedSelectOption } from '@/components/ui/animated-select'
@@ -40,6 +43,9 @@ type VerificationState =
   | { kind: 'unknown'; ambiguous: boolean }
 
 export function InviteDialog({ open, onClose, onCreated, onReconciled, onNotify }: InviteDialogProps) {
+  const access = useFeatureAccess('FAMILY_SHARING', open)
+  const cooldown = usePaymentCooldown('family-sharing')
+  const upgradeHint = access.upgrade ?? access.hint
   const [email, setEmail] = useState('')
   const [relationship, setRelationship] = useState<FamilyRelationship>('PARTNER')
   const [selectedScopes, setSelectedScopes] = useState<FamilyScope[]>(['PREGNANCY_SUMMARY', 'FAMILY_TASKS', 'ACTIVITY_FEED'])
@@ -59,7 +65,7 @@ export function InviteDialog({ open, onClose, onCreated, onReconciled, onNotify 
   function close() {
     verificationController.current?.abort()
     verificationController.current = undefined
-    setResult(null); setVerification(undefined); setError(''); setCopied(false); onClose()
+    access.clearUpgrade(); setResult(null); setVerification(undefined); setError(''); setCopied(false); onClose()
   }
 
   function completeReconciliation(invitation: FamilyInvitationSummary) {
@@ -104,7 +110,7 @@ export function InviteDialog({ open, onClose, onCreated, onReconciled, onNotify 
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (submitting.current) return
+    if (submitting.current || cooldown.blocked) return
     const invitedEmail = email.trim()
     if (!invitedEmail) { setError('Vui lòng nhập email người nhận lời mời.'); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invitedEmail)) { setError('Địa chỉ email chưa đúng định dạng.'); return }
@@ -115,6 +121,7 @@ export function InviteDialog({ open, onClose, onCreated, onReconciled, onNotify 
     lastCriteria.current = criteria
     submitting.current = true; setBusy(true); setError(''); setVerification(undefined)
     try {
+      if (!await access.checkAccess()) return
       const created = await familyApi.createInvitation({
         invited_email: invitedEmail,
         relationship,
@@ -123,6 +130,8 @@ export function InviteDialog({ open, onClose, onCreated, onReconciled, onNotify 
       })
       setResult(created); logDiagnostic({ level: 'info', category: 'family-invitation', event: 'create_succeeded' }); onCreated?.(created)
     } catch (reason) {
+      if (access.handleError(reason)) return
+      cooldown.handleRateLimit(reason)
       if (reason instanceof ApiClientError && reason.code === 'REQUEST_TIMEOUT') {
         logDiagnostic({ level: 'warn', category: 'family-invitation', event: 'create_timeout' })
         await verifyAfterTimeout(criteria)
@@ -140,7 +149,7 @@ export function InviteDialog({ open, onClose, onCreated, onReconciled, onNotify 
   }
 
   return <AccessibleDialog open={open} title={result ? 'Lời mời đã sẵn sàng' : verification ? 'Đang xác minh lời mời' : 'Mời thành viên'} description={result ? 'Sao chép liên kết để gửi qua kênh an toàn khi cần.' : verification ? 'NutriMom đang kiểm tra xem yêu cầu vừa rồi đã được máy chủ ghi nhận hay chưa.' : 'Nhập email người nhận và chọn phạm vi được chia sẻ.'} onClose={close} busy={busy} initialFocusRef={targetRef} className="family-dialog" footer={result || verification?.kind === 'found' ? <button className="primary-button" type="button" onClick={close}>Đóng</button> : undefined}>
-    {result ? <div className="family-token-success" role="status"><CheckCircle size={38} weight="fill" aria-hidden="true" /><StatusMessage tone={result.delivery_status === 'SENT' ? 'success' : 'error'}>{deliveryMessage(result.delivery_status)}</StatusMessage><div className="family-token-box"><code>{result.invite_url}</code><button type="button" className="secondary-button" onClick={() => void copyToken()}><Copy size={18} aria-hidden="true" />{copied ? 'Đã sao chép' : 'Sao chép liên kết'}</button></div><p>Hết hạn: {formatVietnamDateTime(result.expires_at)}</p>{error && <StatusMessage tone="error">{error}</StatusMessage>}</div> : <form className="family-form" onSubmit={(event) => void submit(event)}>
+    {upgradeHint && !result ? <UpgradePrompt hint={upgradeHint} onDismiss={access.upgrade && !access.hint ? access.clearUpgrade : close} /> : result ? <div className="family-token-success" role="status"><CheckCircle size={38} weight="fill" aria-hidden="true" /><StatusMessage tone={result.delivery_status === 'SENT' ? 'success' : 'error'}>{deliveryMessage(result.delivery_status)}</StatusMessage><div className="family-token-box"><code>{result.invite_url}</code><button type="button" className="secondary-button" onClick={() => void copyToken()}><Copy size={18} aria-hidden="true" />{copied ? 'Đã sao chép' : 'Sao chép liên kết'}</button></div><p>Hết hạn: {formatVietnamDateTime(result.expires_at)}</p>{error && <StatusMessage tone="error">{error}</StatusMessage>}</div> : <form className="family-form" onSubmit={(event) => void submit(event)}>
       {verification ? <div className="family-verification-state">
         {verification.kind === 'verifying' ? <StatusMessage tone="info">Đang xác minh lời mời. Vui lòng giữ cửa sổ này mở trong giây lát.</StatusMessage> : verification.kind === 'found' ? <><StatusMessage tone="success">{`Lời mời đã được tạo. Trạng thái hiện tại: ${verification.invitation.status}.`}</StatusMessage><p>Đích nhận: {verification.invitation.masked_target} · Hết hạn: {formatVietnamDateTime(verification.invitation.expires_at)}</p><p>Liên kết không còn có thể khôi phục từ danh sách. Hãy kiểm tra email hoặc thu hồi và tạo lại lời mời khi cần.</p></> : <><StatusMessage tone="info">{verification.ambiguous ? 'Có nhiều lời mời gần giống nhau nên chưa thể xác nhận yêu cầu vừa rồi.' : 'Chưa thể xác nhận lời mời đã được tạo hay chưa.'}</StatusMessage><p>Không gửi lại tự động để tránh tạo lời mời trùng. Bạn có thể tải lại trạng thái thủ công.</p><button className="secondary-button" type="button" disabled={busy} onClick={() => void verifyManually()}>Tải lại trạng thái</button></>}
         {error && <StatusMessage tone="error">{error}</StatusMessage>}
@@ -151,7 +160,7 @@ export function InviteDialog({ open, onClose, onCreated, onReconciled, onNotify 
       <p className="family-helper">Lịch dùng chung đã sẵn sàng. Cảnh báo và chia sẻ hồ sơ y tế vẫn đang được hoàn thiện.</p>
       <label className="family-field"><span>Hiệu lực (giờ)</span><input type="number" min={1} max={168} value={expires} onChange={(event) => setExpires(Number(event.target.value))} /></label>
       {error && <StatusMessage tone="error">{error}</StatusMessage>}
-      <div className="family-dialog-actions"><button className="secondary-button" type="button" disabled={busy} onClick={close}>Hủy</button><button className="primary-button" type="submit" disabled={busy}>{busy ? 'Đang tạo...' : 'Tạo lời mời'}</button></div>
+      <div className="family-dialog-actions"><button className="secondary-button" type="button" disabled={busy} onClick={close}>Hủy</button><button className="primary-button" type="submit" disabled={busy || cooldown.remaining > 0}>{cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining}s` : busy ? 'Đang tạo...' : 'Tạo lời mời'}</button></div>
       </>}
     </form>}
   </AccessibleDialog>

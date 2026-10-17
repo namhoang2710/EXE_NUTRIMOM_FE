@@ -1,3 +1,6 @@
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
+import { UpgradeDialog } from '@/features/payment/components/UpgradePrompt'
 import { ClipboardText, Plus, UsersThree, Waveform } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
@@ -23,6 +26,9 @@ type FamilyTab = 'group' | 'tasks' | 'activity'
 const validTabs = new Set<FamilyTab>(['group', 'tasks', 'activity'])
 export function FamilyPage() {
   const { user, profile, reloadProfile } = useAuth()
+  const access = useFeatureAccess('FAMILY_SHARING')
+  const cooldown = usePaymentCooldown('family-sharing')
+  const createGate = useRef(false)
   const location = useLocation()
   const navigate = useNavigate()
   const currentUserId = profile?.id || user?.id || ''
@@ -109,14 +115,19 @@ export function FamilyPage() {
   }
 
   async function createGroup() {
+    if (createGate.current || cooldown.blocked) return
+    createGate.current = true
     setCreating(true); setError(''); setCreateErrorCode('')
     try {
+      if (!await access.checkAccess()) return
       const created = await familyApi.createGroup()
       setGroups([created]); setMembers([]); showToast('Nhóm gia đình đã sẵn sàng.')
     } catch (reason) {
+      if (access.handleError(reason)) return
+      cooldown.handleRateLimit(reason)
       setError(familyErrorMessage(reason))
       if (isFamilyError(reason, 'ACTIVE_PREGNANCY_NOT_FOUND')) setCreateErrorCode('ACTIVE_PREGNANCY_NOT_FOUND')
-    } finally { setCreating(false) }
+    } finally { createGate.current = false; setCreating(false) }
   }
 
   async function reloadMembers() {
@@ -162,8 +173,9 @@ export function FamilyPage() {
     </header>
     <div className="family-page-body">
       <ReceivedInvitationList items={receivedInvitations} loading={receivedLoading} error={receivedError} onRetry={() => void loadReceivedInvitations(true)} />
-      {loading ? <FamilyLoadingState label="Đang tải nhóm gia đình" description="NutriMom đang đồng bộ thành viên và quyền chia sẻ." /> : <div className="family-content-ready">{!group ? <section className="family-onboarding" aria-labelledby="family-empty-title"><div><UsersThree size={44} weight="duotone" aria-hidden="true" /><h2 id="family-empty-title">Bắt đầu cùng gia đình</h2><p>Bạn có thể tạo nhóm cho thai kỳ đang hoạt động hoặc tham gia bằng token được mời.</p></div><div className="family-onboarding-actions"><article><Plus size={28} weight="duotone" aria-hidden="true" /><h3>Tạo nhóm gia đình</h3><p>Dành cho chủ thai kỳ đang hoạt động.</p><button className="primary-button" type="button" disabled={creating} onClick={() => void createGroup()}>{creating ? 'Đang tạo...' : 'Tạo nhóm'}</button></article><article><Waveform size={28} weight="duotone" aria-hidden="true" /><h3>Nhập token lời mời</h3><p>Dành cho tài khoản được người thân mời.</p><button className="secondary-button" type="button" onClick={() => setAcceptOpen(true)}>Nhập token</button></article></div>{error && <StatusMessage tone="error">{error}</StatusMessage>}{createErrorCode === 'ACTIVE_PREGNANCY_NOT_FOUND' && <Link className="text-link" to="/app/profile/health">Tạo hồ sơ thai kỳ</Link>}<AcceptInvitationDialog open={acceptOpen} onClose={() => setAcceptOpen(false)} onAccepted={async () => { await refreshFamilyAfterAccept(reloadProfile); showToast('Bạn đã tham gia nhóm gia đình.'); await load() }} /></section> : <Tabs items={tabs} value={activeTab} onValueChange={chooseTab} ariaLabel="Khu vực Family Hub" idPrefix="family" className="family-tabs" />}</div>}
+      {loading ? <FamilyLoadingState label="Đang tải nhóm gia đình" description="NutriMom đang đồng bộ thành viên và quyền chia sẻ." /> : <div className="family-content-ready">{!group ? <section className="family-onboarding" aria-labelledby="family-empty-title"><div><UsersThree size={44} weight="duotone" aria-hidden="true" /><h2 id="family-empty-title">Bắt đầu cùng gia đình</h2><p>Bạn có thể tạo nhóm cho thai kỳ đang hoạt động hoặc tham gia bằng token được mời.</p></div><div className="family-onboarding-actions"><article><Plus size={28} weight="duotone" aria-hidden="true" /><h3>Tạo nhóm gia đình</h3><p>{access.locked ? 'Quyền tạo nhóm thuộc gói có Liên kết gia đình. Bạn vẫn có thể nhận lời mời miễn phí.' : 'Dành cho chủ thai kỳ đang hoạt động.'}</p><button className="primary-button" type="button" disabled={creating || cooldown.remaining > 0} onClick={() => void createGroup()}>{cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining}s` : creating ? 'Đang tạo...' : access.locked ? 'Mở quyền tạo nhóm' : 'Tạo nhóm'}</button></article><article><Waveform size={28} weight="duotone" aria-hidden="true" /><h3>Nhập token lời mời</h3><p>Dành cho tài khoản được người thân mời.</p><button className="secondary-button" type="button" onClick={() => setAcceptOpen(true)}>Nhập token</button></article></div>{error && <StatusMessage tone="error">{error}</StatusMessage>}{createErrorCode === 'ACTIVE_PREGNANCY_NOT_FOUND' && <Link className="text-link" to="/app/profile/health">Tạo hồ sơ thai kỳ</Link>}<AcceptInvitationDialog open={acceptOpen} onClose={() => setAcceptOpen(false)} onAccepted={async () => { await refreshFamilyAfterAccept(reloadProfile); showToast('Bạn đã tham gia nhóm gia đình.'); await load() }} /></section> : <Tabs items={tabs} value={activeTab} onValueChange={chooseTab} ariaLabel="Khu vực Family Hub" idPrefix="family" className="family-tabs" />}</div>}
     </div>
+    <UpgradeDialog hint={access.upgrade} onClose={access.clearUpgrade} />
     <GlobalActionToast toast={toast} onClose={dismissToast} />
   </main>
 }

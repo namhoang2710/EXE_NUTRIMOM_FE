@@ -1,3 +1,5 @@
+import { LockKey } from '@phosphor-icons/react'
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
 import { getSessionScope } from '@/core/auth/token-store'
 import { invalidateProfileResources } from '@/core/api/profile-requests'
 import { createFileUpload, type UploadStage } from '@/features/maternity/model/file-upload'
@@ -40,6 +42,7 @@ function vietnamDateOnly(value: string) {
 }
 
 export function RecordsPage() {
+  const reminderAccess = useFeatureAccess('CALENDAR_REMINDERS')
   const [searchParams, setSearchParams] = useSearchParams()
   const focusedRecordId = searchParams.get('record')?.trim() || ''
   const [records, setRecords] = useState<MedicalRecord[]>([])
@@ -323,7 +326,7 @@ export function RecordsPage() {
   }
 
   return <AppShell>
-    <header className="nm-account-workspace-heading nm-account-workspace-heading-actions"><div><span>Hồ sơ riêng tư</span><h1>Hồ sơ y tế</h1><p>Lưu kết quả khám, siêu âm và tài liệu quan trọng của bạn.</p></div><div className="record-heading-actions"><button className="secondary-button" type="button" disabled={loadingDetail} onClick={() => void openRecordReminder()}><CalendarPlus size={20} />Thêm lịch nhắc nhở</button><button className="primary-button" type="button" onClick={() => void openEditor()}><Plus size={20} />Thêm hồ sơ</button></div></header>
+    <header className="nm-account-workspace-heading nm-account-workspace-heading-actions"><div><span>Hồ sơ riêng tư</span><h1>Hồ sơ y tế</h1><p>Lưu kết quả khám, siêu âm và tài liệu quan trọng của bạn.</p></div><div className="record-heading-actions"><button className="secondary-button" type="button" disabled={loadingDetail} onClick={() => void openRecordReminder()}>{reminderAccess.locked ? <LockKey size={20} /> : <CalendarPlus size={20} />}{reminderAccess.locked ? 'Mở quyền nhắc nhở' : 'Thêm lịch nhắc nhở'}</button><button className="primary-button" type="button" onClick={() => void openEditor()}><Plus size={20} />Thêm hồ sơ</button></div></header>
     {error && <><StatusMessage tone="error">{error}</StatusMessage><button className="secondary-button" type="button" disabled={loading} onClick={() => void (pregnancy ? loadRecords(pregnancy.id) : loadPregnancy())}>Thử lại</button></>}
     <section className="record-filters"><SelectField label="Lọc hồ sơ" value={filterCategory} options={filterCategories} onChange={setFilterCategory} /><CalendarDatePicker label="Từ ngày" value={from} onChange={setFrom} allowClear yearsBack={30} error={rangeError || undefined} /><CalendarDatePicker label="Đến ngày" value={to} onChange={setTo} allowClear yearsBack={30} /></section>
     <section className="record-list">{rangeError ? null : loading ? <section className="empty-state"><p>Đang tải hồ sơ y tế...</p></section> : records.map((record) => <article className="app-card record-item" key={record.id}><FileText size={28} weight="duotone" /><div><p className="card-kicker">{categoryLabels[record.category] ?? 'Loại hồ sơ khác'}</p><h2>{record.title}</h2><p>{formatDate(record.occurred_at)} · {record.facility_name || 'Chưa có cơ sở khám'}</p><p>{record.summary}</p><MedicalRecordAttachments recordId={record.id} attachmentCount={record.attachment_count} attachments={record.attachments} onDownload={(fileId, name) => void download(fileId, name)} /></div><div className="record-actions"><button className="icon-button" type="button" aria-label={`Thêm lịch nhắc từ ${record.title}`} onClick={() => void openRecordReminder(record)} disabled={loadingDetail}><CalendarPlus size={20} /></button><button className="icon-button" type="button" aria-label="Sửa hồ sơ" onClick={() => void openEditor(record)} disabled={loadingDetail}><PencilSimple size={20} /></button><button className="icon-danger" type="button" aria-label="Xóa hồ sơ" onClick={() => setPendingDelete(record.id)} disabled={loadingDetail}><Trash size={20} /></button></div></article>)}{!rangeError && !loading && records.length === 0 && !error && <section className="empty-state"><FileText size={40} /><h2>Chưa có hồ sơ y tế</h2><p>Thêm hồ sơ đầu tiên để lưu tài liệu và tạo lịch tái khám.</p></section>}</section>

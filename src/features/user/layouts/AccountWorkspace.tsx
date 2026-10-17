@@ -1,16 +1,15 @@
 import { BookmarkSimple, CaretDown, ClockCounterClockwise, FileText, FirstAidKit, GearSix, Headset, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { getSessionScope } from '@/core/auth/token-store'
-import { useSubscription } from '@/features/payment/hooks/useSubscription'
+import { SubscriptionStatus } from '@/features/payment/components/SubscriptionStatus'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
 import { focusTargetForTab, getFocusableElements } from '@/shared/model/dialog-focus'
 import './account-workspace.css'
 
 export function AccountWorkspace() {
   const { profile, logout } = useAuth()
-  const { subscription, loading: subscriptionLoading, error: subscriptionError, reload: reloadSubscription } = useSubscription()
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -68,17 +67,7 @@ export function AccountWorkspace() {
     <button ref={mobileToggleRef} className="nm-account-mobile-toggle" type="button" onClick={() => setMobileOpen(true)} aria-expanded={mobileOpen} aria-controls="nm-account-sidebar"><List size={20} /> Danh mục tài khoản</button>
     <aside ref={sidebarRef} className={`nm-account-sidebar${mobileOpen ? ' is-open' : ''}`} id="nm-account-sidebar" aria-label="Danh mục tài khoản">
       <div className="nm-account-sidebar-top"><div className="nm-account-sidebar-avatar" aria-hidden="true">{initial}</div><div><strong>{name}</strong><span>Không gian cá nhân</span></div><div className="nm-account-sidebar-actions"><ThemeToggle /><button ref={mobileCloseRef} className="nm-account-sidebar-close" type="button" aria-label="Đóng danh mục" onClick={() => setMobileOpen(false)}><X size={20} /></button></div></div>
-      <div style={{ margin: '8px 16px 12px', padding: '10px 12px', borderRadius: '12px', background: 'var(--color-surface-subtle, #fff1f2)', border: '1px solid #fecdd3' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-          <span style={{ fontWeight: 700, color: '#e11d48' }}>{subscription?.plan_name || (subscriptionLoading ? 'Đang tải gói...' : 'Chưa tải được gói')}</span>
-          {subscription?.active && subscription.plan_tier !== 'FREE' ? (
-            <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>Còn {subscription.days_remaining} ngày</span>
-          ) : subscription ? (
-            <Link to="/pricing" style={{ fontSize: '11px', color: '#e11d48', fontWeight: 600, textDecoration: 'underline' }}>Nâng cấp</Link>
-          ) : null}
-        </div>
-        {subscriptionError && <div><small role="alert">Không thể tải thông tin gói.</small><button className="attachment-button" type="button" onClick={() => void reloadSubscription()}>Thử lại</button></div>}
-      </div>
+      <SubscriptionStatus compact />
       <nav className="nm-account-side-nav" aria-label="Điều hướng tài khoản"><p className="nm-account-side-label">Tài khoản của bạn</p>
         {links.map(({ to, end, label, icon: Icon }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nm-account-side-link${isActive ? ' is-active' : ''}`}><Icon size={20} weight="duotone" aria-hidden="true" />{label}</NavLink>)}
         <button className={`nm-account-side-link nm-account-settings-trigger${accountActive ? ' is-active' : ''}`} type="button" aria-expanded={settingsOpen} aria-controls="nm-account-settings-submenu" onClick={() => setSettingsOpen((open) => !open)}><GearSix size={20} weight="duotone" aria-hidden="true" />Thiết lập tài khoản<CaretDown className={settingsOpen ? 'is-rotated' : ''} size={16} aria-hidden="true" /></button>
