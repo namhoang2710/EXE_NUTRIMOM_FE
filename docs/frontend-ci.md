@@ -64,6 +64,8 @@ Nhánh `chore/frontend-ci` được tạo sau khi cập nhật `dev` tới `1de8
 - Lockfile có các dependency native dành cho Linux x64 của Rolldown, Tailwind oxide và Lightning CSS.
 - Các kết quả trên là kiểm tra cục bộ trên Windows. Kết quả GitHub-hosted Ubuntu phải được đối chiếu trong tab Actions sau khi push; kiểm tra cục bộ không được coi là bằng chứng job GitHub đã xanh.
 
+Lượt GitHub đầu tiên trên Ubuntu đã phát hiện một assertion cũ của calendar test giả định máy luôn có offset khác UTC: thời gian local bị yêu cầu phải khác chuỗi UTC cùng giờ. Giả định này sai trên runner UTC. Test được sửa để chạy helper thật trong hai process riêng với `TZ=UTC` và `TZ=Asia/Ho_Chi_Minh`, đối chiếu kết quả tường minh và cả trường hợp chuyển sang ngày trước. Không ép timezone chung của CI, không bỏ test và không sửa hành vi ứng dụng.
+
 Log cục bộ: `D:/KI8/qa/frontend-ci-2026-10-17/` gồm `install.log`, `lint.log`, `tests.log`, `build.log`, `actionlint.log`. Tài liệu này không chứa secret hoặc token.
 
 Tài liệu tham khảo: [Node.js trên GitHub Actions](https://docs.github.com/en/actions/tutorials/build-and-test-code/nodejs), [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).

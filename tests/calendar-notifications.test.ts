@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
 import {
   buildEventsPath,
   buildMonthPath,
@@ -93,10 +94,24 @@ test('malformed reminder detail fails safely at the API boundary', () => {
   assert.throws(() => normalizeReminderDetail({ id: 'r1', title: 'Thiếu giờ', startTime: '08:00' }), CalendarContractError)
 })
 
-test('datetime-local is parsed as local time before conversion to UTC', () => {
-  const local = '2099-10-03T08:30'
-  assert.equal(localDateTimeToUtc(local), new Date(local).toISOString())
-  assert.notEqual(localDateTimeToUtc(local), `${local}:00.000Z`)
+test('datetime-local converts correctly in UTC and Vietnam, including date boundaries', () => {
+  const values = ['2099-10-03T08:30', '2099-10-03T00:15']
+  const helperUrl = new URL('../src/features/calendar/model/calendar-helpers.ts', import.meta.url).href
+  const script = `import { localDateTimeToUtc } from ${JSON.stringify(helperUrl)};
+    console.log(JSON.stringify(${JSON.stringify(values)}.map(localDateTimeToUtc)));`
+  const cases = [
+    { timeZone: 'UTC', expected: ['2099-10-03T08:30:00.000Z', '2099-10-03T00:15:00.000Z'] },
+    { timeZone: 'Asia/Ho_Chi_Minh', expected: ['2099-10-03T01:30:00.000Z', '2099-10-02T17:15:00.000Z'] },
+  ]
+
+  // Isolate TZ in child processes so this test never changes the rest of the suite.
+  for (const { timeZone, expected } of cases) {
+    const output = execFileSync(process.execPath, ['--experimental-strip-types', '--input-type=module', '--eval', script], {
+      env: { ...process.env, TZ: timeZone },
+      encoding: 'utf8',
+    })
+    assert.deepEqual(JSON.parse(output), expected, timeZone)
+  }
 })
 
 test('Vietnam calendar labels can include weekday and time without invalid Intl options', () => {
