@@ -64,5 +64,5 @@ export function useEntitlements(enabled = true) {
     const timer = window.setTimeout(() => { void refreshEntitlements().catch(() => undefined) }, delay)
     return () => window.clearTimeout(timer)
   }, [enabled, status, endDate])
-  return { ...state, subscription: status === 'authenticated' ? state.data : null }
+  return { ...state, loading: state.loading || (enabled && status === 'loading'), subscription: status === 'authenticated' ? state.data : null }
 }

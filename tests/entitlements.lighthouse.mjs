@@ -35,6 +35,6 @@ try {
     await writeFile(`qa-artifacts/entitlements/lighthouse-${formFactor}.json`, result.report[0])
     await writeFile(`qa-artifacts/entitlements/lighthouse-${formFactor}.html`, result.report[1])
     const { lhr } = result
-    console.log(JSON.stringify({ formFactor, scores: Object.fromEntries(Object.entries(lhr.categories).map(([key, value]) => [key, value.score])), lcp: lhr.audits['largest-contentful-paint'].numericValue, cls: lhr.audits['cumulative-layout-shift'].numericValue, failures: Object.values(lhr.audits).filter((audit) => audit.score !== null && audit.score < 1 && audit.details?.items).map((audit) => ({ id: audit.id, title: audit.title, elements: audit.details.items.slice(0, 5).map((item) => item.node?.snippet || item.url) })) }))
+    console.log(JSON.stringify({ formFactor, scores: Object.fromEntries(Object.entries(lhr.categories).map(([key, value]) => [key, value.score])), lcp: lhr.audits['largest-contentful-paint'].numericValue, cls: lhr.audits['cumulative-layout-shift'].numericValue, failures: Object.values(lhr.audits).filter((audit) => audit.score !== null && audit.score < 1 && Array.isArray(audit.details?.items)).map((audit) => ({ id: audit.id, title: audit.title, elements: audit.details.items.slice(0, 5).map((item) => item.node?.snippet || item.url) })) }))
   }
 } finally { await chrome.kill(); server.close() }

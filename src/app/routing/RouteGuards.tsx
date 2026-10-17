@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react'
+import type { PropsWithChildren, ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import type { OnboardingStatus } from '@/features/user/model/user-types'
@@ -59,10 +59,10 @@ export function ExpertOnly({ children }: PropsWithChildren) {
   return children
 }
 
-export function ProtectedRoute({ children }: PropsWithChildren) {
+export function ProtectedRoute({ children, publicLoadingFallback }: PropsWithChildren<{ publicLoadingFallback?: ReactNode }>) {
   const { status, profile, profileError, user } = useAuth()
   const location = useLocation()
-  if (status === 'loading') return <PageSkeleton />
+  if (status === 'loading') return publicLoadingFallback ?? <PageSkeleton />
   if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />
   if (isAdminUser(user) || isExpertUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
   if (!profile) return profileError ? <ProfileUnavailable /> : <PageSkeleton />

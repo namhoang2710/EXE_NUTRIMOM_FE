@@ -49,7 +49,7 @@ const ServicesPage = lazy(() => import('@/features/landing/pages/ServicesPage').
 const NutritionPage = lazy(() => import('@/features/nutrition/pages/NutritionPage').then((module) => ({ default: module.NutritionPage })))
 const PaymentCancelPage = lazy(() => import('@/features/payment/pages/PaymentCancelPage').then((module) => ({ default: module.PaymentCancelPage })))
 const PaymentSuccessPage = lazy(() => import('@/features/payment/pages/PaymentSuccessPage').then((module) => ({ default: module.PaymentSuccessPage })))
-const PricingPage = lazy(() => import('@/features/payment/pages/PricingPage').then((module) => ({ default: module.PricingPage })))
+const PricingEntry = lazy(() => import('@/features/payment/pages/PricingEntry').then((module) => ({ default: module.PricingEntry })))
 const AppHomePage = lazy(() => import('@/features/user/pages/AppHomePage').then((module) => ({ default: module.AppHomePage })))
 const ProfilePage = lazy(() => import('@/features/user/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
 const SettingsPage = lazy(() => import('@/features/user/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })))
@@ -120,6 +120,7 @@ export function AppRouter() {
         <Route index element={<ConsultationHistoryPage />} />
       </Route>
 
+      <Route path="app/pricing" element={<PricingEntry />} />
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<Navigate to="/app" replace />} />
@@ -134,7 +135,6 @@ export function AppRouter() {
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="knowledge/:articleSlug" element={<BlogArticlePage />} />
         <Route path="community" element={<CommunityPage />} />
-        <Route path="pricing" element={<PricingPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="experts" element={<ExpertsPage />} />

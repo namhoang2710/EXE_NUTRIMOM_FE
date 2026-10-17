@@ -29,7 +29,7 @@ Sources: `NutriMom_FE_Entitlements_Guide.md`, backend `docs/ENTITLEMENTS_API.md`
 | Activation/expiry | Confirmed payment invalidates pending pre-payment entitlement reads and refreshes rights. Open pages refresh when the subscription reaches its end date. |
 | Request control | Shared in-flight reads; public catalog TTL 5 minutes, account-scoped entitlement TTL 15 seconds; visibility/focus refresh uses the same cache. No background retry loop. |
 | HTTP 429 | Read cooldown respects Retry-After. Write cooldown is shared per account/operation across navigation; buttons show a countdown. No automatic replay of a POST or checkout. |
-| Account isolation | Session change/clear discards account data and cooldowns; old pending reads cannot publish into a new account. |
+| Account isolation | Session change/clear discards entitlement data and write cooldowns; old pending reads cannot publish into a new account. |
 | AI Scan | Catalog quota is displayed as a plan allowance, with “Sắp ra mắt”. No invented used/remaining counters; dashboard scan_quota remains nullable. |
 | Other modules | No additional gating added to onboarding, conception calculation, nutrition, consultation or shared-calendar reading. |
 
@@ -44,6 +44,7 @@ Applied the repository's `design-taste-frontend` skill in preserve mode to the p
 - Upgrade content replaces the form in its existing dialog; next-reminder and delete confirmations no longer keep a second active modal underneath.
 - Keyboard focus is trapped and restored to the opener. Reduced-motion behavior is supported.
 - Desktop, tablet and mobile layouts were checked at 1440, 768 and 375 pixels in light/dark modes.
+- The pricing route can render public catalog content during session restoration. Entitlements, notification reads and purchase controls stay disabled until authentication; all existing account/profile admission checks still apply.
 - Loading placeholders reserve the catalog layout; fixed a decorative checkout background that previously caused 5px horizontal overflow on mobile.
 - Assistant conversation UI is loaded on opening the assistant, avoiding an unnecessary initial panel download on the pricing page.
 
@@ -52,8 +53,8 @@ Applied the repository's `design-taste-frontend` skill in preserve mode to the p
 - `npm run lint`: passed, no warnings.
 - `npm test`: 456 passed, 0 failed.
 - `npm run build`: passed, including TypeScript checking. Existing large-chunk warning remains for the separately loaded LiveKit call runtime.
-- `npm run test:entitlements:browser`: 24 scenarios passed, 0 uncaught browser errors. API responses are fixtures derived from the backend contract; no real payment or customer write was performed.
-- Browser coverage includes all three plans, anonymous login destinations, current-plan error states, checkout activation, duplicate submissions, 429 across navigation, all guarded endpoint rejection paths, FREE invitation acceptance, existing reminder modification/deletion, expiry and keyboard focus restoration.
+- `npm run test:entitlements:browser`: 30 scenarios passed, 0 uncaught browser errors. API responses are fixtures derived from the backend contract; no real payment or customer write was performed.
+- Browser coverage includes all three plans, anonymous login destinations, current-plan error states, checkout activation, duplicate submissions, 429 across navigation, all guarded endpoint rejection paths, FREE invitation acceptance, existing reminder modification/deletion, expiry and keyboard focus restoration. Six additional cases cover public pricing during slow authentication, disabled purchasing/private reads until authentication, and the anonymous/admin/expert/onboarding/profile-error guards.
 
 Artifacts are generated into ignored `qa-artifacts/entitlements/`: `browser-results.json`, `browser.log`, `tests.log`, `build.log`, screenshots, and Lighthouse HTML/JSON reports.
 
@@ -61,8 +62,8 @@ Artifacts are generated into ignored `qa-artifacts/entitlements/`: `browser-resu
 
 | Profile | Performance | Accessibility | Best practices | Simulated LCP | CLS |
 | --- | --- | --- | --- | --- | --- |
-| Desktop preset | 91 | 100 | 100 | 1.67s | 0.00014 |
-| Mobile default throttling | 55 | 100 | 100 | 8.19s | 0 |
+| Desktop preset | 91 | 100 | 100 | 1.69s | 0 |
+| Mobile default throttling | 54 | 100 | 100 | 8.27s | 0 |
 
 Mobile throttled performance remains below the desired performance target. Lighthouse identifies shared application CSS/JavaScript, dependency loading and the existing animated bot avatar as remaining bottlenecks. These results do not establish that the whole application meets mobile Core Web Vitals targets. Request deduplication, cooldowns, layout stability, responsive rendering and keyboard/reduced-motion behavior are independently covered by the checks above.
 

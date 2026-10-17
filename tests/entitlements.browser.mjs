@@ -36,8 +36,14 @@ async function fixture(tier = 'FREE', options = {}) {
     if (!['GET', 'OPTIONS'].includes(method)) state.posts.push({ path, method, body: request.postDataJSON() })
     const ok = (data, status = 200) => route.fulfill({ status, json: { data, meta: { request_id: 'qa', server_time: new Date().toISOString() } } })
     const fail = (status, code, fields = {}, message = 'Thông báo từ máy chủ', headers = {}) => route.fulfill({ status, headers, json: { error: { code, message, fields, retryable: false, request_id: 'qa' } } })
-    if (path === '/auth/me') return ok(user)
-    if (path === '/users/me') return ok(profile)
+    if (path === '/auth/me') {
+      if (state.authDelay) await new Promise((resolve) => setTimeout(resolve, state.authDelay))
+      return ok(state.role ? { ...user, role: state.role, roles: [state.role] } : user)
+    }
+    if (path === '/users/me') {
+      if (state.profileError) return fail(503, 'SERVICE_UNAVAILABLE')
+      return ok(state.profileRequired ? { ...profile, onboarding_status: 'PROFILE_REQUIRED' } : profile)
+    }
     if (path === '/subscription-plans') {
       state.catalogAuth.push(request.headers().authorization)
       if (state.catalog429) return fail(429, 'RATE_LIMITED', {}, 'Vui lòng chờ trước khi thử lại.', { 'Retry-After': '30' })
@@ -369,6 +375,36 @@ try {
     await f.page.keyboard.press('Escape')
     assert.equal(await f.page.getByRole('dialog').count(), 0)
     assert.equal(await f.page.getByRole('button', { name: 'Mở quyền nhắc nhở', exact: true }).evaluate((button) => button === document.activeElement), true)
+    await f.context.close()
+  })
+  await check('pricing access: public content renders during auth restore with purchase disabled', async () => {
+    const f = await fixture('FREE', { authDelay: 5000 })
+    await f.goto('/app/pricing?plan=PLAN_99K&step=review')
+    const confirm = f.page.getByRole('button', { name: 'Xác nhận thanh toán', exact: true })
+    await confirm.waitFor()
+    assert.equal(await confirm.isDisabled(), true)
+    assert.equal(f.state.counts['GET /subscriptions/me'] || 0, 0)
+    assert.equal(f.state.counts['GET /notifications/unread-count'] || 0, 0)
+    assert.equal(f.state.posts.length, 0)
+    await f.page.locator('.nm-subscription-status strong').waitFor()
+    assert.equal(await confirm.isEnabled(), true)
+    assert.equal(f.state.counts['GET /subscription-plans'], 1)
+    await f.context.close()
+  })
+  for (const scenario of [
+    { name: 'anonymous', options: { anonymous: true }, path: '**/login' },
+    { name: 'admin', options: { role: 'ADMIN' }, path: '**/admin' },
+    { name: 'expert', options: { role: 'EXPERT' }, path: '**/expert' },
+    { name: 'onboarding', options: { profileRequired: true }, path: '**/onboarding/profile' },
+    { name: 'profile failure', options: { profileError: true } },
+  ]) await check(`pricing access: ${scenario.name} retains its authorization guard`, async () => {
+    const f = await fixture('FREE', scenario.options)
+    await f.goto('/app/pricing?plan=PLAN_99K&step=review#pricing')
+    if (scenario.path) await f.page.waitForURL(scenario.path)
+    else await f.page.getByRole('heading', { name: 'Chưa thể tải hồ sơ', exact: true }).waitFor()
+    assert.equal(f.state.counts['GET /subscriptions/me'] || 0, 0)
+    assert.equal(f.state.counts['POST /payments/subscription-checkout'] || 0, 0)
+    if (scenario.name === 'anonymous') assert.equal(await f.page.evaluate(() => history.state.usr.from), '/app/pricing?plan=PLAN_99K&step=review#pricing')
     await f.context.close()
   })
   assert.deepEqual(errors, [])

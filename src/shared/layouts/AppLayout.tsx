@@ -1,9 +1,9 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type PropsWithChildren } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AuthenticatedNavbar } from './AuthenticatedNavbar'
 import { LandingFooter } from './LandingFooter'
 
-export function AppLayout() {
+export function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation()
   const previousLocation = useRef<{ pathname: string; hash: string } | null>(null)
 
@@ -23,5 +23,5 @@ export function AppLayout() {
     if (pathnameChanged) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname, location.hash])
 
-  return <div className="nm-app-shell"><AuthenticatedNavbar /><div className="nm-app-content"><Outlet /></div><LandingFooter /></div>
+  return <div className="nm-app-shell"><AuthenticatedNavbar /><div className="nm-app-content">{children ?? <Outlet />}</div><LandingFooter /></div>
 }
