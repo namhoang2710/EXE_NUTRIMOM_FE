@@ -12,6 +12,8 @@
   margin-inline: auto;
 }
 
+.experts-page > .consultation-banner { border-top: 0; }
+
 .experts-toolbar__eyebrow {
   margin: 0 0 15px;
   color: var(--experts-purple-strong);

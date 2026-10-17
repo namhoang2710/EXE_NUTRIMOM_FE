@@ -25,16 +25,16 @@ const heroShowcaseItems: HeroParallaxItem[] = [
   {
     title: 'Tư vấn tận tâm cùng chuyên gia',
     link: '/experts',
-    thumbnail: '/rate1.png',
-    alt: 'Thẻ đánh giá tích cực về đội ngũ bác sĩ NutriMom.',
+    thumbnail: '/hero-showcase/assistant-prenatal-ai.png',
+    alt: 'Trợ lý sức khỏe và dinh dưỡng tiền sản AI đồng hành cùng mẹ và gia đình.',
     fit: 'contain',
   },
   {
     title: 'Gia đình cùng đồng hành',
     link: '/about',
-    thumbnail: '/banner3.png',
-    alt: 'Người chồng ở bên chăm sóc vợ trong thai kỳ.',
-    position: '70% center',
+    thumbnail: '/hero-showcase/growing-with-baby.png',
+    alt: 'Những thay đổi của cơ thể mẹ khi em bé lớn lên trong thai kỳ.',
+    fit: 'contain',
   },
   {
     title: 'Chuyên gia được xác minh',
@@ -54,9 +54,9 @@ const heroShowcaseItems: HeroParallaxItem[] = [
   {
     title: 'Nâng niu những khởi đầu nhỏ bé',
     link: '/about',
-    thumbnail: '/banner2.png',
-    alt: 'Bàn tay em bé được nâng niu trong đôi tay người lớn.',
-    position: '72% center',
+    thumbnail: '/hero-showcase/sleep-nutrition.png',
+    alt: 'Gợi ý món ăn giúp mẹ bầu ngủ ngon hơn.',
+    fit: 'contain',
   },
   {
     title: 'Đặt lịch khám trực tuyến',
@@ -75,8 +75,8 @@ const heroShowcaseItems: HeroParallaxItem[] = [
   {
     title: 'Hỗ trợ gần gũi sau sinh',
     link: '/about',
-    thumbnail: '/rate2.png',
-    alt: 'Thẻ đánh giá tích cực về đội ngũ chăm sóc khách hàng NutriMom.',
+    thumbnail: '/hero-showcase/care-plans-overview.png',
+    alt: 'Các gói đồng hành Miễn phí, Toàn diện và Cơ bản cho hành trình của mẹ.',
     fit: 'contain',
   },
   {
@@ -97,23 +97,23 @@ const heroShowcaseItems: HeroParallaxItem[] = [
   {
     title: 'Trải nghiệm Premium dễ dùng',
     link: '/services',
-    thumbnail: '/rate3.png',
-    alt: 'Thẻ đánh giá về trải nghiệm gói Premium của NutriMom.',
+    thumbnail: '/hero-showcase/pregnancy-stage-week-26.png',
+    alt: 'Theo dõi chặng thai kỳ hiện tại ở tuần 26, ngày 2.',
     fit: 'contain',
   },
   {
     title: 'Gói chăm sóc cho cả gia đình',
     link: '/services',
-    thumbnail: '/hero-showcase/gia.jpg',
-    alt: 'Các gói chăm sóc NutriMom dành cho mẹ và gia đình.',
-    position: 'center',
+    thumbnail: '/hero-showcase/knowledge-library.png',
+    alt: 'Thư viện kiến thức NutriMom đồng hành cùng mẹ trước, trong và sau thai kỳ.',
+    fit: 'contain',
   },
   {
     title: 'Một gia đình, một hành trình',
     link: '/about',
-    thumbnail: '/banner5.png',
-    alt: 'Cha mẹ cùng ôm em bé trong khung cảnh dịu dàng.',
-    position: '28% center',
+    thumbnail: '/hero-showcase/family-hubs.png',
+    alt: 'Family Hubs giúp gia đình chia sẻ thông tin, phối hợp công việc và theo dõi hoạt động.',
+    fit: 'contain',
   },
 ]
 

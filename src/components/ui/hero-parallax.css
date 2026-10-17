@@ -150,6 +150,8 @@
 }
 
 .hero-parallax__card--contain .hero-parallax__media img {
+  position: absolute;
+  inset: 0;
   object-fit: contain;
 }
 
@@ -174,6 +176,11 @@
 .hero-parallax__link:hover .hero-parallax__media img,
 .hero-parallax__link:focus-visible .hero-parallax__media img {
   transform: scale(1.035);
+}
+
+.hero-parallax__card--contain .hero-parallax__link:hover .hero-parallax__media img,
+.hero-parallax__card--contain .hero-parallax__link:focus-visible .hero-parallax__media img {
+  transform: none;
 }
 
 .hero-parallax__link:focus-visible {

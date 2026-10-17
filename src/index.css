@@ -1,12 +1,14 @@
 @import "tailwindcss";
 @import "./shared/styles/animations.css";
 @import "./shared/styles/landing.css";
+@import "./shared/styles/landing-header.css";
 @import "./shared/styles/app.css";
 @import "./shared/styles/authenticated.css";
 @import "./shared/styles/scroll-progress.css";
 @import "./shared/styles/product-ui.css";
 @import "./features/calendar/styles/calendar.css";
 @import "./features/notifications/styles/notifications.css";
+@import "./shared/styles/auth.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
