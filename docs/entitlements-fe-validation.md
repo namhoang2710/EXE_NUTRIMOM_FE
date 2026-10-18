@@ -31,7 +31,8 @@ Nguồn đối chiếu: `NutriMom_FE_Entitlements_Guide.md`, tài liệu BE `doc
 | HTTP 429 | Thời gian chờ khi đọc tuân theo Retry-After. Thời gian chờ khi ghi được dùng chung theo tài khoản/thao tác kể cả khi chuyển trang; nút hiển thị đếm ngược. Không tự gửi lại POST hoặc yêu cầu thanh toán. |
 | Tách biệt tài khoản | Khi đổi hoặc xóa phiên đăng nhập, xóa dữ liệu quyền và thời gian chờ của thao tác ghi; yêu cầu đọc cũ đang chờ không thể đưa dữ liệu vào tài khoản mới. |
 | AI Scan | Hạn mức trong danh sách gói được hiển thị là quyền lợi của gói, kèm “Sắp ra mắt”. Không tự tạo số lượt đã dùng/còn lại; `scan_quota` trên dashboard vẫn có thể là null. |
-| Các phân hệ khác | Không thêm điều kiện gói cho onboarding, tính ngày thụ thai, dinh dưỡng, tư vấn hoặc đọc lịch dùng chung. |
+| Tính ngày thụ thai | Dùng quyền `CONCEPTION_CALCULATOR` từ BE để khóa công cụ tính ngay khi mở hồ sơ. FREE chỉ thấy cấu trúc công cụ dưới lớp kính mờ; hai gói trả phí được tính và xác nhận lưu. Đây là điều kiện truy cập trên FE; BE hiện chưa thực thi quyền này trên API thai kỳ. |
+| Các phân hệ khác | Không thêm điều kiện gói cho onboarding, dinh dưỡng, tư vấn hoặc đọc lịch dùng chung. |
 
 ## Giao diện và thiết kế
 
@@ -48,17 +49,33 @@ Nguồn đối chiếu: `NutriMom_FE_Entitlements_Guide.md`, tài liệu BE `doc
 - Khung chờ tải giữ chỗ cho bố cục danh sách gói; đã sửa nền trang trí thanh toán từng gây tràn ngang 5px trên điện thoại.
 - Giao diện hội thoại trợ lý chỉ được tải khi mở trợ lý, giảm phần tải ban đầu không cần thiết trên trang bảng giá.
 
+## Bổ sung thiết kế sidebar và khung khóa kính mờ
+
+Theo yêu cầu điều chỉnh UI ngày 18/10/2026, đã áp dụng skill `redesign-existing-projects` có sẵn trong dự án, giữ màu sắc và hệ thống thành phần NutriMom hiện tại.
+
+- Sidebar dùng thẻ gói nhỏ gọn, nền đồng bộ với thanh điều hướng, gồm tên gói, hạn dùng, số ngày còn lại và liên kết xem quyền lợi. Thẻ không bị co chiều cao khi cửa sổ thấp; nội dung và liên kết nằm trong khung ở cả giao diện sáng/tối.
+- Thành phần `FeatureLock` dùng lớp kính mờ 4px phủ lên cấu trúc tính năng, biểu tượng khóa, thông báo quyền lợi từ contract và liên kết đến gói phù hợp. Khung tự giãn theo nội dung để không cắt caption hoặc nút trên điện thoại.
+- Lịch trống của FREE hiển thị khóa ngay; khi có dữ liệu, lịch vẫn đọc được và phần tạo mới hiển thị khung khóa riêng. Điều hướng tháng và các chế độ xem vẫn dùng được để tìm lịch cũ.
+- Tạo nhóm gia đình được phủ khóa ngay với FREE/99K. Nhận lời mời bằng token vẫn dùng được. Nếu đã có nhóm, dữ liệu và thành viên vẫn xem được; phần mời thêm người thân hiển thị khóa riêng.
+- Công cụ tính trong hồ sơ được khóa ngay với FREE, trước khi nhập hoặc tính kết quả. Khi quyền chưa tải xong hoặc bị lỗi, công cụ cũng chưa cho thao tác và hiển thị trạng thái chờ/thử lại rõ ràng.
+- Hai gói trả phí tiếp tục tính và lưu sau xác nhận. Kiểm tra lại quyền trước khi tính, mở xác nhận và lưu; chặn gửi tính trùng khi bấm nhanh. Khi mất quyền, kết quả cũ và xác nhận lưu được xóa; phản hồi tính đến muộn không làm xuất hiện lại kết quả.
+- Các trường nhập và nút phía sau lớp khóa có `inert` và được ẩn khỏi cây trợ năng, nên không nhận nhấp chuột hoặc tiêu điểm bàn phím. Có nền đặc thay thế khi người dùng bật giảm độ trong suốt, cùng trạng thái focus và hỗ trợ giảm chuyển động.
+
 ## Kết quả kiểm chứng
 
 - `npm run lint`: đạt, không có cảnh báo.
 - `npm test`: 456 kiểm thử đạt, 0 thất bại.
 - `npm run build`: đạt, bao gồm kiểm tra TypeScript. Vẫn còn cảnh báo kích thước gói mã lớn đối với phần chạy cuộc gọi LiveKit được tải riêng.
-- `npm run test:entitlements:browser`: 30 tình huống đạt, 0 lỗi trình duyệt chưa được xử lý. Phản hồi API là dữ liệu mô phỏng dựa trên contract BE; không thực hiện thanh toán thật hoặc ghi dữ liệu khách hàng thật.
+- `npm run test:entitlements:browser`: 43 tình huống đạt, 0 lỗi trình duyệt chưa được xử lý. Phản hồi API là dữ liệu mô phỏng dựa trên contract BE; không thực hiện thanh toán thật hoặc ghi dữ liệu khách hàng thật.
 - Kiểm thử trình duyệt bao phủ cả ba gói, đích chuyển đến đăng nhập cho khách, lỗi đọc gói hiện tại, kích hoạt sau thanh toán, gửi trùng, 429 khi chuyển trang, các luồng BE từ chối ở toàn bộ endpoint có kiểm tra quyền, FREE chấp nhận lời mời, sửa/xóa nhắc nhở đã có, hết hạn và khôi phục tiêu điểm bàn phím. Sáu tình huống bổ sung kiểm tra bảng giá công khai khi xác thực chậm, khóa thao tác mua/đọc dữ liệu riêng trước khi xác thực xong, cùng các điều kiện truy cập cho khách, admin, chuyên gia, onboarding và lỗi hồ sơ.
 
-Các tệp kết quả được sinh vào thư mục `qa-artifacts/entitlements/` đã được Git bỏ qua: `browser-results.json`, `browser.log`, `tests.log`, `build.log`, ảnh chụp màn hình và báo cáo Lighthouse dạng HTML/JSON.
+Đợt bổ sung này kiểm tra thêm ba gói trong sidebar ở 1440/768/375px và sáng/tối; khóa công cụ tính của FREE; tính/lưu của hai gói trả phí; quyền đang tải, lỗi hoặc thiếu; thay đổi gói khi trang đang mở; phản hồi tính đến muộn; bàn phím và giảm độ trong suốt; khung gia đình trên điện thoại; cùng lịch cũ vẫn đọc được bên cạnh khung khóa tạo mới. Các kiểm tra bố cục xác nhận caption và liên kết nâng cấp không bị cắt khỏi khung.
 
-### Đo Lighthouse trên bản build production
+Các tệp kết quả được sinh vào thư mục `qa-artifacts/entitlements/` đã được Git bỏ qua: `browser-results.json`, `glass-browser.log`, `glass-tests.log`, `glass-build.log`, ảnh chụp màn hình và báo cáo Lighthouse dạng HTML/JSON.
+
+### Kết quả Lighthouse đã ghi nhận trước đợt chỉnh khung khóa
+
+Các số liệu dưới đây thuộc lần đo trước khi chỉnh sidebar và bổ sung khung khóa kính mờ; chưa đo lại Lighthouse sau đợt chỉnh này.
 
 | Cấu hình | Hiệu năng | Khả năng tiếp cận | Thực hành tốt | LCP mô phỏng | CLS |
 | --- | --- | --- | --- | --- | --- |

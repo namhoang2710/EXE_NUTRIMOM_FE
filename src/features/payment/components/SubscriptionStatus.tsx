@@ -10,6 +10,17 @@ export function SubscriptionStatus({ compact = false, showLink = true }: { compa
   const retrySeconds = useRetryCountdown(state.retryAt)
   const subscription = state.subscription
   const Icon = subscription?.paid ? Crown : Leaf
+  if (compact) return <section className="nm-subscription-status is-compact" aria-label="Gói của bạn">
+    {state.loading && !subscription ? <div className="nm-subscription-skeleton" role="status">Đang tải gói của bạn…</div> : subscription ? <>
+      <div className="nm-subscription-status__heading">
+        <span className="nm-subscription-status__icon"><Icon size={20} weight="duotone" aria-hidden="true" /></span>
+        <div className="nm-subscription-status__copy"><span>Gói hiện tại</span><strong>{subscription.plan_name}</strong></div>
+      </div>
+      <p className="nm-subscription-status__meta">{subscription.paid && subscription.end_date ? <>Hết hạn {new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(subscription.end_date))}<span>{subscription.days_remaining > 0 ? `Còn ${subscription.days_remaining} ngày` : 'Sắp hết hạn'}</span></> : 'Những công cụ thiết yếu cho mẹ.'}</p>
+      {state.error && <div className="nm-subscription-status__stale" role="status">Chưa cập nhật được. <button type="button" disabled={state.loading || retrySeconds > 0} onClick={() => void state.reload().catch(() => undefined)}>{retrySeconds > 0 ? `Thử lại sau ${retrySeconds}s` : 'Thử lại'}</button></div>}
+      {showLink && <Link className="nm-subscription-status__link" to="/app/pricing#pricing">{subscription.paid ? 'Xem quyền lợi' : 'Khám phá các gói'}<ArrowRight size={15} aria-hidden="true" /></Link>}
+    </> : <ResourceFeedback error={state.error} retryAt={state.retryAt} onRetry={state.reload} label="thông tin gói" />}
+  </section>
   return <section className={`nm-subscription-status${compact ? ' is-compact' : ''}`} aria-label="Gói của bạn">
     {state.loading && !subscription ? <div className="nm-subscription-skeleton" role="status">Đang tải gói của bạn…</div> : subscription ? <>
       <span className="nm-subscription-status__icon"><Icon size={compact ? 22 : 30} weight="duotone" aria-hidden="true" /></span>

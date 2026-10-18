@@ -50,9 +50,12 @@ async function fixture(tier = 'FREE', options = {}) {
       return ok(planDtos)
     }
     if (path === '/subscriptions/me') {
+      if (state.entitlementDelay) await new Promise((resolve) => setTimeout(resolve, state.entitlementDelay))
       if (state.entitlementError) return fail(503, 'SERVICE_UNAVAILABLE')
       if (state.entitlement429) return fail(429, 'RATE_LIMITED', {}, 'Đang giới hạn yêu cầu.', { 'Retry-After': '30' })
       const current = entitlementsFor(state.tier)
+      if (state.planName) current.plan_name = state.planName
+      if (state.missingCalculator) current.features = current.features.filter((item) => item.code !== 'CONCEPTION_CALCULATOR')
       if (state.expiring && state.counts[key] === 1) current.end_date = new Date(Date.now() + 1800).toISOString()
       else if (state.expiring) state.tier = 'FREE'
       return ok(state.expiring && state.counts[key] > 1 ? entitlementsFor('FREE') : current)
@@ -66,7 +69,12 @@ async function fixture(tier = 'FREE', options = {}) {
     if (path === '/payments/orders/73145') return ok({ id: 'order-qa', order_code: 73145, plan_tier: state.selectedTier, plan_name: entitlementsFor(state.selectedTier).plan_name, amount: 399000, currency: 'VND', status: state.paid ? 'PAID' : 'PENDING', created_at: new Date().toISOString(), checkout_url: '/payment/success?orderCode=73145&mock=true' })
     if (path === '/payments/my-subscription') { const current = entitlementsFor(state.tier); return ok({ ...current, plan_tier: current.plan_id, status: 'ACTIVE', active: true }) }
     if (path === '/dashboard/mom') return ok({ profile_summary: profile, subscription: entitlementsFor(state.tier), upcoming_reminders: [], active_alerts: [], recommended_articles: [] })
-    if (path === '/pregnancies/current') return ok({ id: 'pregnancy-qa', status: 'ACTIVE', estimated_due_date: '2027-02-01', gestational_week: 24 })
+    if (path === '/pregnancies/current') return state.noPregnancy ? fail(404, 'ACTIVE_PREGNANCY_NOT_FOUND') : ok({ id: 'pregnancy-qa', status: 'ACTIVE', estimated_due_date: '2027-02-01', gestational_week: 24, gestational_day: 2, trimester: 2, days_until_due: 100, calculation_source: 'LAST_MENSTRUAL_PERIOD', version: 1 })
+    if (path === '/pregnancies/calculate') {
+      if (state.calculationDelay) await new Promise((resolve) => setTimeout(resolve, state.calculationDelay))
+      return ok({ estimated_due_date: '2027-07-01', gestational_week: 4, gestational_day: 2, trimester: 1, days_until_due: 250, calculation_source: request.postDataJSON().method })
+    }
+    if (path === '/pregnancies' && method === 'POST') return ok({ id: 'pregnancy-new', estimated_due_date: '2027-07-01', gestational_week: 4, gestational_day: 2, trimester: 1, days_until_due: 250, version: 1, ...request.postDataJSON() }, 201)
     if (path === '/users/me/preferences') return ok({ timezone: 'Asia/Ho_Chi_Minh', version: 1 })
     if (path === '/calendar/month') return ok(state.existingReminder ? [{ date, event_count: 1, types: ['REMINDER'] }] : [])
     if (path === '/calendar/events') return ok(state.existingReminder ? [{ source: 'REMINDER', source_id: reminder.id, title: reminder.title, date, starts_at: reminder.starts_at, status: 'SCHEDULED', recurring: false }] : [])
@@ -110,7 +118,18 @@ async function check(name, run) {
   console.log(`PASS ${name}`)
 }
 async function screenshot(page, name) { await page.screenshot({ path: `${output}/${name}.png`, fullPage: true }) }
+async function noClippedLocks(page) {
+  const clipped = await page.locator('.nm-feature-lock.is-locked').evaluateAll((locks) => locks.flatMap((lock) => {
+    const bounds = lock.getBoundingClientRect()
+    return [...lock.querySelectorAll('.nm-feature-lock__notice, .nm-feature-lock__notice h3, .nm-feature-lock__notice p, .nm-feature-lock__link')].filter((child) => {
+      const r = child.getBoundingClientRect()
+      return r.left < bounds.left - 1 || r.right > bounds.right + 1 || r.top < bounds.top - 1 || r.bottom > bounds.bottom + 1
+    }).map((child) => child.textContent)
+  }))
+  assert.deepEqual(clipped, [], 'Lock caption and CTA must fit inside the frosted frame')
+}
 async function noOverflow(page) {
+  await noClippedLocks(page)
   const result = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, parents: ['html', 'body', '#root', '.nm-app-shell', '.nm-app-content', 'main', '.nm-payment-comparison', '.nm-payment-table-scroll'].map((selector) => { const e = document.querySelector(selector); const r = e?.getBoundingClientRect(); return {selector, left:r?.left, right:r?.right, width:r?.width, scroll:e?.scrollWidth, overflow:e ? getComputedStyle(e).overflowX : null} }), offenders: [...document.querySelectorAll('body *')].filter((element) => element.getBoundingClientRect().right > innerWidth + 1).slice(-12).map((element) => ({ class: element.className, width: element.getBoundingClientRect().width })) }))
   if (result.scroll > result.width + 1) await screenshot(page, 'overflow-debug')
   assert.equal(result.scroll <= result.width + 1, true, `viewport overflow: ${JSON.stringify(result)}`)
@@ -211,18 +230,23 @@ try {
     assert.equal(f.state.counts['GET /subscription-plans'], 1)
     await f.context.close()
   })
-  await check('FREE reminder creation shows a single accessible upgrade prompt', async () => {
+  await check('FREE reminder creation is frosted immediately with inert preview and correct upgrade destination', async () => {
     const f = await fixture('FREE')
     await f.goto('/app')
-    await f.page.getByRole('button', { name: 'Mở quyền nhắc nhở', exact: true }).click()
-    await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).waitFor()
-    assert.equal(await f.page.getByRole('dialog').count(), 1)
-    assert.equal(await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).getAttribute('href'), '/app/pricing?plan=PLAN_99K&step=review#pricing')
-    assert.equal(f.state.counts['POST /calendar/reminders'] || 0, 0)
-    await f.page.setViewportSize({ width: 375, height: 812 })
-    await screenshot(f.page, 'reminder-upgrade-mobile')
-    await f.page.keyboard.press('Escape')
+    const lock = f.page.locator('#calendar .nm-feature-lock.is-locked')
+    await lock.getByRole('heading', { name: 'Lịch nhắc nhở có trong Gói Cơ bản 99K.' }).waitFor()
     assert.equal(await f.page.getByRole('dialog').count(), 0)
+    assert.equal(await f.page.getByRole('button', { name: 'Mở quyền nhắc nhở', exact: true }).count(), 0)
+    assert.equal(await lock.locator('.nm-feature-lock__preview').evaluate((el) => el.inert), true)
+    assert.equal(await lock.getByRole('link', { name: 'Xem gói phù hợp' }).getAttribute('href'), '/app/pricing?plan=PLAN_99K&step=review#pricing')
+    assert.equal(f.state.counts['POST /calendar/reminders'] || 0, 0)
+    for (const width of [1440, 768, 375]) {
+      await f.page.setViewportSize({ width, height: 950 })
+      await noOverflow(f.page)
+      await screenshot(f.page, `glass-calendar-FREE-${width}`)
+    }
+    await f.page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+    await screenshot(f.page, 'glass-calendar-FREE-mobile-dark')
     await f.context.close()
   })
   await check('FREE medical records stay readable while reminder creation is locked', async () => {
@@ -259,10 +283,11 @@ try {
   await check('FREE family create is locked while token acceptance remains free', async () => {
     const f = await fixture('FREE')
     await f.goto('/app/family')
-    await f.page.getByRole('button', { name: 'Mở quyền tạo nhóm', exact: true }).click()
+    await f.page.locator('.family-onboarding .nm-feature-lock.is-locked').waitFor()
     await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).waitFor()
     assert.equal(f.state.counts['POST /family-groups'] || 0, 0)
-    await f.page.getByRole('button', { name: 'Để sau', exact: true }).click()
+    assert.equal(await f.page.getByRole('dialog').count(), 0)
+    await screenshot(f.page, 'glass-family-FREE-desktop')
     await f.page.getByRole('button', { name: 'Nhập token', exact: true }).click()
     await f.page.getByRole('textbox', { name: 'Token lời mời', exact: true }).fill('fixture-invitation-token')
     await f.page.getByRole('button', { name: 'Tham gia', exact: true }).click()
@@ -273,7 +298,7 @@ try {
   await check('99K retains its existing family but new invitations require 399K', async () => {
     const f = await fixture('PLAN_99K', { group: true })
     await f.goto('/app/family')
-    await f.page.getByRole('button', { name: 'Mở quyền mời thành viên', exact: true }).click()
+    await f.page.locator('.family-section .nm-feature-lock.is-locked').waitFor()
     await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).waitFor()
     assert.equal(await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).getAttribute('href'), '/app/pricing?plan=PLAN_399K&step=review#pricing')
     assert.equal(f.state.counts['POST /family-invitations'] || 0, 0)
@@ -286,11 +311,11 @@ try {
     await f.page.getByRole('button', { name: 'Đánh dấu đã làm', exact: true }).waitFor()
     await f.page.getByRole('button', { name: 'Sửa', exact: true }).click()
     await f.page.getByRole('heading', { name: 'Sửa lịch nhắc nhở' }).waitFor()
-    assert.equal(await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).count(), 0)
+    assert.equal(await f.page.getByRole('dialog').getByRole('link', { name: 'Xem gói phù hợp' }).count(), 0)
     await f.page.keyboard.press('Escape')
     await f.goto('/app?reminder=reminder-qa')
     await f.page.getByRole('button', { name: 'Đánh dấu đã làm', exact: true }).click()
-    await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).waitFor()
+    await f.page.getByRole('dialog').getByRole('link', { name: 'Xem gói phù hợp' }).waitFor()
     assert.equal(await f.page.getByRole('dialog').count(), 1)
     assert.equal(f.state.counts['POST /calendar/reminders'] || 0, 0)
     assert.equal(f.state.counts['PATCH /calendar/reminders/reminder-qa'], 1)
@@ -305,7 +330,7 @@ try {
   await check('an open page refreshes paid entitlements when the subscription expires', async () => {
     const f = await fixture('PLAN_99K', { expiring: true })
     await f.goto('/app')
-    await f.page.getByRole('button', { name: 'Mở quyền nhắc nhở', exact: true }).waitFor()
+    await f.page.locator('#calendar .nm-feature-lock.is-locked').waitFor()
     assert.equal(f.state.counts['GET /subscriptions/me'], 2)
     await f.context.close()
   })
@@ -367,14 +392,154 @@ try {
     await noOverflow(f.page)
     await screenshot(f.page, 'selection-mobile-motion')
     await f.page.emulateMedia({ reducedMotion: 'reduce' })
-    await f.goto('/app')
-    await f.page.getByRole('button', { name: 'Mở quyền nhắc nhở', exact: true }).click()
-    await f.page.getByRole('link', { name: 'Xem gói phù hợp' }).waitFor()
+    await f.goto('/app/profile/records')
+    const opener = f.page.getByRole('button', { name: `Thêm lịch nhắc từ ${record.title}` })
+    await opener.click()
+    await f.page.getByRole('dialog').getByRole('link', { name: 'Xem gói phù hợp' }).waitFor()
     await f.page.keyboard.press('Tab')
     assert.equal(await f.page.evaluate(() => Boolean(document.activeElement.closest('[role="dialog"]'))), true)
     await f.page.keyboard.press('Escape')
     assert.equal(await f.page.getByRole('dialog').count(), 0)
-    assert.equal(await f.page.getByRole('button', { name: 'Mở quyền nhắc nhở', exact: true }).evaluate((button) => button === document.activeElement), true)
+    assert.equal(await opener.evaluate((button) => button === document.activeElement), true)
+    await f.context.close()
+  })
+  for (const tier of ['FREE', 'PLAN_99K', 'PLAN_399K']) await check(`${tier}: compact sidebar stays inside its card in light/dark and mobile`, async () => {
+    const f = await fixture(tier, { noPregnancy: true })
+    await f.goto('/app/profile/health')
+    const card = f.page.locator('.nm-account-sidebar .nm-subscription-status')
+    await card.locator('strong').waitFor()
+    assert.equal(await card.locator('strong').textContent(), entitlementsFor(tier).plan_name)
+    for (const width of [1440, 768, 375]) {
+      await f.page.setViewportSize({ width, height: 812 })
+      if (width < 901) await f.page.getByRole('button', { name: 'Danh mục tài khoản' }).click()
+      for (const theme of ['light', 'dark']) {
+        await f.page.evaluate((theme) => { document.documentElement.dataset.theme = theme }, theme)
+        assert.equal(await card.evaluate((el) => {
+          const card = el.getBoundingClientRect()
+          return el.scrollWidth <= el.clientWidth + 1 && [...el.querySelectorAll('a, strong, p')].every((child) => {
+            const r = child.getBoundingClientRect()
+            return r.left >= card.left && r.right <= card.right + 1 && r.top >= card.top && r.bottom <= card.bottom + 1
+          })
+        }), true)
+        assert.ok((await card.boundingBox()).height < 180)
+        await screenshot(f.page, `sidebar-${tier}-${width}-${theme}`)
+      }
+      if (width < 901) await f.page.locator('.nm-account-sidebar-close').click()
+      await noOverflow(f.page)
+    }
+    await f.context.close()
+  })
+  await check('FREE calculator is locked before interaction and cannot calculate or save', async () => {
+    const f = await fixture('FREE', { noPregnancy: true })
+    await f.goto('/app/profile/health')
+    const lock = f.page.locator('.nm-feature-lock.is-locked').filter({ has: f.page.locator('.calculator-card') })
+    await lock.getByRole('heading', { name: 'Tính ngày thụ thai có trong Gói Cơ bản 99K.' }).waitFor()
+    assert.equal(await f.page.getByRole('button', { name: 'Tính kết quả', exact: true }).count(), 0)
+    assert.equal(await lock.locator('.nm-feature-lock__preview').evaluate((el) => el.inert), true)
+    // Even a programmatic activation cannot send a calculation from a known FREE account.
+    await lock.locator('.calculator-card button').last().evaluate((button) => button.click())
+    assert.equal(f.state.counts['POST /pregnancies/calculate'] || 0, 0)
+    assert.equal(f.state.counts['POST /pregnancies'] || 0, 0)
+    assert.equal(await lock.getByRole('link').getAttribute('href'), '/app/pricing?plan=PLAN_99K&step=review#pricing')
+    for (const width of [1440, 768, 375]) {
+      await f.page.setViewportSize({ width, height: 950 })
+      await noOverflow(f.page)
+      await screenshot(f.page, `glass-calculator-FREE-${width}`)
+    }
+    await f.page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+    await screenshot(f.page, 'glass-calculator-FREE-mobile-dark')
+    await f.context.close()
+  })
+  for (const tier of ['PLAN_99K', 'PLAN_399K']) await check(`${tier}: calculator remains usable through calculation and confirmed save`, async () => {
+    const f = await fixture(tier, { noPregnancy: true })
+    await f.goto('/app/profile/health')
+    await f.page.getByRole('button', { name: 'Nhập thủ công', exact: true }).click()
+    await f.page.getByRole('spinbutton', { name: 'Tuần thai', exact: true }).fill('4')
+    await f.page.getByRole('button', { name: 'Tính kết quả', exact: true }).evaluate((button) => { button.click(); button.click(); button.click() })
+    await f.page.getByRole('button', { name: 'Dùng kết quả này', exact: true }).click()
+    assert.equal(f.state.counts['POST /pregnancies/calculate'], 1)
+    assert.equal(f.state.counts['POST /pregnancies'] || 0, 0)
+    await f.page.getByRole('dialog').getByRole('button', { name: 'Xác nhận', exact: true }).click()
+    await f.page.getByRole('dialog').waitFor({ state: 'hidden' })
+    assert.equal(f.state.counts['POST /pregnancies'], 1)
+    assert.equal(await f.page.locator('.nm-feature-lock.is-locked').count(), 0)
+    await f.context.close()
+  })
+  for (const options of [{ entitlementError: true }, { missingCalculator: true }]) await check(`calculator unknown access stays unavailable: ${JSON.stringify(options)}`, async () => {
+    const f = await fixture('PLAN_99K', { noPregnancy: true, ...options })
+    await f.goto('/app/profile/health')
+    const lock = f.page.locator('.nm-feature-lock.is-locked')
+    await lock.getByRole('button', { name: 'Thử lại', exact: true }).waitFor()
+    assert.equal(await f.page.getByRole('button', { name: 'Tính kết quả', exact: true }).count(), 0)
+    assert.equal(await lock.getByRole('link', { name: 'Xem gói phù hợp' }).count(), 0)
+    assert.equal(f.state.counts['POST /pregnancies/calculate'] || 0, 0)
+    await f.context.close()
+  })
+  await check('calculator cannot flash interactive controls while rights are loading', async () => {
+    const f = await fixture('FREE', { noPregnancy: true, entitlementDelay: 2000 })
+    await f.goto('/app/profile/health')
+    await f.page.locator('.nm-feature-lock__pending').waitFor()
+    assert.equal(await f.page.getByRole('button', { name: 'Tính kết quả', exact: true }).count(), 0)
+    await f.page.locator('.nm-feature-lock__notice h3').waitFor()
+    assert.equal(f.state.counts['POST /pregnancies/calculate'] || 0, 0)
+    await f.context.close()
+  })
+  await check('calculator follows live plan changes and discards an old result after access is lost', async () => {
+    const f = await fixture('FREE', { noPregnancy: true, calculationDelay: 2000 })
+    await f.goto('/app/profile/health')
+    await f.page.locator('.nm-feature-lock__notice h3').waitFor()
+    f.state.tier = 'PLAN_99K'
+    await f.page.evaluate(() => window.dispatchEvent(new Event('nutrimom:subscription-changed')))
+    await f.page.getByRole('button', { name: 'Nhập thủ công', exact: true }).click()
+    await f.page.getByRole('spinbutton', { name: 'Tuần thai', exact: true }).fill('4')
+    const response = f.page.waitForResponse((r) => r.url().endsWith('/pregnancies/calculate'))
+    await f.page.getByRole('button', { name: 'Tính kết quả', exact: true }).click()
+    f.state.tier = 'FREE'
+    await f.page.evaluate(() => window.dispatchEvent(new Event('nutrimom:subscription-changed')))
+    await f.page.locator('.nm-feature-lock__notice h3').waitFor()
+    await response
+    assert.equal(await f.page.locator('.calculation-result').count(), 0)
+    assert.equal(await f.page.getByRole('dialog').count(), 0)
+    assert.equal(f.state.counts['POST /pregnancies'] || 0, 0)
+    await f.context.close()
+  })
+  await check('glass lock respects reduced transparency and skips preview controls with the keyboard', async () => {
+    const f = await fixture('FREE', { noPregnancy: true })
+    await f.goto('/app/profile/health')
+    const link = f.page.locator('.nm-feature-lock__link')
+    await link.waitFor()
+    await link.focus()
+    await f.page.keyboard.press('Shift+Tab')
+    assert.equal(await f.page.evaluate(() => Boolean(document.activeElement.closest('.nm-feature-lock__preview'))), false)
+    const cdp = await f.context.newCDPSession(f.page)
+    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }] })
+    assert.equal(await f.page.locator('.nm-feature-lock__glass').evaluate((el) => getComputedStyle(el).backdropFilter), 'none')
+    await noClippedLocks(f.page)
+    await f.context.close()
+  })
+  await check('family glass gate stays visible in mobile and does not intercept token acceptance', async () => {
+    const f = await fixture('PLAN_99K')
+    await f.goto('/app/family')
+    await f.page.locator('.family-onboarding .nm-feature-lock__notice h3').waitFor()
+    for (const width of [768, 375]) {
+      await f.page.setViewportSize({ width, height: 950 })
+      await noOverflow(f.page)
+      await screenshot(f.page, `glass-family-99K-${width}`)
+    }
+    await f.page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+    await screenshot(f.page, 'glass-family-99K-mobile-dark')
+    await f.page.getByRole('button', { name: 'Nhập token', exact: true }).click()
+    await f.page.getByRole('textbox', { name: 'Token lời mời', exact: true }).waitFor()
+    assert.equal(f.state.counts['POST /family-groups'] || 0, 0)
+    await f.context.close()
+  })
+  await check('FREE calendar preserves readable existing events beside the creation gate', async () => {
+    const f = await fixture('FREE', { existingReminder: true })
+    await f.goto('/app')
+    await f.page.locator('#calendar .nm-feature-lock.is-compact .nm-feature-lock__link').waitFor()
+    await f.page.locator('#calendar .calendar-event-list').getByText(reminder.title, { exact: true }).click()
+    await f.page.getByRole('button', { name: 'Sửa', exact: true }).waitFor()
+    assert.equal(f.state.counts['POST /calendar/reminders'] || 0, 0)
     await f.context.close()
   })
   await check('pricing access: public content renders during auth restore with purchase disabled', async () => {

@@ -1,5 +1,23 @@
 .nm-account-workspace { min-height: 100dvh; background: var(--page); }
 .nm-account-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 40; width: 256px; height: 100dvh; display: flex; flex-direction: column; overflow-y: auto; color: var(--workspace-sidebar-text); background: radial-gradient(circle at 15% -10%,var(--workspace-sidebar-glow),transparent 27%),var(--workspace-sidebar-bg); }
+.nm-account-sidebar > * { flex-shrink: 0; }
+.nm-account-sidebar .nm-subscription-status.is-compact { display: grid; gap: 10px; margin: 16px 13px 0; padding: 14px; border: 1px solid color-mix(in srgb, var(--workspace-sidebar-text) 18%, transparent); border-radius: 14px; color: var(--workspace-sidebar-text-strong); background: color-mix(in srgb, var(--workspace-sidebar-text) 5%, transparent); }
+.nm-account-sidebar .nm-subscription-status__heading { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nm-account-sidebar .nm-subscription-status.is-compact .nm-subscription-status__icon { width: 32px; height: 32px; border-radius: 10px; color: var(--workspace-sidebar-text-strong); background: color-mix(in srgb, var(--workspace-sidebar-text) 10%, transparent); }
+.nm-account-sidebar .nm-subscription-status.is-compact .nm-subscription-status__copy { min-width: 0; }
+.nm-account-sidebar .nm-subscription-status__copy > span { margin-bottom: 3px; color: var(--workspace-sidebar-text-muted); font-size: 10px; font-weight: 500; }
+.nm-account-sidebar .nm-subscription-status__copy strong { display: block; color: var(--workspace-sidebar-text-strong); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.nm-account-sidebar .nm-subscription-status__meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; margin: 0; color: var(--workspace-sidebar-text-muted); font-size: 10px; line-height: 1.6; font-variant-numeric: tabular-nums; }
+.nm-account-sidebar .nm-subscription-status__meta span { color: var(--workspace-sidebar-text); }
+.nm-account-sidebar .nm-subscription-status.is-compact .nm-subscription-status__link { justify-content: space-between; min-height: 36px; margin: 0; border-top: 1px solid color-mix(in srgb, var(--workspace-sidebar-text) 12%, transparent); padding: 9px 0 0; color: var(--workspace-sidebar-text-strong); font-size: 11px; font-weight: 600; }
+.nm-account-sidebar .nm-subscription-status__stale { color: var(--workspace-sidebar-text-muted); font-size: 11px; line-height: 1.6; }
+.nm-account-sidebar .nm-subscription-status__stale button { border: 0; padding: 3px; color: var(--workspace-sidebar-text-strong); background: transparent; text-decoration: underline; cursor: pointer; }
+.nm-account-sidebar .nm-subscription-skeleton { color: var(--workspace-sidebar-text-muted); font-size: 12px; }
+.nm-account-sidebar .nm-pricing-feedback { gap: 10px; min-width: 0; margin: 0; padding: 0; border: 0; color: var(--workspace-sidebar-text-strong); background: transparent; }
+.nm-account-sidebar .nm-pricing-feedback > div { min-width: 0; }
+.nm-account-sidebar .nm-pricing-feedback > svg { color: var(--workspace-sidebar-text); }
+.nm-account-sidebar .nm-pricing-feedback strong { font-size: 12px; }
+.nm-account-sidebar .nm-pricing-feedback p { color: var(--workspace-sidebar-text-muted); font-size: 11px; }
 .nm-account-sidebar-top { display: flex; align-items: center; gap: 11px; min-height: 105px; border-bottom: 1px solid rgba(255,255,255,.08); padding: 20px 19px; }
 .nm-account-sidebar-top > div:nth-child(2) { display: grid; min-width: 0; gap: 4px; }
 .nm-account-sidebar-top strong { overflow: hidden; color: var(--workspace-sidebar-text-strong); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }

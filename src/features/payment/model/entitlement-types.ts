@@ -1,6 +1,6 @@
 import type { PlanTier } from './payment-types.ts'
 
-export type GatedFeature = 'FAMILY_SHARING' | 'CALENDAR_REMINDERS'
+export type GatedFeature = 'FAMILY_SHARING' | 'CALENDAR_REMINDERS' | 'CONCEPTION_CALCULATOR'
 
 export interface PlanFeatureDto {
   code: string

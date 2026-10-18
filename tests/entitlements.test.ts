@@ -12,6 +12,7 @@ test('enforces precisely the backend feature matrix and cheapest capable plan', 
     const current = entitlementsFor(tier)
     assert.equal(featureUpgradeHint('FAMILY_SHARING', current, planDtos)?.requiredPlan ?? null, tier === 'PLAN_399K' ? null : 'PLAN_399K')
     assert.equal(featureUpgradeHint('CALENDAR_REMINDERS', current, planDtos)?.requiredPlan ?? null, tier === 'FREE' ? 'PLAN_99K' : null)
+    assert.equal(featureUpgradeHint('CONCEPTION_CALCULATOR', current, planDtos)?.requiredPlan ?? null, tier === 'FREE' ? 'PLAN_99K' : null)
   }
   assert.equal(featureUpgradeHint('FAMILY_SHARING', null, planDtos), null)
 })
