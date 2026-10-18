@@ -192,7 +192,7 @@ test('permission dialog keeps helper text in normal flow and its body scrollable
 test('owner and member receive distinct action groups', async () => {
   const group = await readFile(new URL('../src/features/family/components/FamilyGroupPanel.tsx', import.meta.url), 'utf8')
   const tasks = await readFile(new URL('../src/features/family/components/FamilyTasksPanel.tsx', import.meta.url), 'utf8')
-  assert.match(group, /isOwner && <button[^]*Mời thành viên/)
+  assert.match(group, /isOwner && !access.locked && <button[^]*Mời thành viên/)
   assert.match(group, /isOwner \? <div className="family-member-list"/)
   assert.match(tasks, /isOwner && <button[^]*Tạo việc/)
   assert.match(tasks, /!canUseTasks[^]*Việc cần làm chưa được chia sẻ/)

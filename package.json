@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:entitlements:browser": "node --experimental-strip-types tests/entitlements.browser.mjs",
+    "test:entitlements:lighthouse": "node --experimental-strip-types tests/entitlements.lighthouse.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

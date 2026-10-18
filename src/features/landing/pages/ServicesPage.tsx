@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 import type { MouseEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { useSubscription } from '@/features/payment/hooks/useSubscription'
+import { useEntitlements } from '@/features/payment/hooks/useEntitlements'
 import { PublicPricingSection } from '../components/PublicPricingSection'
 import { ServiceIcon } from '../components/ServiceIcon'
 import { services, type ServiceContent } from '../model/service-content'
@@ -51,7 +51,7 @@ function ServiceCard({ service, featured = false }: { service: ServiceContent; f
 
 export function ServicesPage() {
   const { status } = useAuth()
-  const { subscription } = useSubscription(status === 'authenticated')
+  const { subscription } = useEntitlements()
 
   const [searchParams] = useSearchParams()
   const searchTerm = searchParams.get('search')?.trim() || ''
@@ -177,7 +177,7 @@ export function ServicesPage() {
 
       <PublicPricingSection
         isAuthenticated={status === 'authenticated'}
-        currentPlanTier={subscription?.active ? subscription.plan_tier : undefined}
+        currentPlanTier={subscription?.plan_id}
       />
 
     </main>

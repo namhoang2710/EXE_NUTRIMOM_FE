@@ -1,9 +1,11 @@
 import type { PlanTier } from './payment-types'
+import type { ScanQuotaDto, SubscriptionPlanDto } from './entitlement-types.ts'
 
 export type PaidPlanTier = Exclude<PlanTier, 'FREE'>
 export type PricingContext = 'public' | 'member'
 
 export interface PricingFeature {
+  code: string
   label: string
   included: boolean
   detail?: string
@@ -15,6 +17,7 @@ export interface PricingPlan {
   price: string
   amount: number
   cadence: string
+  durationDays: number
   description: string
   featured: boolean
   features: PricingFeature[]
@@ -35,77 +38,37 @@ export interface PricingComparisonRow {
   cells: PricingComparisonCell[]
 }
 
-export const pricingPlans: PricingPlan[] = [
-  {
-    tier: 'FREE',
-    name: 'Miễn phí',
-    price: '0đ',
-    amount: 0,
-    cadence: 'Mãi mãi',
-    description: 'Khởi đầu nhẹ nhàng với những công cụ thiết yếu cho hành trình của mẹ.',
-    featured: false,
-    publicDestination: '/app',
-    features: [
-      { label: 'Liên kết gia đình', included: false },
-      { label: 'Tính ngày thụ thai', included: false },
-      { label: 'Lưu hồ sơ sức khỏe', included: true },
-      { label: 'AI Scan Vision', included: true, detail: '2 lượt trải nghiệm tổng cộng' },
-      { label: 'Lịch nhắc nhở', included: false },
-      { label: 'Gợi ý cá nhân toàn diện', included: false },
-      { label: 'Chatbot đồng hành', included: true },
-      { label: 'Tư vấn', included: true },
-      { label: 'Đặt lịch bác sĩ', included: true },
-      { label: 'Luôn nhận hỗ trợ', included: true },
-    ],
-  },
-  {
-    tier: 'PLAN_399K',
-    name: 'Toàn diện',
-    price: '399.000đ',
-    amount: 399000,
-    cadence: 'Trọn 9 tháng',
-    description: 'Đầy đủ công cụ chăm sóc, theo dõi và kết nối gia đình trong suốt thai kỳ.',
-    featured: true,
-    publicDestination: '/app/pricing?plan=PLAN_399K&step=review#pricing',
-    features: [
-      { label: 'Liên kết gia đình', included: true },
-      { label: 'Tính ngày thụ thai', included: true },
-      { label: 'Lưu hồ sơ sức khỏe', included: true },
-      { label: 'AI Scan Vision', included: true, detail: 'Không giới hạn' },
-      { label: 'Lịch nhắc nhở', included: true },
-      { label: 'Gợi ý cá nhân toàn diện', included: true },
-      { label: 'Chatbot đồng hành', included: true },
-      { label: 'Tư vấn', included: true },
-      { label: 'Đặt lịch bác sĩ', included: true },
-      { label: 'Luôn nhận hỗ trợ', included: true },
-    ],
-  },
-  {
-    tier: 'PLAN_99K',
-    name: 'Cơ bản',
-    price: '99.000đ',
-    amount: 99000,
-    cadence: '30 ngày',
-    description: 'Thêm công cụ theo dõi chủ động và gợi ý phù hợp với từng giai đoạn.',
-    featured: false,
-    publicDestination: '/app/pricing?plan=PLAN_99K&step=review#pricing',
-    features: [
-      { label: 'Liên kết gia đình', included: false },
-      { label: 'Tính ngày thụ thai', included: true },
-      { label: 'Lưu hồ sơ sức khỏe', included: true },
-      { label: 'AI Scan Vision', included: true, detail: '2 lượt mỗi ngày' },
-      { label: 'Lịch nhắc nhở', included: true },
-      { label: 'Gợi ý cá nhân toàn diện', included: true },
-      { label: 'Chatbot đồng hành', included: true },
-      { label: 'Tư vấn', included: true },
-      { label: 'Đặt lịch bác sĩ', included: true },
-      { label: 'Luôn nhận hỗ trợ', included: true },
-    ],
-  },
-]
+export function scanDetail(quota: ScanQuotaDto): string {
+  if (quota.unlimited || quota.period === 'UNLIMITED') return 'Không giới hạn'
+  return quota.period === 'DAILY' ? `${quota.limit} lượt mỗi ngày` : `${quota.limit} lượt trải nghiệm tổng cộng`
+}
 
-export function getPricingPlan(tier: PlanTier): PricingPlan {
-  return pricingPlans.find((plan) => plan.tier === tier)!
+export function toPricingPlan(dto: SubscriptionPlanDto): PricingPlan {
+  return {
+    tier: dto.id,
+    name: dto.name,
+    price: `${dto.price.toLocaleString('vi-VN')}đ`,
+    amount: dto.price,
+    cadence: dto.id === 'FREE' ? 'Mãi mãi' : `${dto.duration_days} ngày`,
+    durationDays: dto.duration_days,
+    description: dto.description,
+    featured: dto.featured,
+    publicDestination: dto.id === 'FREE' ? '/app' : `/app/pricing?plan=${dto.id}&step=review#pricing`,
+    features: dto.features.map((feature) => ({
+      ...feature,
+      detail: feature.code === 'AI_SCAN' ? scanDetail(dto.scan_quota) : undefined,
+    })),
+  }
+}
+
+export function getPricingPlan(tier: PlanTier, plans: PricingPlan[]): PricingPlan | undefined {
+  return plans.find((plan) => plan.tier === tier)
+}
+
+/** Purchase policy is UI only; the backend remains authoritative for entitlements. */
+export function canPurchasePlan(current: PlanTier, target: PlanTier): boolean {
+  if (target === 'FREE') return false
+  return !(current === 'PLAN_399K' && target === 'PLAN_99K')
 }
 
 export function isPaidPlanTier(value: string | null): value is PaidPlanTier {
@@ -117,7 +80,7 @@ export function getPublicPricingLink(plan: PricingPlan, isAuthenticated: boolean
   return { to: '/login', state: { from: plan.publicDestination } }
 }
 
-export function getPricingComparisonRows(): PricingComparisonRow[] {
+export function getPricingComparisonRows(pricingPlans: PricingPlan[]): PricingComparisonRow[] {
   const labels = pricingPlans[0]?.features.map((feature) => feature.label) ?? []
   return labels.map((label, featureIndex) => ({
     label,

@@ -1,4 +1,7 @@
 import { Calculator, FloppyDisk, Heartbeat } from '@phosphor-icons/react'
+import { FeatureLock } from '@/features/payment/components/FeatureLock'
+import { UpgradeDialog } from '@/features/payment/components/UpgradePrompt'
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { ApiClientError } from '@/core/api/api-error'
 import { expireProfileResource } from '@/core/api/profile-requests'
@@ -40,6 +43,7 @@ function calculationNote(method: Method) {
 
 export function HealthPage() {
   const { reloadProfile } = useAuth()
+  const access = useFeatureAccess('CONCEPTION_CALCULATOR')
   const [pregnancy, setPregnancy] = useState<Pregnancy | null>(null)
   const [method, setMethod] = useState<Method>('LAST_MENSTRUAL_PERIOD')
   const [date, setDate] = useState('')
@@ -57,6 +61,8 @@ export function HealthPage() {
   const [conflict, setConflict] = useState(false)
   const journeyRef = useRef<HTMLElement>(null)
   const loadGenerationRef = useRef(0)
+  const calculationGeneration = useRef(0)
+  const calculationInFlight = useRef(false)
 
   const load = useCallback(async (force = false) => {
     if (force) expireProfileResource('pregnancy:current')
@@ -82,7 +88,12 @@ export function HealthPage() {
     return () => { loadGenerationRef.current += 1 }
   }, [load])
 
+  useEffect(() => {
+    if (access.locked) { calculationGeneration.current += 1; setPreview(null); setSaveOpen(false) }
+  }, [access.locked])
+
   async function calculate() {
+    if (!access.ready || access.locked || calculationInFlight.current) return
     setError(''); setFieldError(''); setWarning(''); setPreview(null)
     if (method !== 'MANUAL') {
       if (!date) { setFieldError('Hãy chọn ngày trên lịch trước khi tính.'); return }
@@ -93,18 +104,28 @@ export function HealthPage() {
     }
     if (method === 'MANUAL' && (!/^\d+$/.test(week) || !/^\d+$/.test(day) || Number(week) > 42 || Number(day) > 6)) { setError('Hãy nhập tuần thai từ 0 đến 42 và ngày thai từ 0 đến 6 bằng số nguyên.'); return }
     if (method === 'MANUAL' && Number(week) > 40) setWarning('Tuổi thai trên 40 tuần. Hãy kiểm tra lại với bác sĩ hoặc kết quả siêu âm.')
+    calculationInFlight.current = true
+    const generation = ++calculationGeneration.current
     setBusy(true)
     try {
+      if (!await access.checkAccess({ requireKnown: true })) { setError('Chưa xác nhận được quyền sử dụng. Vui lòng kiểm tra lại gói của bạn.'); return }
       const payload = method === 'MANUAL'
         ? { method, gestational_week: Number(week), gestational_day: Number(day), timezone: browserTimezone }
         : { method, date, timezone: browserTimezone }
-      setPreview(await pregnancyApi.calculate(payload))
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể tính tuổi thai.') }
-    finally { setBusy(false) }
+      const result = await pregnancyApi.calculate(payload)
+      if (generation === calculationGeneration.current) setPreview(result)
+    } catch (reason) { if (!access.handleError(reason)) setError(reason instanceof Error ? reason.message : 'Không thể tính tuổi thai.') }
+    finally { calculationInFlight.current = false; setBusy(false) }
+  }
+
+  async function openPreviewConfirmation() {
+    if (await access.checkAccess({ requireKnown: true })) setSaveOpen(true)
+    else { setPreview(null); setError('Chưa xác nhận được quyền sử dụng. Vui lòng kiểm tra lại gói của bạn.') }
   }
 
   async function savePreview() {
     if (!preview) return
+    if (!await access.checkAccess({ requireKnown: true })) throw new Error('Chưa xác nhận được quyền sử dụng. Vui lòng kiểm tra lại gói của bạn.')
     const generation = ++loadGenerationRef.current
     setError(''); setConflict(false)
     const body = method === 'MANUAL'
@@ -154,8 +175,11 @@ export function HealthPage() {
           <DueDateRadialChart estimatedDueDate={pregnancy.estimated_due_date} daysUntilDue={pregnancy.days_until_due} animationKey={chartAnimationKey} />
         </div>
       </Suspense>
-    </> : loadFailed ? null : <section className="empty-state"><Heartbeat size={42} weight="duotone" /><h2>Chưa có hồ sơ thai kỳ</h2><p>Bạn vẫn có thể tính thử tuổi thai bên dưới. Hệ thống chỉ lưu khi bạn xác nhận.</p></section>}
-    <section className="app-card calculator-card"><div className="section-title-row"><div><p className="card-kicker">Cập nhật tuổi thai</p><h2>Tính thử trước khi lưu</h2></div><Calculator size={30} weight="duotone" /></div><div className="method-tabs">{([{ value: 'LAST_MENSTRUAL_PERIOD', label: 'Kỳ kinh cuối' }, { value: 'CONCEPTION_DATE', label: 'Ngày thụ thai' }, { value: 'MANUAL', label: 'Nhập thủ công' }] as const).map((item) => <button key={item.value} type="button" className={method === item.value ? 'active' : ''} onClick={() => { setMethod(item.value); setPreview(null); setError(''); setFieldError(''); setWarning('') }}>{item.label}</button>)}</div>{method === 'MANUAL' ? <div className="inline-fields"><label className="field-group"><span>Tuần thai</span><div className="input-shell"><input type="number" min="0" max="42" value={week} onChange={(event) => { setWeek(event.target.value); setPreview(null); setWarning('') }} /></div></label><label className="field-group"><span>Ngày thai</span><div className="input-shell"><input type="number" min="0" max="6" value={day} onChange={(event) => { setDay(event.target.value); setPreview(null); setWarning('') }} /></div></label></div> : <CalendarDatePicker label={method === 'CONCEPTION_DATE' ? 'Ngày thụ thai ước tính' : 'Ngày đầu tiên của kỳ kinh cuối'} value={date} onChange={(value) => { setDate(value); setFieldError(''); setPreview(null); setWarning('') }} error={fieldError} />}{warning && <p className="calculation-warning" role="status">{warning}</p>}<p className="disclaimer">{calculationNote(method)}</p><button className="secondary-button" type="button" onClick={() => void calculate()} disabled={busy}>{busy ? 'Đang tính...' : 'Tính kết quả'}</button>{preview && <div className="calculation-result"><strong>Dự sinh {formatDate(preview.estimated_due_date)}</strong><span>Tuần {preview.gestational_week}, ngày {preview.gestational_day}. Tam cá nguyệt {preview.trimester}.</span><button className="primary-button" type="button" onClick={() => setSaveOpen(true)}><FloppyDisk size={20} />Dùng kết quả này</button></div>}</section>
+    </> : loadFailed ? null : <section className="empty-state"><Heartbeat size={42} weight="duotone" /><h2>Chưa có hồ sơ thai kỳ</h2><p>{access.locked ? 'Thông tin thai kỳ sẽ xuất hiện tại đây sau khi hồ sơ được thiết lập.' : 'Bạn có thể tính thử tuổi thai bên dưới. Hệ thống chỉ lưu khi bạn xác nhận.'}</p></section>}
+    <FeatureLock locked={access.locked} label="Tính ngày thụ thai" hint={access.hint} pending={!access.ready && access.loading} error={!access.ready && !access.loading ? access.error || new Error('Chưa xác định được quyền tính ngày thụ thai. Vui lòng tải lại thông tin gói.') : null} retryAt={access.retryAt} onRetry={access.reload} description="Ước tính tuổi thai, ngày dự sinh và lưu kết quả vào hồ sơ của bạn.">
+    <section className="app-card calculator-card"><div className="section-title-row"><div><p className="card-kicker">Cập nhật tuổi thai</p><h2>Tính thử trước khi lưu</h2></div><Calculator size={30} weight="duotone" /></div><div className="method-tabs">{([{ value: 'LAST_MENSTRUAL_PERIOD', label: 'Kỳ kinh cuối' }, { value: 'CONCEPTION_DATE', label: 'Ngày thụ thai' }, { value: 'MANUAL', label: 'Nhập thủ công' }] as const).map((item) => <button key={item.value} type="button" className={method === item.value ? 'active' : ''} onClick={() => { setMethod(item.value); setPreview(null); setError(''); setFieldError(''); setWarning('') }}>{item.label}</button>)}</div>{method === 'MANUAL' ? <div className="inline-fields"><label className="field-group"><span>Tuần thai</span><div className="input-shell"><input type="number" min="0" max="42" value={week} onChange={(event) => { setWeek(event.target.value); setPreview(null); setWarning('') }} /></div></label><label className="field-group"><span>Ngày thai</span><div className="input-shell"><input type="number" min="0" max="6" value={day} onChange={(event) => { setDay(event.target.value); setPreview(null); setWarning('') }} /></div></label></div> : <CalendarDatePicker label={method === 'CONCEPTION_DATE' ? 'Ngày thụ thai ước tính' : 'Ngày đầu tiên của kỳ kinh cuối'} value={date} onChange={(value) => { setDate(value); setFieldError(''); setPreview(null); setWarning('') }} error={fieldError} />}{warning && <p className="calculation-warning" role="status">{warning}</p>}<p className="disclaimer">{calculationNote(method)}</p><button className="secondary-button" type="button" onClick={() => void calculate()} disabled={busy}>{busy ? 'Đang tính...' : 'Tính kết quả'}</button>{preview && <div className="calculation-result"><strong>Dự sinh {formatDate(preview.estimated_due_date)}</strong><span>Tuần {preview.gestational_week}, ngày {preview.gestational_day}. Tam cá nguyệt {preview.trimester}.</span><button className="primary-button" type="button" onClick={() => void openPreviewConfirmation()}><FloppyDisk size={20} />Dùng kết quả này</button></div>}</section>
+    </FeatureLock>
+    <UpgradeDialog hint={access.upgrade} onClose={access.clearUpgrade} />
     <PregnancySaveDialog preview={preview} open={saveOpen} onClose={() => setSaveOpen(false)} onAction={savePreview} errorMessage={saveErrorMessage} onSaved={finishPregnancySetup} />
   </AppShell>
 }

@@ -1,4 +1,4 @@
-import { ApiClientError } from '@/core/api/api-error'
+import { ApiClientError } from '../../../core/api/api-error.ts'
 
 const familyErrorMessages: Record<string, string> = {
   ACTIVE_PREGNANCY_NOT_FOUND: 'Bạn cần tạo hồ sơ thai kỳ đang hoạt động trước khi lập nhóm gia đình.',
@@ -16,7 +16,10 @@ const familyErrorMessages: Record<string, string> = {
   UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
 }
 export function familyErrorMessage(error: unknown) {
-  if (error instanceof ApiClientError && error.status === 429) return 'Bạn thao tác quá nhanh. Vui lòng chờ khoảng 30 giây rồi thử lại.'
+  if (error instanceof ApiClientError && error.status === 429 && error.code !== 'QUOTA_EXCEEDED') {
+    const seconds = Math.max(1, Math.ceil((error.retryAfterMs ?? 30_000) / 1000))
+    return `Bạn thao tác quá nhanh. Vui lòng chờ khoảng ${seconds} giây rồi thử lại.`
+  }
   if (error instanceof ApiClientError) return familyErrorMessages[error.code] || error.message
   return error instanceof Error ? error.message : 'Không thể xử lý yêu cầu. Vui lòng thử lại.'
 }
@@ -26,6 +29,6 @@ export function isFamilyError(error: unknown, code: string) {
 }
 
 export function isFamilyRateLimitError(error: unknown) {
-  return error instanceof ApiClientError && error.status === 429
+  return error instanceof ApiClientError && error.status === 429 && error.code !== 'QUOTA_EXCEEDED'
 }
 

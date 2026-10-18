@@ -1,10 +1,14 @@
+import { useEntitlements, usePricingCatalog, refreshEntitlements } from '../hooks/useEntitlements'
+import { usePaymentCooldown } from '../hooks/usePaymentCooldown'
+import { SubscriptionStatus } from '../components/SubscriptionStatus'
+import { PricingSkeleton, ResourceFeedback } from '../components/ResourceFeedback'
+import '../styles/entitlements.css'
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   CheckCircle,
   CircleNotch,
-  Heart,
   Leaf,
   Minus,
   Plus,
@@ -25,7 +29,7 @@ import {
   getPricingComparisonRows,
   getPricingPlan,
   isPaidPlanTier,
-  pricingPlans,
+  canPurchasePlan,
   type PaidPlanTier,
   type PricingPlan,
 } from '../model/pricing-catalog'
@@ -35,23 +39,10 @@ import type { PaymentResponse, PlanTier } from '../model/payment-types'
 import '../styles/pricing-catalog.css'
 import '../styles/payment.css'
 
-const comparisonRows = getPricingComparisonRows()
-
 function createCheckoutIdempotencyKey(planTier: PaidPlanTier) {
   const uniquePart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`
   return `subscription-checkout:${planTier}:${uniquePart}`
 }
-
-const supportItems = [
-  {
-    question: 'Gói trả phí có thời hạn bao lâu?',
-    answer: 'Gói Cơ bản có thời hạn 30 ngày. Gói Toàn diện được giới thiệu cho trọn 9 tháng thai kỳ. Trong giai đoạn thử nghiệm, hệ thống thanh toán vẫn ghi nhận 30 ngày và sẽ được đồng bộ trước khi đưa vào vận hành chính thức.',
-  },
-  {
-    question: 'Thanh toán và kích hoạt như thế nào?',
-    answer: 'Bạn thanh toán qua VietQR trên payOS. NutriMom kiểm tra trạng thái đơn và hiển thị kết quả sau khi giao dịch được xác nhận.',
-  },
-]
 
 function PlanIcon({ tier, size = 24 }: { tier: PlanTier; size?: number }) {
   const Icon = tier === 'FREE' ? Leaf : tier === 'PLAN_99K' ? Sparkle : Users
@@ -66,8 +57,8 @@ function AnimatedPaymentAmount({ value }: { value: number }) {
       <motion.span
         key={value}
         className="nm-payment-animated-amount__value"
-        initial={reduceMotion ? false : { opacity: 0.25, y: 12, filter: 'blur(5px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        initial={reduceMotion ? false : { opacity: 0.25, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reduceMotion ? 0.01 : 0.42, ease: [0.22, 1, 0.36, 1] }}
         aria-hidden="true"
       >
@@ -78,7 +69,8 @@ function AnimatedPaymentAmount({ value }: { value: number }) {
   )
 }
 
-function MemberPricingCatalog() {
+function MemberPricingCatalog({ plans, loading, error, retryAt, onRetry }: { plans: PricingPlan[]; loading: boolean; error: Error | null; retryAt: number; onRetry: () => Promise<unknown> }) {
+  const { subscription } = useEntitlements()
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
 
@@ -105,21 +97,22 @@ function MemberPricingCatalog() {
 
         <header className="publicPricing__heading nm-member-pricing__heading">
           <span className="publicPricing__eyebrow"><Sparkle size={15} weight="fill" aria-hidden="true" /> GÓI ĐỒNG HÀNH CÙNG MẸ</span>
-          <h1>Chọn sự đồng hành phù hợp<br /> <em>cho hành trình của mẹ.</em></h1>
-          <p>Bạn đang dùng gói Miễn phí. Khi muốn thử luồng thanh toán, hãy chọn một trong hai gói trả phí bên dưới.</p>
+          <h1>Chọn gói đồng hành phù hợp với mẹ.</h1>
+          <p>Quyền lợi rõ ràng, lựa chọn phù hợp cho từng nhu cầu chăm sóc.</p>
         </header>
 
-        <PricingCatalogGrid context="member" currentPlanTier="FREE" onSelectPlan={selectPaidPlan} />
+        <SubscriptionStatus showLink={false} />
+        {loading && !plans.length ? <PricingSkeleton /> : error || !plans.length ? <ResourceFeedback error={error} retryAt={retryAt} onRetry={onRetry} /> : <PricingCatalogGrid plans={plans} context="member" currentPlanTier={subscription?.plan_id} onSelectPlan={selectPaidPlan} />}
 
         <p className="publicPricing__disclaimer">
-          <ShieldCheck size={16} weight="fill" aria-hidden="true" /> NutriMom không khóa tính năng theo gói trong giai đoạn thử nghiệm này.
+          <ShieldCheck size={16} weight="fill" aria-hidden="true" /> Quyền lợi được cập nhật sau khi thanh toán được xác nhận. AI Scan Vision sắp ra mắt.
         </p>
       </div>
     </motion.main>
   )
 }
 
-function PlanSelector({ selectedPlan, onSelect }: { selectedPlan: PaidPlanTier; onSelect: (tier: PaidPlanTier) => void }) {
+function PlanSelector({ selectedPlan, onSelect, plans, currentPlan }: { selectedPlan: PaidPlanTier; onSelect: (tier: PaidPlanTier) => void; plans: PricingPlan[]; currentPlan?: PlanTier }) {
   return (
     <section className="nm-payment-plan-selector" aria-labelledby="plans-title">
       <div className="nm-payment-section-heading">
@@ -131,30 +124,32 @@ function PlanSelector({ selectedPlan, onSelect }: { selectedPlan: PaidPlanTier; 
       </div>
       <fieldset className="nm-plan-options">
         <legend className="sr-only">Chọn gói chăm sóc trả phí</legend>
-        {pricingPlans.map((option) => {
+        {plans.map((option) => {
           const isFree = option.tier === 'FREE'
+          const isCurrent = option.tier === currentPlan
+          const unavailable = !currentPlan || !canPurchasePlan(currentPlan, option.tier)
           const selected = option.tier === selectedPlan
           return (
             <label
               key={option.tier}
-              className={`nm-plan-option${selected ? ' is-selected' : ''}${isFree ? ' is-current' : ''}`}
+              className={`nm-plan-option${selected ? ' is-selected' : ''}${isCurrent ? ' is-current' : ''}`}
             >
               <input
                 type="radio"
                 name="subscription-plan"
                 value={option.tier}
                 checked={selected}
-                disabled={isFree}
+                disabled={isFree || unavailable}
                 onChange={() => isPaidPlanTier(option.tier) && onSelect(option.tier)}
               />
               <span className="nm-plan-icon"><PlanIcon tier={option.tier} /></span>
               <span className="nm-plan-option-copy">
                 <span className="nm-plan-option-name">
                   {option.name}
-                  {isFree && <span className="nm-plan-tag"><CheckCircle size={13} weight="fill" aria-hidden="true" /> Đang dùng</span>}
+                  {isCurrent && <span className="nm-plan-tag"><CheckCircle size={13} weight="fill" aria-hidden="true" /> Đang dùng</span>}
                   {option.featured && <span className="nm-plan-tag nm-plan-tag--featured">Đề xuất</span>}
                 </span>
-                <span className="nm-plan-option-description">{option.description}</span>
+                <span className="nm-plan-option-description">{unavailable && !isFree && currentPlan ? 'Có thể chọn sau khi gói hiện tại hết hạn' : option.description}</span>
               </span>
               <span className="nm-plan-option-price">
                 <strong>{option.price}</strong>
@@ -168,7 +163,8 @@ function PlanSelector({ selectedPlan, onSelect }: { selectedPlan: PaidPlanTier; 
   )
 }
 
-function PricingComparison({ selectedPlan }: { selectedPlan: PaidPlanTier }) {
+function PricingComparison({ selectedPlan, plans }: { selectedPlan: PaidPlanTier; plans: PricingPlan[] }) {
+  const comparisonRows = getPricingComparisonRows(plans)
   return (
     <section className="nm-payment-comparison" aria-labelledby="comparison-title">
       <div className="nm-payment-section-heading">
@@ -185,7 +181,7 @@ function PricingComparison({ selectedPlan }: { selectedPlan: PaidPlanTier }) {
           <thead>
             <tr>
               <th scope="col">Quyền lợi</th>
-              {pricingPlans.map((plan) => (
+              {plans.map((plan) => (
                 <th
                   scope="col"
                   key={plan.tier}
@@ -208,7 +204,7 @@ function PricingComparison({ selectedPlan }: { selectedPlan: PaidPlanTier }) {
           <tbody>
             {comparisonRows.map((row) => (
               <tr key={row.label}>
-                <th scope="row"><span className="nm-payment-feature-label">{row.label}</span></th>
+                <th scope="row"><span className="nm-payment-feature-label">{row.label}</span>{row.cells[0]?.code === 'AI_SCAN' && <small className="nm-feature-soon">Sắp ra mắt</small>}</th>
                 {row.cells.map((cell) => (
                   <td
                     key={cell.tier}
@@ -232,7 +228,11 @@ function PricingComparison({ selectedPlan }: { selectedPlan: PaidPlanTier }) {
   )
 }
 
-function PaymentSupport() {
+function PaymentSupport({ plans }: { plans: PricingPlan[] }) {
+  const supportItems = [
+    { question: 'Gói trả phí có thời hạn bao lâu?', answer: plans.filter((plan) => plan.tier !== 'FREE').map((plan) => `${plan.name}: ${plan.cadence}.`).join(' ') + ' Khi gia hạn, thời gian được cộng vào hạn sử dụng còn lại.' },
+    { question: 'Thanh toán và kích hoạt như thế nào?', answer: 'Thanh toán qua VietQR trên payOS. Quyền lợi được cập nhật khi NutriMom xác nhận giao dịch thành công.' },
+  ]
   const [openIndex, setOpenIndex] = useState<number | null>(0)
   const reduceMotion = useReducedMotion()
 
@@ -294,6 +294,8 @@ interface PaymentSummaryProps {
   screen: 'select' | 'review'
   payment: PaymentResponse | null
   busy: boolean
+  blocked: boolean
+  retrySeconds: number
   error: string | null
   onContinue: () => void
   onStartPayment: () => void
@@ -305,11 +307,14 @@ function PaymentSummary({
   screen,
   payment,
   busy,
+  blocked,
+  retrySeconds,
   error,
   onContinue,
   onStartPayment,
   onConfirmDemo,
 }: PaymentSummaryProps) {
+  const reduceMotion = useReducedMotion()
   const demo = payment ? isDemoCheckout(payment.checkout_url) : false
   const amount = payment?.amount ?? plan.amount
 
@@ -326,10 +331,10 @@ function PaymentSummary({
           <motion.span
             className="nm-plan-icon"
             key={plan.tier}
-            initial={{ opacity: 0, scale: 0.78, rotate: -8 }}
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.78, rotate: -8 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, scale: 0.82, rotate: 8 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+            exit={reduceMotion ? undefined : { opacity: 0, scale: 0.82, rotate: 8 }}
+            transition={reduceMotion ? { duration: .01 } : { type: 'spring', stiffness: 420, damping: 28 }}
           >
             <PlanIcon tier={plan.tier} size={27} />
           </motion.span>
@@ -337,9 +342,9 @@ function PaymentSummary({
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={plan.tier}
-            initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -6, filter: 'blur(4px)' }}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
           >
             <h2>{plan.name}</h2><p>{plan.cadence}</p>
@@ -352,14 +357,14 @@ function PaymentSummary({
           {plan.features.filter((feature) => feature.included).map((feature) => (
             <li key={feature.label}>
               <Check className="nm-payment-success-check" size={16} weight="bold" aria-hidden="true" />
-              <span>{feature.label}{feature.detail && <small>{feature.detail}</small>}</span>
+              <span>{feature.label}{feature.code === 'AI_SCAN' && <small>Sắp ra mắt</small>}{feature.detail && <small>{feature.detail}</small>}</span>
             </li>
           ))}
         </ul>
       )}
 
       <dl className="nm-payment-totals">
-        <div><dt>Gói {plan.name}</dt><dd><AnimatedPaymentAmount value={amount} /></dd></div>
+        <div><dt>{plan.name}</dt><dd><AnimatedPaymentAmount value={amount} /></dd></div>
         <div className="nm-payment-grand-total"><dt>Tổng thanh toán</dt><dd><AnimatedPaymentAmount value={amount} /></dd></div>
       </dl>
 
@@ -367,12 +372,12 @@ function PaymentSummary({
       <div className="sr-only" role="status" aria-live="polite">{busy ? 'Đang xử lý yêu cầu thanh toán' : ''}</div>
 
       {screen === 'select' ? (
-        <button className="nm-payment-primary" type="button" onClick={onContinue}>
+        <button className="nm-payment-primary" type="button" disabled={blocked} onClick={onContinue}>
           Tiếp tục xác nhận <ArrowRight size={18} aria-hidden="true" />
         </button>
       ) : payment ? (
         demo ? (
-          <button className="nm-payment-primary" type="button" onClick={onConfirmDemo} disabled={busy}>
+          <button className="nm-payment-primary" type="button" onClick={onConfirmDemo} disabled={busy || retrySeconds > 0}>
             {busy ? <CircleNotch className="nm-payment-spinner" size={19} aria-hidden="true" /> : <CheckCircle size={19} aria-hidden="true" />}
             {busy ? 'Đang xác nhận...' : 'Xác nhận thử nghiệm'}
           </button>
@@ -382,9 +387,9 @@ function PaymentSummary({
           <Link className="nm-payment-primary" to="/app/profile/support">Liên hệ hỗ trợ <ArrowRight size={18} aria-hidden="true" /></Link>
         )
       ) : (
-        <button className="nm-payment-primary" type="button" disabled={busy} onClick={onStartPayment}>
+        <button className="nm-payment-primary" type="button" disabled={busy || blocked || retrySeconds > 0} onClick={onStartPayment}>
           {busy && <CircleNotch className="nm-payment-spinner" size={19} aria-hidden="true" />}
-          {busy ? 'Đang tạo thanh toán...' : 'Xác nhận thanh toán'}
+          {retrySeconds > 0 ? `Thử lại sau ${retrySeconds}s` : busy ? 'Đang tạo thanh toán...' : 'Xác nhận thanh toán'}
           {!busy && <ArrowRight size={18} aria-hidden="true" />}
         </button>
       )}
@@ -395,10 +400,12 @@ function PaymentSummary({
   )
 }
 
-function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen: 'select' | 'review' }) {
+function PaidPricingFlow({ planTier, screen, plans }: { planTier: PaidPlanTier; screen: 'select' | 'review'; plans: PricingPlan[] }) {
+  const { subscription } = useEntitlements()
+  const cooldown = usePaymentCooldown()
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
-  const plan = getPricingPlan(planTier)
+  const plan = getPricingPlan(planTier, plans)!
   const [paymentData, setPayment] = useState<PaymentResponse | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -438,12 +445,15 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
   }
 
   async function startPayment() {
-    if (submitting.current || screen !== 'review') return
+    if (submitting.current || cooldown.blocked || screen !== 'review') return
     const requestedFlow = flowKey
     submitting.current = true
     setBusy(true)
     setError(null)
     try {
+      const current = await refreshEntitlements()
+      if (!canPurchasePlan(current.plan_id, planTier)) throw new Error('Gói này chưa thể mua khi gói hiện tại còn hiệu lực. Vui lòng quay lại bảng giá.')
+      if (currentFlow.current !== requestedFlow) return
       const idempotencyKey = checkoutKeys.current.get(planTier) ?? createCheckoutIdempotencyKey(planTier)
       checkoutKeys.current.set(planTier, idempotencyKey)
       const order = await paymentApi.createCheckout(planTier, idempotencyKey)
@@ -452,6 +462,7 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
       if (!order.checkout_url) throw new Error('Chưa nhận được đường dẫn thanh toán. Vui lòng liên hệ hỗ trợ với mã đơn bên dưới.')
       if (!isDemoCheckout(order.checkout_url)) window.location.assign(order.checkout_url)
     } catch (requestError) {
+      cooldown.handleRateLimit(requestError)
       if (currentFlow.current === requestedFlow) {
         setError(requestError instanceof Error ? requestError.message : 'Chưa thể tạo thanh toán. Vui lòng thử lại.')
       }
@@ -462,7 +473,7 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
   }
 
   async function confirmDemo() {
-    if (!payment || !isDemoCheckout(payment.checkout_url) || submitting.current) return
+    if (!payment || !isDemoCheckout(payment.checkout_url) || submitting.current || cooldown.blocked) return
     const requestedFlow = flowKey
     submitting.current = true
     setBusy(true)
@@ -472,6 +483,7 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
       if (currentFlow.current !== requestedFlow) return
       navigate(`/payment/success?orderCode=${payment.order_code}`)
     } catch (requestError) {
+      cooldown.handleRateLimit(requestError)
       if (currentFlow.current === requestedFlow) {
         setError(requestError instanceof Error ? requestError.message : 'Chưa thể xác nhận thanh toán thử nghiệm.')
       }
@@ -480,6 +492,8 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
       setBusy(false)
     }
   }
+
+  if (subscription && !canPurchasePlan(subscription.plan_id, planTier)) return <main className="nm-payment-page"><SubscriptionStatus /><div className="nm-pricing-feedback" role="status"><WarningCircle size={24} /><div><h1>Gói này chưa thể mua lúc này</h1><p>Bạn có thể gia hạn gói hiện tại hoặc chọn gói có thêm quyền lợi.</p></div><Link className="secondary-button" to="/app/pricing#pricing">Xem các gói phù hợp</Link></div></main>
 
   return (
     <motion.main
@@ -512,11 +526,7 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
 
       <div className={`nm-payment-grid${screen === 'review' ? ' nm-payment-grid--review' : ''}`}>
         <div className="nm-payment-main">
-          <div className="nm-payment-current" role="status">
-            <span className="nm-payment-current-icon"><Heart size={19} weight="duotone" aria-hidden="true" /></span>
-            <div><strong>Gói hiện tại: Miễn phí</strong></div>
-            <CheckCircle size={21} className="nm-payment-success-check" weight="fill" aria-hidden="true" />
-          </div>
+          <SubscriptionStatus showLink={false} />
 
           {screen === 'review' ? (
             <>
@@ -530,9 +540,10 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
                   <div><h3>{plan.name}</h3><p>{plan.cadence}</p></div>
                   <strong>{plan.price}</strong>
                 </div>
+                {subscription?.paid && <p className="nm-payment-purchase-note">{subscription.plan_id === planTier ? `Gia hạn thêm ${plan.durationDays} ngày vào hạn sử dụng còn lại.` : `Quyền lợi của gói mới có hiệu lực ngay khi kích hoạt. Hạn sử dụng được cộng thêm ${plan.durationDays} ngày vào thời gian còn lại.`}</p>}
                 <ul className="nm-payment-benefits">
                   {plan.features.filter((feature) => feature.included).map((feature) => (
-                    <li key={feature.label}><Check className="nm-payment-success-check" size={17} weight="bold" aria-hidden="true" /><span>{feature.label}{feature.detail && <small>{feature.detail}</small>}</span></li>
+                    <li key={feature.label}><Check className="nm-payment-success-check" size={17} weight="bold" aria-hidden="true" /><span>{feature.label}{feature.code === 'AI_SCAN' && <small>Sắp ra mắt</small>}{feature.detail && <small>{feature.detail}</small>}</span></li>
                   ))}
                 </ul>
               </section>
@@ -562,8 +573,8 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
             </>
           ) : (
             <>
-              <PlanSelector selectedPlan={planTier} onSelect={selectPlan} />
-              <PricingComparison selectedPlan={planTier} />
+              <PlanSelector plans={plans} currentPlan={subscription?.plan_id} selectedPlan={planTier} onSelect={selectPlan} />
+              <PricingComparison plans={plans} selectedPlan={planTier} />
             </>
           )}
         </div>
@@ -573,6 +584,8 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
           screen={screen}
           payment={payment}
           busy={busy}
+          blocked={!subscription}
+          retrySeconds={cooldown.remaining}
           error={error}
           onContinue={continueToReview}
           onStartPayment={() => void startPayment()}
@@ -580,24 +593,25 @@ function PaidPricingFlow({ planTier, screen }: { planTier: PaidPlanTier; screen:
         />
       </div>
 
-      {screen === 'select' && <PaymentSupport />}
+      {screen === 'select' && <PaymentSupport plans={plans} />}
     </motion.main>
   )
 }
 
 export function PricingPage() {
+  const catalog = usePricingCatalog()
   const [params] = useSearchParams()
   const flow = parsePricingFlow(params.get('plan'), params.get('step'))
 
   if (flow.screen === 'invalid') return <Navigate to="/app/pricing" replace />
+  if (flow.screen === 'catalog') return <MemberPricingCatalog plans={catalog.plans} loading={catalog.loading} error={catalog.error} retryAt={catalog.retryAt} onRetry={catalog.reload} />
+  if (catalog.loading && !catalog.data) return <main className="nm-payment-page"><PricingSkeleton /></main>
+  if (catalog.error || !catalog.plans.length) return <main className="nm-payment-page"><ResourceFeedback error={catalog.error} retryAt={catalog.retryAt} onRetry={catalog.reload} /></main>
+  if (!getPricingPlan(flow.plan, catalog.plans)) return <Navigate to="/app/pricing" replace />
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {flow.screen === 'catalog' ? (
-        <MemberPricingCatalog key="catalog" />
-      ) : (
-        <PaidPricingFlow key={flow.screen} planTier={flow.plan} screen={flow.screen} />
-      )}
+      <PaidPricingFlow plans={catalog.plans} key={flow.screen} planTier={flow.plan} screen={flow.screen} />
     </AnimatePresence>
   )
 }

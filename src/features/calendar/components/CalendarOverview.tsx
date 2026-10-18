@@ -1,3 +1,5 @@
+import { FeatureLock } from '@/features/payment/components/FeatureLock'
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
 import { CalendarBlank, CaretLeft, CaretRight, Clock, GridFour, ListBullets, Plus } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -39,6 +41,7 @@ function EventList({ events, loading, error, empty, onOpen, onRetry }: { events:
 
 export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, shared = false, sharedOwnerName }: Props) {
   const { status: authStatus } = useAuth()
+  const reminderAccess = useFeatureAccess('CALENDAR_REMINDERS', !shared)
   const [view, setView] = useState<CalendarView>('MONTH')
   const [anchor, setAnchor] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState(initialCalendarDate)
@@ -145,6 +148,8 @@ export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, sha
     return <ListBullets size={18} aria-hidden="true" />
   }
 
+  const hasExistingEvents = data.events.length > 0 || data.monthItems.length > 0
+  const lockEmptyCalendar = !shared && reminderAccess.locked && !hasExistingEvents && !data.monthError && !data.eventsError
   const availableSources = shared ? data.sharedMetadata?.allowed_sources || sharedSources : ownerSources
   const sourceLabels: Record<CalendarSource, string> = { MEDICAL_RECORD: 'Hồ sơ y tế', CONSULTATION: 'Tư vấn', REMINDER: 'Nhắc nhở' }
   function toggleSource(source: CalendarSource) {
@@ -160,17 +165,20 @@ export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, sha
       <div className="calendar-header-actions">
         <div className="calendar-view-mobile"><AnimatedSelect label="Chế độ xem" labelClassName="calendar-visually-hidden" value={view} options={views} onValueChange={setView} /></div>
         <div className="calendar-view-tabs" role="tablist" aria-label="Chế độ xem lịch">{views.map((item) => <button type="button" role="tab" aria-selected={view === item.value} key={item.value} onClick={() => setView(item.value)}>{viewIcon(item.value)}<span>{item.label}</span></button>)}</div>
-        {!shared && <button className="primary-button calendar-create-button" type="button" onClick={() => setCreateOpen(true)}><Plus size={19} />Thêm lịch nhắc nhở</button>}
+        {!shared && !reminderAccess.locked && <button className="primary-button calendar-create-button" type="button" onClick={() => setCreateOpen(true)}><Plus size={19} />Thêm lịch nhắc nhở</button>}
       </div>
     </header>
     <div className="calendar-support-row"><p>{shared ? `Lịch được chia sẻ bởi ${data.sharedMetadata?.owner_display_name || sharedOwnerName || 'chủ thai kỳ'}. Chỉ có quyền xem.` : 'Mốc chăm sóc, tư vấn và nhắc nhở của riêng bạn.'}</p><div className="calendar-legend" aria-label="Lọc nguồn lịch">{availableSources.map((source) => <button type="button" key={source} aria-pressed={selectedSources.includes(source)} onClick={() => toggleSource(source)}><i className={`source-${source.toLowerCase()}`} />{sourceLabels[source]}</button>)}</div></div>
     <CalendarToast toast={toast} onClose={dismissToast} />
+    {!shared && reminderAccess.locked && !lockEmptyCalendar && <FeatureLock locked compact label="Lịch nhắc nhở" hint={reminderAccess.hint} description="Mở quyền tạo nhắc nhở mới. Lịch khám, tư vấn và nhắc nhở đã có vẫn xem được."><div className="nm-feature-lock__sample"><div><CalendarBlank size={24} /><span>Tiêu đề lịch nhắc nhở</span></div><div><Clock size={20} /><span>Ngày, giờ và thời gian báo trước</span></div></div></FeatureLock>}
+    <FeatureLock locked={lockEmptyCalendar} label="Lịch nhắc nhở" hint={reminderAccess.hint} description="Chủ động lên lịch và nhận nhắc nhở cho các mốc chăm sóc. Lịch đã có vẫn xem được.">
     <AnimatePresence mode="wait" initial={false}><motion.div className="calendar-view" key={view} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }} transition={{ duration: reduceMotion ? 0 : .2 }}>
       {view === 'MONTH' ? <div className="calendar-month-layout"><div>{data.monthError ? <div className="calendar-state"><p>{data.monthError}</p><DiagnosticCopyButton feature={shared ? 'shared-calendar' : 'calendar'} event="month_load_failed" error={data.monthError} /><button className="secondary-button" type="button" onClick={() => void data.retryMonth()}>Thử lại</button></div> : <MonthGrid anchor={anchor} selectedDate={selectedDate} items={data.monthItems} loading={data.monthLoading} onSelect={(date) => { setSelectedDate(date); const chosen = new Date(`${date}T12:00:00`); if (chosen.getMonth() !== anchor.getMonth()) setAnchor(chosen) }} />}</div><aside className="calendar-day-agenda"><header><span>Lịch trong ngày</span><strong>{new Intl.DateTimeFormat('vi-VN', { dateStyle: 'full' }).format(new Date(`${selectedDate}T12:00:00`))}</strong></header><EventList events={data.events} loading={data.eventsLoading} error={data.eventsError} empty="Ngày này chưa có lịch" onOpen={openEvent} onRetry={() => void data.retryEvents()} /></aside></div>
         : view === 'WEEK' ? <CalendarWeekView anchor={anchor} events={data.events} loading={data.eventsLoading} error={data.eventsError} onOpen={openEvent} onRetry={() => void data.retryEvents()} />
           : view === 'DAY' ? <CalendarDayView anchor={anchor} events={data.events} loading={data.eventsLoading} error={data.eventsError} onOpen={openEvent} onRetry={() => void data.retryEvents()} />
             : <div className="calendar-range-view is-list">{data.eventsLoading || data.eventsError || !data.events.length ? <EventList events={data.events} loading={data.eventsLoading} error={data.eventsError} empty="Tháng này chưa có lịch" onOpen={openEvent} onRetry={() => void data.retryEvents()} /> : [...grouped.entries()].map(([date, events]) => <section className="calendar-date-group" key={date}><header><time dateTime={date}>{formatCalendarDate(`${date}T12:00:00`)}</time><span>{events.length} mốc</span></header><div className="calendar-event-list">{events.map((event) => <CalendarEventCard key={calendarEventKey(event)} event={event} onOpen={openEvent} />)}</div></section>)}</div>}
     </motion.div></AnimatePresence>
+    </FeatureLock>
     {!shared && <ReminderDialog open={createOpen || Boolean(editing)} detail={editing} pregnancyId={pregnancyId} estimatedDueDate={estimatedDueDate} onClose={() => { setCreateOpen(false); setEditing(undefined) }} onSaved={(saved) => changed(`${editing ? 'Đã cập nhật' : 'Đã tạo'} lịch nhắc nhở. Lần tiếp theo: ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(saved.next_occurrence || saved.starts_at))}.`)} onConflict={(latest) => setEditing(latest)} />}
     <CalendarEventDialog readOnly={shared} open={Boolean(activeEvent)} event={activeEvent} detail={activeDetail} loading={detailLoading} onClose={() => { setActiveEvent(undefined); setActiveDetail(undefined); const params = new URLSearchParams(location.search); if (params.has('reminder')) { params.delete('reminder'); navigate({ pathname: location.pathname, search: params.toString(), hash: location.hash }, { replace: true }) } }} onEdit={(detail) => { setActiveEvent(undefined); setEditing(detail) }} onRefresh={refresh} onNotify={showToast} onReloadDetail={() => !shared && activeEvent?.source_id ? loadDetail(activeEvent.source_id) : Promise.resolve(undefined)} />
   </section>

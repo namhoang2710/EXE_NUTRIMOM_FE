@@ -1,3 +1,6 @@
+import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
+import { UpgradePrompt } from '@/features/payment/components/UpgradePrompt'
 import { Plus, X } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { AnimatedSelect } from '@/components/ui/animated-select'
@@ -70,12 +73,16 @@ interface Props {
 }
 
 export function ReminderDialog({ open, detail, pregnancyId, estimatedDueDate, onClose, onSaved, onConflict }: Props) {
+  const access = useFeatureAccess('CALENDAR_REMINDERS', open && !detail)
+  const clearUpgrade = access.clearUpgrade
+  const cooldown = usePaymentCooldown('calendar-reminders')
+  const upgradeHint = !detail ? access.upgrade ?? access.hint : null
   const [value, setValue] = useState<ReminderFormValue>(() => formValue(detail, estimatedDueDate))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const submitGate = useRef(false)
-  useEffect(() => { if (open) { setValue(formValue(detail, estimatedDueDate)); setErrors({}); setError('') } }, [detail, estimatedDueDate, open])
+  useEffect(() => { if (open) { setValue(formValue(detail, estimatedDueDate)); setErrors({}); setError(''); clearUpgrade() } }, [detail, estimatedDueDate, open, clearUpgrade])
 
   const anchoredStart = value.repeatMode === 'WEEKLY' ? nextWeeklyAnchor(value.startsAtLocal, value.daysOfWeek) : value.startsAtLocal
   const preview = useMemo(() => {
@@ -90,28 +97,31 @@ export function ReminderDialog({ open, detail, pregnancyId, estimatedDueDate, on
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (submitGate.current) return
+    if (submitGate.current || cooldown.blocked) return
     const validation = validateReminderForm(value, new Date(), detail?.starts_at)
     if (Object.keys(validation).length) { setErrors(validation); return }
     submitGate.current = true; setSaving(true); setError(''); setErrors({})
     try {
+      if (!detail && !await access.checkAccess()) return
       const saved = detail
         ? await calendarApi.updateReminder(detail.id, reminderPatchPayload(value, detail))
         : await calendarApi.createReminder(reminderCreatePayload(value, pregnancyId))
       onSaved(saved)
     } catch (reason) {
+      if (!detail && access.handleError(reason)) return
+      cooldown.handleRateLimit(reason)
       if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT' && detail) {
         setError('Dữ liệu đã thay đổi, vui lòng tải lại.')
         try { const latest = await calendarApi.reminder(detail.id); onConflict?.(latest) } catch { /* Keep the conflict visible if refresh also fails. */ }
       } else {
-        if (reason instanceof ApiClientError) setErrors(reason.fields)
+        if (reason instanceof ApiClientError && reason.code === 'VALIDATION_ERROR') setErrors(reason.fields)
         setError(reason instanceof Error ? reason.message : 'Không thể lưu lịch nhắc nhở.')
       }
     } finally { submitGate.current = false; setSaving(false) }
   }
 
-  return <AccessibleDialog open={open} title={detail ? 'Sửa lịch nhắc nhở' : 'Thêm lịch nhắc nhở'} description="Lịch này chỉ thuộc tài khoản đang đăng nhập." onClose={onClose} busy={saving} className="calendar-reminder-dialog" footer={<><button className="secondary-button" type="button" disabled={saving} onClick={onClose}>Hủy</button><button className="primary-button" type="submit" form={formId} disabled={saving}>{saving ? 'Đang lưu...' : detail ? 'Lưu thay đổi' : 'Tạo lịch nhắc'}</button></>}>
-    <form id={formId} className="calendar-reminder-form" onSubmit={submit} noValidate>
+  return <AccessibleDialog open={open} title={detail ? 'Sửa lịch nhắc nhở' : 'Thêm lịch nhắc nhở'} description="Lịch này chỉ thuộc tài khoản đang đăng nhập." onClose={onClose} busy={saving} className="calendar-reminder-dialog" footer={upgradeHint ? undefined : <><button className="secondary-button" type="button" disabled={saving} onClick={onClose}>Hủy</button><button className="primary-button" type="submit" form={formId} disabled={saving || cooldown.remaining > 0}>{cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining}s` : saving ? 'Đang lưu...' : detail ? 'Lưu thay đổi' : 'Tạo lịch nhắc'}</button></>}>
+    {upgradeHint ? <UpgradePrompt hint={upgradeHint} onDismiss={access.upgrade && !access.hint ? clearUpgrade : onClose} /> : <form id={formId} className="calendar-reminder-form" onSubmit={submit} noValidate>
       <AnimatedSelect label="Loại nhắc" value={value.type} options={reminderTypes} onValueChange={changeType} />
       <label>Tiêu đề <span>{value.title.length}/255</span><input value={value.title} maxLength={255} onChange={(event) => patch({ title: event.target.value })} aria-invalid={Boolean(errors.title)} />{errors.title && <small role="alert">{errors.title}</small>}</label>
       <label>Thời gian bắt đầu<input type="datetime-local" min={detail ? undefined : `${localDate()}T00:00`} value={value.startsAtLocal} onChange={(event) => patch({ startsAtLocal: event.target.value })} aria-invalid={Boolean(errors.starts_at)} />{errors.starts_at && <small role="alert">{errors.starts_at}</small>}</label>
@@ -127,6 +137,6 @@ export function ReminderDialog({ open, detail, pregnancyId, estimatedDueDate, on
       </section>
       {preview && <p className="calendar-first-preview"><strong>Lần nhắc đầu tiên:</strong> {preview}</p>}
       {error && <p className="nm-dialog-error" role="alert">{error}</p>}
-    </form>
+    </form>}
   </AccessibleDialog>
 }
