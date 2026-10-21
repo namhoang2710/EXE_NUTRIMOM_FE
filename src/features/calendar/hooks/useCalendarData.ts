@@ -5,7 +5,9 @@ import { calendarRangeError, localDate, visibleRange } from '../model/calendar-h
 import type { CalendarEventItem, CalendarMonthItem, CalendarSource, CalendarView, SharedCalendarMetadata } from '../model/calendar-types'
 import { logDiagnostic } from '@/core/diagnostics/logger'
 
-export function useCalendarData(enabled: boolean, view: CalendarView, anchor: Date, selectedDate: string, refreshToken: number, mode: 'owner' | 'shared' = 'owner', types: CalendarSource[] = []) {
+const emptySources: CalendarSource[] = []
+
+export function useCalendarData(enabled: boolean, view: CalendarView, anchor: Date, selectedDate: string, refreshToken: number, mode: 'owner' | 'shared' = 'owner', types: CalendarSource[] = emptySources) {
   const [monthItems, setMonthItems] = useState<CalendarMonthItem[]>([])
   const [events, setEvents] = useState<CalendarEventItem[]>([])
   const [monthLoading, setMonthLoading] = useState(view === 'MONTH')
@@ -34,6 +36,7 @@ export function useCalendarData(enabled: boolean, view: CalendarView, anchor: Da
       logDiagnostic({ level: 'info', category: mode === 'shared' ? 'shared-calendar' : 'calendar', event: 'month_loaded' })
     }
     catch (reason) {
+      if (controller.signal.aborted) return
       if (reason instanceof ApiClientError && reason.code === 'REQUEST_ABORTED') return
       if (mode === 'shared' && reason instanceof ApiClientError && reason.status === 403) setMonthItems([])
       setMonthError(calendarRangeError(reason)); logDiagnostic({ level: 'warn', category: mode === 'shared' ? 'shared-calendar' : 'calendar', event: 'month_load_failed', error_code: reason instanceof ApiClientError ? reason.code : undefined })
@@ -57,6 +60,7 @@ export function useCalendarData(enabled: boolean, view: CalendarView, anchor: Da
       logDiagnostic({ level: 'info', category: mode === 'shared' ? 'shared-calendar' : 'calendar', event: 'events_loaded' })
     }
     catch (reason) {
+      if (controller.signal.aborted) return
       if (reason instanceof ApiClientError && reason.code === 'REQUEST_ABORTED') return
       if (mode === 'shared' && reason instanceof ApiClientError && reason.status === 403) setEvents([])
       setEventsError(calendarRangeError(reason)); logDiagnostic({ level: 'warn', category: mode === 'shared' ? 'shared-calendar' : 'calendar', event: 'events_load_failed', error_code: reason instanceof ApiClientError ? reason.code : undefined })
@@ -65,13 +69,15 @@ export function useCalendarData(enabled: boolean, view: CalendarView, anchor: Da
 
   useEffect(() => {
     if (!enabled) { monthController.current?.abort(); setMonthLoading(false); setMonthError(''); return }
-    void loadMonth()
-    return () => monthController.current?.abort()
-  }, [enabled, loadMonth, refreshToken])
+    setMonthLoading(view === 'MONTH')
+    const timer = window.setTimeout(() => void loadMonth(), 150)
+    return () => { window.clearTimeout(timer); monthController.current?.abort() }
+  }, [enabled, view, loadMonth, refreshToken])
   useEffect(() => {
     if (!enabled) { eventsController.current?.abort(); setEventsLoading(false); setEventsError(''); return }
-    void loadEvents()
-    return () => eventsController.current?.abort()
+    setEventsLoading(true)
+    const timer = window.setTimeout(() => void loadEvents(), 150)
+    return () => { window.clearTimeout(timer); eventsController.current?.abort() }
   }, [enabled, loadEvents, refreshToken])
 
   return { monthItems, events, monthLoading, eventsLoading, monthError, eventsError, sharedMetadata, range, retryMonth: loadMonth, retryEvents: loadEvents }

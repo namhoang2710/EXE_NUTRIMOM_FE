@@ -11,7 +11,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    open: true,
+    // Programmatic QA servers must never open the user's browser.
+    // The interactive npm dev launcher opts in via --open instead.
+    open: false,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
@@ -19,4 +21,5 @@ export default defineConfig({
       },
     },
   },
+  preview: { open: false },
 })

@@ -1,0 +1,295 @@
+.nutrition-centered-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+.nutrition-detail-side .nutrition-actions > .nutrition-button {
+  white-space: normal;
+  max-width: 100%;
+}
+.nutrition-cooking-steps {
+  list-style: none;
+  padding-left: 0;
+}
+.nutrition-cooking-steps > li {
+  position: relative;
+  padding-left: 20px;
+}
+.nutrition-cooking-steps > li::before {
+  content: '-';
+  position: absolute;
+  left: 0;
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+.nutrition-feedback .nutrition-feedback-confirmation,
+.nutrition-feedback .nutrition-button[aria-pressed='true'],
+.nutrition-page [data-slot='badge'].nutrition-logged-badge {
+  color: var(--success);
+  background: var(--success-soft);
+  border: 1px solid color-mix(in srgb, var(--success) 28%, transparent);
+}
+.nutrition-feedback-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.nutrition-feedback-confirmation > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* The same frosted surface and inset highlights as the floating header. */
+.nm-dialog-backdrop:has(> .nutrition-glass-dialog) {
+  background: rgba(20, 15, 30, 0.38);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.nutrition-dialog.nutrition-glass-dialog {
+  background: rgba(250, 248, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 24px 70px #2d23552e,
+    0 2px 3px #2d23551f,
+    inset 0 2px 2px #ffffffe0,
+    inset 0 -2px 5px #463c5f2e;
+}
+:root[data-theme='dark'] .nutrition-dialog.nutrition-glass-dialog {
+  background: rgba(35, 30, 44, 0.84);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 24px 70px #0005,
+    inset 0 2px 2px #ffffff25,
+    inset 0 -2px 5px #0003;
+}
+.nutrition-cooking-dialog .nm-dialog-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  background: transparent;
+  gap: 12px;
+}
+.nutrition-cooking-dialog .nm-dialog-footer > button {
+  white-space: normal;
+  min-width: 0;
+}
+.nutrition-cooking-counter {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  font-weight: 650;
+}
+.nutrition-cooking-dialog .nutrition-cooking {
+  background: transparent;
+  padding: 6px 0;
+}
+.nutrition-cooking-dialog .nutrition-cooking > span {
+  color: var(--accent-strong);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.nutrition-cooking-dialog .nutrition-cooking > small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.nutrition-cooking-dialog .nm-dialog-close,
+.nutrition-scope-dialog .nm-dialog-close {
+  width: 44px;
+  height: 44px;
+}
+
+.nutrition-shopping-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.nutrition-shopping-settings p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.nutrition-shopping-settings > button {
+  white-space: normal;
+  max-width: 100%;
+}
+.nutrition-shopping-toolbar {
+  flex-wrap: wrap;
+}
+.nutrition-shopping-heading {
+  flex-wrap: wrap;
+}
+.nutrition-shopping-heading > button {
+  max-width: 100%;
+  white-space: normal;
+}
+.nutrition-shopping-toolbar > button {
+  max-width: 100%;
+  white-space: normal;
+}
+.nutrition-dialog.nutrition-scope-dialog {
+  height: min(820px, calc(100dvh - 56px));
+}
+.nutrition-scope-dialog .nm-dialog-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+}
+.nutrition-scope-dialog .nm-dialog-header-extra {
+  grid-column: 1 / -1;
+}
+.nutrition-scope-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.nutrition-scope-range label {
+  min-width: 0;
+  flex: 1 1 7.5em;
+}
+.nutrition-scope-range input {
+  min-width: 0;
+  width: 100%;
+}
+:root[data-theme='dark'] .nutrition-scope-range input {
+  color-scheme: dark;
+}
+.nutrition-scope-dialog .nm-dialog-body {
+  max-height: none;
+}
+.nutrition-scope-dialog .nm-dialog-footer {
+  display: grid;
+  gap: 14px;
+  justify-content: stretch;
+}
+.nutrition-scope-pagination {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 12px;
+  align-items: center;
+}
+.nutrition-scope-pagination > button {
+  padding: 10px;
+}
+.nutrition-scope-pagination > span {
+  text-align: center;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.nutrition-scope-pagination small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-top: 3px;
+}
+.nutrition-scope-confirm {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.nutrition-scope-selection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--success);
+  font-size: 0.875rem;
+}
+.nutrition-scope-selection > svg {
+  flex: none;
+}
+.nutrition-scope-dialog .nutrition-shopping-scope h3 {
+  font-size: 1.125rem;
+  margin: 22px 0 16px;
+}
+.nutrition-scope-dialog .nutrition-shopping-scope fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  min-width: 0;
+}
+.nutrition-scope-dialog .nutrition-shopping-scope legend {
+  font-size: 0.875rem;
+  color: var(--muted);
+  font-weight: 650;
+  padding: 0;
+  margin-bottom: 8px;
+}
+.nutrition-scope-dialog .nutrition-shopping-scope label {
+  min-height: 48px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.nutrition-scope-dialog .nutrition-shopping-scope label:has(:checked) {
+  border-color: color-mix(in srgb, var(--success) 30%, var(--border));
+  background: var(--success-soft);
+}
+.nutrition-scope-dialog input[type='checkbox'] {
+  accent-color: var(--success);
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+@media (max-width: 767px) {
+  .nm-dialog-backdrop:has(> .nutrition-scope-dialog),
+  .nm-dialog-backdrop:has(> .nutrition-cooking-dialog) {
+    padding: 12px;
+  }
+  .nutrition-dialog.nutrition-scope-dialog {
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+  .nutrition-scope-dialog .nm-dialog-header,
+  .nutrition-scope-dialog .nm-dialog-body,
+  .nutrition-scope-dialog .nm-dialog-footer,
+  .nutrition-cooking-dialog .nm-dialog-header,
+  .nutrition-cooking-dialog .nm-dialog-body,
+  .nutrition-cooking-dialog .nm-dialog-footer {
+    padding: 16px;
+  }
+  .nutrition-scope-dialog .nm-dialog-footer,
+  .nutrition-cooking-dialog .nm-dialog-footer {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .nutrition-scope-dialog .nm-dialog-header {
+    gap: 12px;
+  }
+  .nutrition-scope-range {
+    gap: 10px;
+  }
+  .nutrition-scope-range input {
+    padding-inline: 6px;
+    font-size: 0.875rem;
+  }
+  .nutrition-scope-confirm > button {
+    flex: 1;
+    white-space: normal;
+  }
+  .nutrition-cooking-dialog .nm-dialog-footer {
+    gap: 8px;
+  }
+  .nutrition-cooking-dialog .nm-dialog-footer > button {
+    font-size: 0.8125rem;
+    padding: 10px 8px;
+  }
+}
+@media (max-height: 560px) {
+  .nutrition-scope-dialog .nm-dialog-header p {
+    display: none;
+  }
+  .nutrition-scope-dialog .nm-dialog-header {
+    gap: 8px;
+    padding-block: 12px;
+  }
+  .nutrition-scope-dialog .nm-dialog-footer {
+    gap: 8px;
+    padding-block: 10px;
+  }
+}

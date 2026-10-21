@@ -1,6 +1,7 @@
 import { Bell, CalendarBlank, ChatCircleText, HouseLine, Info, UsersThree } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ApiClientError, isAuthenticationError } from '@/core/api/api-error'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -31,13 +32,15 @@ export function NotificationBell({adaptLink=adaptDeepLink}:{adaptLink?:typeof ad
   return <NotificationBellView open={open} setOpen={setOpen} authenticated={authenticated} feed={feed} adaptLink={adaptLink} />
 }
 
-export function NotificationBellView({ open, setOpen, authenticated, feed, adaptLink = adaptDeepLink, pending = false, loadOnOpen = true, allPath, itemLabel, itemIcon, formatTime }: {
+export function NotificationBellView({ open, setOpen, authenticated, feed, adaptLink = adaptDeepLink, pending = false, loadOnOpen = true, allPath, itemLabel, itemIcon, formatTime, panelClassName = '' }: {
   open: boolean; setOpen: (open: boolean | ((value: boolean) => boolean)) => void; authenticated: boolean;
   feed: ReturnType<typeof useNotifications> & { hasNew?: boolean }; adaptLink?: typeof adaptDeepLink; pending?: boolean; loadOnOpen?: boolean;
   allPath?: string; itemLabel?: (item: NotificationItem) => string; itemIcon?: (item: NotificationItem) => ReactNode; formatTime?: (value: string) => string;
+  panelClassName?: string;
 }) {
   const [notice, setNotice] = useState('')
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
   const previousUnreadCount = useRef<number | undefined>(undefined)
@@ -49,6 +52,39 @@ export function NotificationBellView({ open, setOpen, authenticated, feed, adapt
   const refreshNotificationsRef = useRef(refreshNotifications)
   refreshNotificationsRef.current = refreshNotifications
   const fallbackUnread = feed.items.some((item) => !item.read_at)
+
+  // Escape the header's backdrop-filter containing block. Keep desktop anchored
+  // to its bell and leave mobile placement to the existing bottom-sheet CSS.
+  useLayoutEffect(() => {
+    if (!open) return
+    let frame = 0
+    function positionPanel() {
+      const trigger = triggerRef.current?.getBoundingClientRect()
+      const panel = panelRef.current
+      if (!trigger || !panel) return
+      const width = window.innerWidth
+      const height = window.innerHeight
+      const top = Math.max(8, Math.min(trigger.bottom + 14, height - 120))
+      const panelWidth = Math.min(420, width - 24)
+      const right = Math.max(12, Math.min(width - trigger.right - 60, width - panelWidth - 12))
+      panel.style.setProperty('--notification-top', `${top}px`)
+      panel.style.setProperty('--notification-right', `${right}px`)
+      panel.style.setProperty('--notification-max-height', `${Math.max(0, height - top - 12)}px`)
+    }
+    function schedulePosition() {
+      if (frame) return
+      frame = window.requestAnimationFrame(() => { frame = 0; positionPanel() })
+    }
+    positionPanel()
+    panelRef.current?.focus({ preventScroll: true })
+    window.addEventListener('resize', schedulePosition)
+    window.addEventListener('scroll', schedulePosition, true)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', schedulePosition)
+      window.removeEventListener('scroll', schedulePosition, true)
+    }
+  }, [open])
 
   useEffect(() => {
     const nextUnreadCount = feed.unreadCount
@@ -71,7 +107,7 @@ export function NotificationBellView({ open, setOpen, authenticated, feed, adapt
   useEffect(() => {
     if (!authenticated || !open) return
     if (loadOnOpen) void refreshNotificationsRef.current()
-    const closeOutside = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as Node)) { setOpen(false); triggerRef.current?.focus() } }
+    const closeOutside = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as Node) && !panelRef.current?.contains(event.target as Node)) { setOpen(false); triggerRef.current?.focus() } }
     const escape = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape' && !event.defaultPrevented) { setOpen(false); triggerRef.current?.focus() } }
     document.addEventListener('pointerdown', closeOutside)
     document.addEventListener('keydown', escape)
@@ -114,8 +150,8 @@ export function NotificationBellView({ open, setOpen, authenticated, feed, adapt
       <span className="nm-notification-bell-icon" aria-hidden="true"><Bell size={22} weight={fallbackUnread || (feed.unreadCount ?? 0) > 0 ? 'fill' : 'regular'} /></span>
       {feed.unreadCount !== undefined && feed.unreadCount > 0 ? <span className="nm-notification-badge" aria-label={`${feed.unreadCount} thông báo chưa đọc`}>{feed.unreadCount > 99 ? '99+' : feed.unreadCount}</span> : feed.unreadCount === undefined && fallbackUnread ? <span className="nm-notification-dot" aria-label="Có thông báo chưa đọc" /> : null}
     </button>
-    <AnimatePresence initial={false}>
-      {open && <motion.div id="nm-notification-panel" className="nm-notification-panel" role="dialog" aria-label="Hộp thông báo" initial={reduceMotion ? false : { opacity: 0, y: -10, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .2 }} onKeyDown={onPanelKeyDown}>
+    {createPortal(<AnimatePresence initial={false}>
+      {open && <motion.div ref={panelRef} tabIndex={-1} id="nm-notification-panel" className={`nm-notification-panel ${panelClassName}`.trim()} role="dialog" aria-label="Hộp thông báo" initial={reduceMotion ? false : { opacity: 0, y: -10, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .2 }} onKeyDown={onPanelKeyDown}>
         <header><div><span>Cập nhật mới</span><h2>Thông báo</h2></div><button type="button" disabled={pending || (allPath ? feed.unreadCount === 0 || feed.unreadCount === undefined : !feed.items.some((item) => !item.read_at))} onClick={() => void feed.readAll().catch((reason: unknown) => showActionError(reason, 'Không thể đánh dấu tất cả đã đọc.'))}>Đánh dấu tất cả đã đọc</button></header>
         {notice && <p className="nm-notification-notice" role="status">{notice}</p>}
         {feed.hasNew && <button className="nm-notification-more" type="button" onClick={() => void feed.refresh()}>Có thông báo mới</button>}
@@ -132,6 +168,6 @@ export function NotificationBellView({ open, setOpen, authenticated, feed, adapt
         {feed.hasMore && !feed.loading && <button className="nm-notification-more" type="button" disabled={feed.loadingMore} onClick={() => void feed.loadMore()}>{feed.loadingMore ? 'Đang tải...' : 'Tải thêm'}</button>}
         {allPath && <button className="nm-notification-more" type="button" onClick={() => { close(); navigate(allPath) }}>Xem tất cả</button>}
       </motion.div>}
-    </AnimatePresence>
+    </AnimatePresence>, document.body)}
   </div>
 }

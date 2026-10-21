@@ -163,13 +163,11 @@ export function FamilyPage() {
 
   return <main className="family-page">
     <header className="family-hero">
+      <img className="family-hero-image" src="/bannerHub.png" width="2164" height="727" alt="" aria-hidden="true" fetchPriority="high" decoding="async" />
       <div className="family-hero-inner">
         <h1 className="sr-only">Family Hub</h1>
-        <img src="/banner_logos_family_hubs.png" width="570" height="165" alt="Nutri Mom Family Hubs" fetchPriority="high" />
-        <div className="family-hero-caption">
-          <p>Chia sẻ đúng thông tin, phối hợp công việc và theo dõi hoạt động của gia đình.</p>
-          {group && <div className="family-role-badge"><UsersThree size={20} weight="duotone" aria-hidden="true" />{isOwner ? 'Chủ nhóm' : 'Thành viên'}</div>}
-        </div>
+        <p className="sr-only">Chia sẻ đúng thông tin, phối hợp công việc và theo dõi hoạt động của gia đình.</p>
+        {group && <div className="family-hero-caption"><div className="family-role-badge"><UsersThree size={20} weight="duotone" aria-hidden="true" />{isOwner ? 'Chủ nhóm' : 'Thành viên'}</div></div>}
       </div>
     </header>
     <div className="family-page-body">

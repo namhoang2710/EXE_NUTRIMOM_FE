@@ -72,7 +72,7 @@ function UserRouteFallback() {
 
 export function AppRouter() {
   const location = useLocation()
-  const enteringWorkspace = Boolean((location.state as { authEntry?: boolean } | null)?.authEntry)
+  const enteringWorkspace = !/^\/app(?:\/|$)/.test(location.pathname) && Boolean((location.state as { authEntry?: boolean } | null)?.authEntry)
   return (
     <Suspense fallback={<UserRouteFallback />}>
     <div className={enteringWorkspace ? 'auth-workspace-entry' : undefined}>
@@ -132,6 +132,8 @@ export function AppRouter() {
         <Route path="records" element={<Navigate to="/app/profile/records" replace />} />
         <Route path="calendar" element={<Navigate to="/app#calendar" replace />} />
         <Route path="nutrition" element={<NutritionPage />} />
+        <Route path="nutrition/recipes/:recipeId" element={<NutritionPage />} />
+        <Route path="nutrition/shopping/:planId" element={<NutritionPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="knowledge/:articleSlug" element={<BlogArticlePage />} />
         <Route path="community" element={<CommunityPage />} />

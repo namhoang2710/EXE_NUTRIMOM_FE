@@ -60,7 +60,7 @@ async function checkLogin(role, { width = 1440, reducedMotion = false, initialPa
     await page.evaluate(() => {
       window.transitionAudit = []
       document.addEventListener('animationstart', event => {
-        if (event.animationName.startsWith('auth-')) window.transitionAudit.push({ name: event.animationName, at: performance.now(), entry: event.target.classList.contains('auth-workspace-entry') })
+        if (event.animationName.startsWith('auth-') || event.animationName.startsWith('nm-curtain-')) window.transitionAudit.push({ name: event.animationName, at: performance.now(), entry: event.target.classList.contains('auth-workspace-entry') })
       })
     })
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
@@ -78,13 +78,15 @@ async function checkLogin(role, { width = 1440, reducedMotion = false, initialPa
       const destination = role === 'ADMIN' ? '/admin' : ['EXPERT', 'DOCTOR'].includes(role) ? '/expert' : onboarding === 'PROFILE_REQUIRED' ? '/onboarding/profile' : initialPath === '/login' ? '/app' : initialPath
       await page.waitForURL(url => url.pathname === destination)
       assert.ok(await page.evaluate(() => performance.now()) - closeStarted >= 300)
-      await page.locator('.auth-workspace-entry').waitFor()
+      if (!destination.startsWith('/app')) await page.locator('.auth-workspace-entry').waitFor()
       await page.waitForTimeout(450)
       const audit = await page.evaluate(() => window.transitionAudit)
       assert.ok(audit.some(event => event.name === 'auth-panel-close-right'))
-      assert.ok(audit.some(event => event.entry && event.name === 'auth-content-reveal'), 'destination did not reveal')
-      const style = await page.locator('.auth-workspace-entry').evaluate(element => ({ opacity: getComputedStyle(element).opacity, transform: getComputedStyle(element).transform }))
-      assert.deepEqual(style, { opacity: '1', transform: 'none' })
+      if (!destination.startsWith('/app')) {
+        assert.ok(audit.some(event => event.entry && event.name === 'auth-content-reveal'), 'destination did not reveal')
+        const style = await page.locator('.auth-workspace-entry').evaluate(element => ({ opacity: getComputedStyle(element).opacity, transform: getComputedStyle(element).transform }))
+        assert.deepEqual(style, { opacity: '1', transform: 'none' })
+      } else assert.equal(await page.locator('.auth-workspace-entry').count(), 0)
     } else {
       await page.waitForURL(url => url.pathname === '/expert')
       assert.equal(await page.locator('.auth-workspace-entry').count(), 0)
@@ -95,20 +97,31 @@ async function checkLogin(role, { width = 1440, reducedMotion = false, initialPa
     assert.equal(loginRequests, retry ? 2 : 1)
     assert.equal(await page.locator('.auth-login-transition').count(), 0)
     if (role === 'ADMIN') await page.screenshot({ path: fileURLToPath(new URL('admin-open.png', output)) })
+    if (role === 'USER' && initialPath.startsWith('/app/profile') && !reducedMotion) {
+      if (width < 1000) await page.getByRole('button', { name: 'Danh mục tài khoản' }).click()
+      await page.getByRole('link', { name: 'Về trang chủ', exact: true }).click()
+      await page.locator('.nm-overview-page').waitFor()
+      await page.waitForTimeout(700)
+      assert.equal(await page.locator('.nm-overview-curtains').count(), 0)
+      assert.equal(await page.evaluate(() => window.transitionAudit.filter(event => event.name.startsWith('nm-curtain-')).length), 0, 'return path replayed the panels')
+    }
     // Reloading /login with an existing session must skip the interactive exit.
     await page.goto('http://127.0.0.1:5189/login')
     await page.waitForURL(url => url.pathname !== '/login')
     assert.equal(await page.locator('.auth-workspace-entry').count(), 0)
-    if (onboarding === 'COMPLETED' && initialPath === '/login' && !reducedMotion && role !== 'DOCTOR') {
-      if (role === 'ADMIN') await page.locator('.admin-profile-button').click()
+    if (onboarding === 'COMPLETED' && !reducedMotion && role !== 'DOCTOR') {
+      const fromAccount = role === 'USER' && initialPath.startsWith('/app/profile')
+      if (fromAccount) {
+        await page.goto(`http://127.0.0.1:5189${initialPath}`)
+        await page.locator('.nm-account-sidebar').waitFor({ state: 'attached' })
+        if (width < 1000) await page.getByRole('button', { name: 'Danh mục tài khoản' }).click()
+      } else if (role === 'ADMIN') await page.locator('.admin-profile-button').click()
       else if (role === 'USER') await page.locator('.nm-avatar-button').click()
+      const exitPaths = []
+      page.on('framenavigated', frame => { if (frame === page.mainFrame()) exitPaths.push(new URL(frame.url()).pathname) })
       await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click()
-      if (role === 'USER') {
-        await page.waitForURL(url => url.pathname === '/' || url.pathname === '/login')
-        await page.waitForTimeout(100)
-        if (new URL(page.url()).pathname === '/') await page.locator('.landing-header a[href="/login"]').click()
-      }
       await page.waitForURL(url => url.pathname === '/login')
+      assert.ok(!exitPaths.includes('/'), 'logout unexpectedly navigated to landing page')
       await page.locator('.auth-page--login').waitFor()
       assert.equal(await page.locator('.auth-login-transition').getAttribute('data-state'), 'open')
       assert.equal(await page.locator('.form-panel').evaluate(element => getComputedStyle(element).animationName), 'auth-panel-open-right')
@@ -129,6 +142,7 @@ try {
   await checkLogin('USER', { retry: true })
   await checkLogin('USER', { width: 390 })
   await checkLogin('USER', { initialPath: '/app/profile/health' })
+  await checkLogin('USER', { initialPath: '/app/profile/health', width: 390 })
   await checkLogin('USER', { onboarding: 'PROFILE_REQUIRED' })
   await checkLogin('EXPERT', { reducedMotion: true })
   assert.deepEqual(errors, [])

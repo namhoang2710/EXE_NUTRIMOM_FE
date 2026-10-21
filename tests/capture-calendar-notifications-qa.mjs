@@ -261,7 +261,7 @@ for (const width of [320, 375, 768, 1024, 1440, 1920]) {
   await navigate('/app')
   await evaluate(`localStorage.setItem('nutrimom.theme', ${JSON.stringify(width === 1024 ? 'dark' : 'light')}); document.documentElement.dataset.theme = ${JSON.stringify(width === 1024 ? 'dark' : 'light')}`)
   const layout = await evaluate(`(() => {
-    const hero = document.querySelector('.nm-overview-hero-band').getBoundingClientRect()
+    const hero = document.querySelector('.nm-overview-hero').getBoundingClientRect()
     const calendarBand = document.querySelector('.nm-overview-calendar-band').getBoundingClientRect()
     const calendar = document.querySelector('.calendar-overview').getBoundingClientRect()
     return {
@@ -274,7 +274,7 @@ for (const width of [320, 375, 768, 1024, 1440, 1920]) {
       heroBottom: hero.bottom,
       calendarBandTop: calendarBand.top,
       calendarRadius: getComputedStyle(document.querySelector('.calendar-overview')).borderRadius,
-      heroBackground: getComputedStyle(document.querySelector('.nm-overview-hero-band')).backgroundColor,
+      heroBackground: getComputedStyle(document.querySelector('.nm-overview-hero')).backgroundColor,
       reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
     }
   })()`)

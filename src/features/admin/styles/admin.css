@@ -1272,9 +1272,7 @@
 .admin-notification-category { display:flex; align-items:center; gap:6px; margin-bottom:6px; color:var(--admin-accent) !important; }
 .admin-notification-list strong { display:block; overflow-wrap:anywhere; }
 .admin-topbar .nm-notification-trigger { width:36px; height:36px; border:1px solid var(--admin-border); border-radius:11px; background:var(--admin-card); color:var(--admin-muted); }
-.admin-topbar .nm-notification-panel { display:flex; flex-direction:column; max-width:calc(100vw - 24px); max-height:calc(100dvh - 88px); }
-.admin-topbar .nm-notification-list { min-height:0; flex:1 1 auto; }
-.admin-topbar .nm-notification-panel > header, .admin-topbar .nm-notification-more, .admin-topbar .nm-notification-notice { flex-shrink:0; }
+.admin-notification-panel { max-width:calc(100vw - 24px); max-height:min(var(--notification-max-height, 100dvh), calc(100dvh - 88px)); }
 .admin-shell :focus-visible { outline:2px solid var(--admin-accent); outline-offset:3px; }
 .admin-shell .admin-button:disabled { opacity:.55; cursor:wait; }
 .admin-shell .admin-management-tabs { flex-wrap:wrap; }
@@ -1320,7 +1318,7 @@
   .admin-notification-list li { align-items:flex-start; flex-direction:column; gap:8px; }
   .admin-operational-detail { grid-template-columns:100px minmax(0,1fr); gap:10px; font-size:12px; }
   .admin-live-section > header { flex-wrap:wrap; }
-  .admin-topbar .nm-notification-panel { position:fixed; top:68px; left:12px; right:12px; width:auto; }
+  .admin-notification-panel { position:fixed; top:68px; bottom:auto; left:12px; right:12px; width:auto; max-height:calc(100dvh - 88px); }
 }
 @media(max-width:430px) { .admin-page-heading { align-items:flex-start; flex-direction:column; gap:12px; } .admin-period-filter .admin-filter-field { flex-basis:100px; } .admin-search input { font-size:11px; } }
 @media(prefers-reduced-motion:reduce) { .admin-login-enter *, .admin-login-enter .admin-sidebar, .admin-login-enter .admin-topbar { animation:none !important; } }

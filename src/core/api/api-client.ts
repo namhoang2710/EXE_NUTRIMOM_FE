@@ -6,6 +6,7 @@ import { ApiClientError, parseApiError } from './api-error.ts'
 import { ErrorCodes } from './error-code.ts'
 import type { ApiResponse } from './api-response.ts'
 import { logDiagnostic } from '../diagnostics/logger.ts'
+import { createRateLimitGuard } from './rate-limit-guard.ts'
 
 export interface ApiRequestOptions extends RequestInit {
   authenticated?: boolean
@@ -19,14 +20,17 @@ type RefreshHandler = () => Promise<unknown>
 let refreshHandler: RefreshHandler | null = null
 let refreshInFlight: Promise<unknown> | null = null
 const protectedRequests = new Set<AbortController>()
+const rateLimits = createRateLimitGuard()
 
 if (typeof window !== 'undefined') {
   window.addEventListener('nutrimom:session-changed', () => {
+    rateLimits.clear()
     refreshInFlight = null
     for (const controller of protectedRequests) controller.abort('session-changed')
     protectedRequests.clear()
   })
   window.addEventListener('nutrimom:session-cleared', () => {
+    rateLimits.clear()
     refreshInFlight = null
     logDiagnostic({ level: 'warn', category: 'api', event: 'session_cleared', reason: 'auth-event' })
     for (const controller of protectedRequests) controller.abort('session-cleared')
@@ -87,6 +91,9 @@ async function request<T>(path: string, options: ApiRequestOptions = {}, mode: '
   const method = fetchOptions.method || 'GET'
   const routeTemplate = path.split('?')[0]
   const startedAt = Date.now()
+  if (providedSignal?.aborted) throw abortedError()
+  const rateLimitKey = rateLimits.key(authenticated ? scope : 'public', method, path)
+  rateLimits.assertAvailable(rateLimitKey)
 
   if (!headers.has('Accept')) headers.set('Accept', mode === 'json' ? 'application/json' : '*/*')
   headers.set('Accept-Language', preferredLanguage())
@@ -155,6 +162,7 @@ async function request<T>(path: string, options: ApiRequestOptions = {}, mode: '
 
     if (!response.ok) {
       const parsed = await parseApiError(response)
+      if (!authenticated || scope === getSessionScope()) rateLimits.record(rateLimitKey, parsed)
       logDiagnostic({ level: 'warn', category: 'api', event: 'request_failed', method, route_template: routeTemplate, status: response.status, error_code: parsed.code, client_request_id: clientRequestId, server_request_id: parsed.requestId || response.headers.get('X-Request-Id') || undefined, duration_ms: Date.now() - startedAt })
       throw parsed
     }

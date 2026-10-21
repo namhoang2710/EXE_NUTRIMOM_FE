@@ -2,10 +2,10 @@
 .nm-app-content { flex: 1; }
 .nm-app-header { position: sticky; top: 16px; z-index: 50; padding: 0 16px; margin: 16px auto 0; width: 100%; max-width: 1600px; transform: translateY(0); transition: transform 300ms cubic-bezier(.22,1,.36,1); }
 .nm-app-header.is-hidden { transform: translateY(calc(-100% - 40px)); pointer-events: none; }
-.nm-floating-nav { position: relative; isolation: isolate; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: clamp(18px,2vw,34px); padding: 8px 16px 8px 24px; border: 1px solid rgba(255,255,255,.55); border-radius: 999px; background: rgba(250,248,255,.74); -webkit-backdrop-filter: blur(24px) saturate(130%); backdrop-filter: blur(24px) saturate(130%); box-shadow: 0 12px 40px rgba(45,35,85,.10), inset 0 1px 0 rgba(255,255,255,.45); }
-.nm-floating-nav::before { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06)); }
+.nm-floating-nav { position: relative; isolation: isolate; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: clamp(18px,2vw,34px); padding: 8px 16px 8px 24px; border: 1px solid rgba(255,255,255,.55); border-radius: 999px; background: rgba(250,248,255,.38); -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%); box-shadow: 0 10px 30px rgba(45,35,85,.12), 0 2px 3px rgba(45,35,85,.12), inset 0 2px 2px rgba(255,255,255,.88), inset 0 -2px 5px rgba(70,60,95,.18); }
+.nm-floating-nav::before { content: ''; position: absolute; inset: 3px; z-index: 0; border: 1px solid rgba(255,255,255,.32); border-radius: inherit; pointer-events: none; background: linear-gradient(165deg,rgba(255,255,255,.3),rgba(255,255,255,.02) 48%,rgba(255,255,255,.14)); }
 .nm-floating-nav > * { position: relative; z-index: 1; }
-:root[data-theme="dark"] .nm-floating-nav { background: rgba(35,30,44,.74); border-color: rgba(255,255,255,.16); }
+:root[data-theme="dark"] .nm-floating-nav { background: rgba(35,30,44,.48); border-color: rgba(255,255,255,.3); box-shadow: 0 10px 30px #100b1c30, inset 0 2px 2px #ffffff30, inset 0 -2px 5px #0004; }
 :root[data-theme="dark"] .nm-floating-nav::before { background: linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)); }
 .nm-app-brand { display: inline-grid; width: 48px; height: 48px; flex: none; place-items: center; border-radius: 14px; color: var(--accent-strong); text-decoration: none; }
 .nm-app-brand img { display: block; width: 44px; height: 44px; object-fit: contain; }
@@ -87,6 +87,31 @@
 .nm-delete-panel input, .nm-delete-panel select, .nm-delete-panel textarea { width: 100%; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--text); padding: 11px 13px; font: inherit; }
 .nm-delete-panel textarea { min-height: 90px; resize: vertical; }
 .nm-danger-action { border: 1px solid var(--danger); border-radius: 999px; padding: 11px 20px; background: var(--danger); color: white; font: inherit; font-weight: 700; cursor: pointer; }
-@media (max-width: 1100px) { .nm-app-header { top: 8px; padding: 0 12px; margin-top: 8px; } .nm-floating-nav { min-height: 66px; border-radius: 24px; padding: 8px 12px; } .nm-app-links { display: none; position: absolute; top: calc(100% + 9px); left: 12px; right: 12px; flex-direction: column; align-items: stretch; border: 1px solid var(--border); border-radius: 18px; padding: 8px; background: var(--surface); box-shadow: var(--shadow); } .nm-app-links.is-open { display: flex; } .nm-animated-tabs-clip { display: none; } .nm-app-links > a, .nm-guide-trigger { width: 100%; justify-content: space-between; border-radius: 11px; padding: 12px 14px; text-align: left; } .nm-app-links > a.active, .nm-guide-trigger.is-active { background: rgba(112,92,170,.12); } .nm-guide-dropdown { position: static; min-width: 0; max-height: 0; overflow: hidden; border: 0; padding: 0 8px; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; transform: none; transition: max-height 260ms ease,opacity 220ms ease,visibility 0s linear 260ms; } .nm-guide-dropdown.is-open { max-height: 120px; padding: 4px 8px; transform: none; transition: max-height 260ms ease,opacity 220ms ease,visibility 0s; } .nm-guide-dropdown a { padding-left: 24px; } .nm-app-menu-toggle { display: inline-flex; } .nm-avatar-name { display: none; } }
+@media (max-width: 1300px) { .nm-app-header { top: 8px; padding: 0 12px; margin-top: 8px; } .nm-floating-nav { min-height: 66px; border-radius: 24px; padding: 8px 12px; } .nm-app-links { display: none; position: absolute; top: calc(100% + 9px); left: 12px; right: 12px; flex-direction: column; align-items: stretch; border: 1px solid var(--border); border-radius: 18px; padding: 8px; background: var(--surface); box-shadow: var(--shadow); } .nm-app-links.is-open { display: flex; } .nm-animated-tabs-clip { display: none; } .nm-app-links > a, .nm-guide-trigger { width: 100%; justify-content: space-between; border-radius: 11px; padding: 12px 14px; text-align: left; } .nm-app-links > a.active, .nm-guide-trigger.is-active { background: rgba(112,92,170,.12); } .nm-guide-dropdown { position: static; min-width: 0; max-height: 0; overflow: hidden; border: 0; padding: 0 8px; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; transform: none; transition: max-height 260ms ease,opacity 220ms ease,visibility 0s linear 260ms; } .nm-guide-dropdown.is-open { max-height: 180px; padding: 4px 8px; transform: none; transition: max-height 260ms ease,opacity 220ms ease,visibility 0s; } .nm-guide-dropdown a { padding-left: 24px; } .nm-app-menu-toggle { display: inline-flex; } .nm-avatar-name { display: none; } }
 @media (max-width: 700px) { .nm-app-home { grid-template-columns: 1fr; padding: 72px 24px; } .nm-app-home-image { aspect-ratio: 1.5; order: -1; } .nm-form-grid { grid-template-columns: 1fr; } .nm-account-page { padding-top: 48px; } }
 @media (prefers-reduced-motion: reduce) { .nm-app-header, .nm-account-dropdown, .nm-guide-dropdown, .nm-guide-trigger svg, .nm-animated-tabs-clip, .nm-animated-tabs-item svg { transition-duration: 0ms; } }
+
+/* Banner routes begin at the document edge; header floats above their scenery. */
+.nm-app-shell.has-banner-header { --app-banner-inset: 112px; }
+.nm-app-shell.has-banner-header > .nm-app-header { position: fixed; inset-inline: 0; margin-top: 0; }
+.has-banner-header .family-hero-inner { min-height: calc(clamp(270px, 28vw, 350px) + var(--app-banner-inset)); padding-top: calc(36px + var(--app-banner-inset)); }
+.has-banner-header .consultation-banner { min-height: calc(clamp(250px, 25vw, 330px) + var(--app-banner-inset)); padding-top: var(--app-banner-inset); }
+.has-banner-header .contactHero__inner { min-height: calc(590px + var(--app-banner-inset)); padding-top: calc(clamp(76px, 7vw, 110px) + var(--app-banner-inset)); }
+.has-banner-header .nm-blog-hero-inner { padding-top: calc(64px + var(--app-banner-inset)); }
+.has-banner-header .nm-member-pricing { border-top: 0; padding-top: calc(38px + var(--app-banner-inset)); }
+@media (max-width: 1300px) { .nm-app-shell.has-banner-header { --app-banner-inset: 94px; } }
+@media (max-width: 1050px) { .has-banner-header .nm-member-pricing { padding-top: calc(28px + var(--app-banner-inset)); } }
+@media (max-width: 960px) { .has-banner-header .nm-blog-hero-inner { padding-top: calc(48px + var(--app-banner-inset)); } }
+@media (max-width: 700px) {
+  .has-banner-header .family-hero-inner { min-height: 340px; padding-top: calc(24px + var(--app-banner-inset)); }
+  .has-banner-header .consultation-banner { min-height: 320px; }
+  .has-banner-header .contactHero__inner { min-height: 0; padding-top: calc(38px + var(--app-banner-inset)); }
+}
+@media (max-width: 680px) { .has-banner-header .nm-blog-hero-inner { padding-top: calc(38px + var(--app-banner-inset)); } }
+
+.has-banner-header .nm-app-links > a, .has-banner-header .nm-guide-trigger { color: var(--text); }
+/* A fixed banner header cannot rely on page scrolling to reveal menu items. */
+@media (max-width: 1300px) {
+  .nm-app-links { max-height: calc(100dvh - 100px); overflow-y: auto; overscroll-behavior: contain; }
+  .nm-app-links > a, .nm-app-links > .nm-guide-menu { flex-shrink: 0; }
+}

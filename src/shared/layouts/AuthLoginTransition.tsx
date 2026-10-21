@@ -1,6 +1,8 @@
 import { useEffect, useState, type PropsWithChildren } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Navigate } from 'react-router-dom'
+import { getSessionScope } from '@/core/auth/token-store'
+import { overviewLoginEntry } from '@/features/user/model/overview-login-entry'
 
 export const AUTH_SCENE_EXIT_MS = 410
 
@@ -19,7 +21,11 @@ export function AuthLoginTransition({ authenticated, to, state, children }: Auth
 
   useEffect(() => {
     if (!closing || reducedMotion) return
-    const timer = window.setTimeout(() => setClosed(true), AUTH_SCENE_EXIT_MS)
+    const scope = getSessionScope()
+    const timer = window.setTimeout(() => {
+      overviewLoginEntry.markPanelsOpened(scope)
+      setClosed(true)
+    }, AUTH_SCENE_EXIT_MS)
     return () => window.clearTimeout(timer)
   }, [closing, reducedMotion])
 

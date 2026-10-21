@@ -13,28 +13,29 @@ lỗi dạng `{ "error": { code, message, fields, retryable, request_id } }`.
 - Nhánh đặt tên `feature/<kebab-case>` hoặc `fix/<kebab-case>`.
 - **Không tự commit, không tự push.** User tự làm. Không để tên Claude trong git.
 
+## Chạy dev và kiểm thử
+
+- `npm run dev` chỉ tự mở Opera khi người dùng chạy trong terminal tương tác.
+- Codex/CI dùng `npm run dev:headless`; không thêm `--open`, không gọi script mở Opera.
+- Máy chủ Vite tạo bằng API cho QA phải có `server.open: false` / `preview.open: false`.
+- Không bật `open: true` ở cấu hình Vite dùng chung, không tự giành focus desktop khi kiểm thử.
+
 ## Module dinh dưỡng mẹ bầu
 
-Đang thi công, FE có 3 nhánh, đi sau backend. Tài liệu ở [docs/nutrition/](docs/nutrition/).
-**Đừng đọc file đặc tả PDF** — mọi thứ cần thiết đã nằm trong đó.
+Module đã có hồ sơ, danh mục/công thức, thực đơn, mua sắm, nhật ký và đồng bộ BE nhánh 10.
+Nhánh đang hoàn thiện: `feature/nutrition-full-flow-ui`. Tiếp tục working tree hiện tại;
+không thay bằng placeholder hoặc khởi tạo lại từ kế hoạch ba nhánh ban đầu.
 
-Dán 3 dòng này khi mở session mới cho một nhánh:
+Đọc [contract hiện hành](docs/nutrition/_CONTRACT.md),
+[báo cáo triển khai nhánh 10](docs/nutrition/nutrition-branch-10-completion-validation-2026-10-20.md)
+và [audit request](docs/request-optimization-audit.md) trước khi sửa.
+Rà soát sau triển khai và các giới hạn BE mới phát hiện ở
+[post-Codex audit](docs/nutrition/post-codex-audit-2026-10-20.md).
+Ba file `fe-01/02/03` mô tả phạm vi ban đầu; trạng thái đã triển khai và các giới hạn cũ
+phải được đối chiếu báo cáo mới, không dùng để viết lại module đang hoạt động.
+Hợp đồng BE chi tiết nằm tại `D:/KI8/BE/EXE_NUTRIMOM_BE/docs/nutrition/`
+và `docs/NUTRITION_API.md` trong repo BE. Không cần mở đặc tả PDF khi contract đã đủ.
 
-```
-Làm nhánh FE <N> của module dinh dưỡng NutriMom.
-Đọc docs/nutrition/_CONTRACT.md rồi docs/nutrition/fe-0<N>-<tên>.md, làm đúng phạm vi trong đó.
-Không mở file đặc tả PDF.
-```
-
-| Nhánh git | File | Đi sau BE |
-|---|---|---|
-| `feature/nutrition-onboarding` | `docs/nutrition/fe-01-onboarding.md` | nhánh 3 |
-| `feature/nutrition-plan-today` | `docs/nutrition/fe-02-plan-today.md` | nhánh 6 |
-| `feature/nutrition-shopping-diary` | `docs/nutrition/fe-03-shopping-diary.md` | nhánh 7 + 8 |
-
-Hợp đồng API chi tiết của từng nhánh backend nằm ở repo `EXE_NUTRIMOM_BE/docs/nutrition/branch-NN-*.md`
-— chỉ mở khi cần biết chính xác shape của response.
-
-> `src/features/nutrition/` hiện chỉ là placeholder 10 dòng và type **sai so với đặc tả**
-> (`DRAFT | REVIEW_REQUIRED | ACTIVE | ARCHIVED` — đặc tả không có luồng duyệt).
-> Thay hẳn, đừng xây lên trên. Chi tiết ở `docs/nutrition/fe-01-onboarding.md` mục 0.
+Giữ bố cục, component và thiết kế hiện tại. Giữ cache/single-flight theo phiên,
+giới hạn 3 lượt đọc nutrition và cooldown 429; không tự retry mutation.
+Chỉ sửa FE trừ khi người dùng yêu cầu rõ thay đổi BE.

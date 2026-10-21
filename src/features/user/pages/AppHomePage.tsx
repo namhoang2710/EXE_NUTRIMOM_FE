@@ -1,4 +1,5 @@
-import { SubscriptionStatus } from '@/features/payment/components/SubscriptionStatus'
+import { dashboardCache, invalidateDashboards } from '@/core/api/dashboard-cache'
+import { OverviewSubscriptionBand } from '@/features/payment/components/OverviewSubscriptionBand'
 import { CalendarBlank, Heartbeat, WarningCircle, Waveform } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -12,20 +13,28 @@ import { formatVietnamDateTime } from '@/features/family/model/family-formatters
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import type { MomDashboard, PartnerDashboard } from '@/types/domain'
 import { dashboardGreeting } from '../model/dashboard-greeting'
+import { OverviewHero } from '../components/OverviewHero'
 
 export function AppHomePage() {
   const { status: authStatus, user, profile } = useAuth()
-  const [dashboard, setDashboard] = useState<MomDashboard | null>(null)
-  const [partnerDashboard, setPartnerDashboard] = useState<PartnerDashboard | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const controller = useRef<AbortController | undefined>(undefined)
   const persona = profile?.role || user?.role
   const isPartner = persona === 'PARTNER' || persona === 'FAMILY_MEMBER'
+  const [dashboard, setDashboard] = useState<MomDashboard | null>(() => dashboardCache.peek('mom'))
+  const [partnerDashboard, setPartnerDashboard] = useState<PartnerDashboard | null>(() => dashboardCache.peek('partner'))
+  const [loading, setLoading] = useState(() => !dashboardCache.peek(isPartner ? 'partner' : 'mom'))
+  const [error, setError] = useState('')
+  const controller = useRef<AbortController | undefined>(undefined)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (authStatus !== 'authenticated') return
+    if (force) invalidateDashboards()
     controller.current?.abort()
+    const cached = dashboardCache.peek<MomDashboard | PartnerDashboard>(isPartner ? 'partner' : 'mom')
+    if (cached) {
+      if (isPartner) setPartnerDashboard(cached as PartnerDashboard)
+      else setDashboard(cached as MomDashboard)
+      setLoading(false); setError(''); return
+    }
     const requestController = new AbortController()
     controller.current = requestController
     setLoading(true); setError('')
@@ -44,7 +53,7 @@ export function AppHomePage() {
   useEffect(() => {
     if (authStatus !== 'authenticated') { controller.current?.abort(); return }
     void load()
-    const refresh = () => void load()
+    const refresh = () => void load(true)
     window.addEventListener('nutrimom:calendar-changed', refresh)
     return () => { controller.current?.abort(); window.removeEventListener('nutrimom:calendar-changed', refresh) }
   }, [authStatus, load])
@@ -55,10 +64,16 @@ export function AppHomePage() {
   const partnerTasksGranted = partnerDashboard?.assigned_tasks !== undefined
   const partnerCalendarGranted = partnerDashboard?.shared_calendar !== undefined
   return <main className="nm-overview-page">
-    <section className="nm-overview-hero-band"><div className="nm-overview-inner"><header className="nm-overview-welcome"><span className="nm-eyebrow">Tổng quan hôm nay</span><h1>{greeting.title}</h1><p>{greeting.subtitle}</p></header></div></section>
-    <div className="nm-overview-subscription"><SubscriptionStatus /></div>
-    <section className="nm-overview-calendar-band"><div className="nm-overview-inner">{error && <StatusMessage tone="error">{error}</StatusMessage>}{isPartner ? loading ? <div className="dashboard-grid skeleton-grid"><div /></div> : partnerCalendarGranted ? <CalendarOverview shared pregnancyId={undefined} estimatedDueDate={undefined} onChanged={() => void load()} /> : !error && <div className="app-card content-card"><CalendarBlank size={28} weight="duotone" /><p className="card-kicker">Lịch dùng chung</p><h2>Chưa được chia sẻ</h2><p>Chủ nhóm chưa cấp quyền Lịch dùng chung cho tài khoản của bạn.</p><Link className="text-link" to="/app/family">Kiểm tra quyền tại Family Hub</Link></div> : <CalendarOverview shared={false} pregnancyId={pregnancy?.id} estimatedDueDate={pregnancy?.estimated_due_date || undefined} onChanged={() => void load()} />}</div></section>
-    <section className="nm-overview-dashboard-content"><div className="nm-overview-inner">{loading ? <div className="dashboard-grid skeleton-grid overview-dashboard"><div /><div /><div /></div> : error ? <div className="app-card content-card"><WarningCircle size={28} weight="duotone" /><p className="card-kicker">Dữ liệu tổng quan</p><h2>Chưa tải được dữ liệu</h2><p>{error}</p><button className="secondary-button" type="button" onClick={() => void load()}>Thử lại</button></div> : isPartner ? <>
+    <OverviewHero
+      title={(isPartner ? partnerDashboard : dashboard) ? greeting.title : undefined}
+      subtitle={greeting.subtitle}
+      error={error}
+      onRetry={() => void load(true)}
+      name={isPartner ? profile?.display_name || user?.displayName : dashboard?.profile_summary?.display_name}
+    />
+    <OverviewSubscriptionBand />
+    <section className="nm-overview-calendar-band"><div className="nm-overview-inner">{error && <StatusMessage tone="error">{error}</StatusMessage>}{isPartner ? loading ? <div className="dashboard-grid skeleton-grid"><div /></div> : partnerCalendarGranted ? <CalendarOverview shared pregnancyId={undefined} estimatedDueDate={undefined} onChanged={() => void load(true)} /> : !error && <div className="app-card content-card"><CalendarBlank size={28} weight="duotone" /><p className="card-kicker">Lịch dùng chung</p><h2>Chưa được chia sẻ</h2><p>Chủ nhóm chưa cấp quyền Lịch dùng chung cho tài khoản của bạn.</p><Link className="text-link" to="/app/family">Kiểm tra quyền tại Family Hub</Link></div> : <CalendarOverview shared={false} pregnancyId={pregnancy?.id} estimatedDueDate={pregnancy?.estimated_due_date || undefined} onChanged={() => void load(true)} />}</div></section>
+    <section className="nm-overview-dashboard-content"><div className="nm-overview-inner">{loading ? <div className="dashboard-grid skeleton-grid overview-dashboard"><div /><div /><div /></div> : error ? <div className="app-card content-card"><WarningCircle size={28} weight="duotone" /><p className="card-kicker">Dữ liệu tổng quan</p><h2>Chưa tải được dữ liệu</h2><p>{error}</p><button className="secondary-button" type="button" onClick={() => void load(true)}>Thử lại</button></div> : isPartner ? <>
       <div className="dashboard-grid overview-dashboard"><section className="app-card app-card-highlight"><Heartbeat size={30} weight="duotone" /><p className="card-kicker">Thai kỳ được chia sẻ</p><h2>{partnerDashboard?.pregnancy_overview ? `Tuần ${partnerDashboard.pregnancy_overview.gestational_week} ngày ${partnerDashboard.pregnancy_overview.gestational_day}` : partnerPregnancyGranted ? 'Chưa có dữ liệu thai kỳ' : 'Chưa được chia sẻ'}</h2><p>{partnerDashboard?.pregnancy_overview ? `Tam cá nguyệt ${partnerDashboard.pregnancy_overview.trimester}` : partnerPregnancyGranted ? 'Quyền đã được cấp nhưng hiện chưa có dữ liệu.' : 'Chủ nhóm chưa cấp quyền Tóm tắt thai kỳ.'}</p></section><section className="app-card"><CalendarBlank size={28} weight="duotone" /><p className="card-kicker">Ngày dự sinh</p><h2>{partnerDashboard?.pregnancy_overview ? formatDate(partnerDashboard.pregnancy_overview.estimated_due_date) : partnerPregnancyGranted ? 'Chưa có dữ liệu' : 'Chưa được chia sẻ'}</h2><p>{partnerDashboard?.pregnancy_overview?.care_facility_name || (partnerPregnancyGranted ? 'Chưa có cơ sở chăm sóc' : 'Cần quyền Tóm tắt thai kỳ')}</p></section><section className="app-card"><WarningCircle size={28} weight="duotone" /><p className="card-kicker">Việc được giao</p><h2>{partnerTasksGranted ? `${partnerDashboard?.assigned_tasks?.length || 0} việc` : 'Chưa được chia sẻ'}</h2><p>{partnerTasksGranted ? partnerDashboard?.assigned_tasks?.[0]?.title || 'Đã có quyền, hiện chưa có việc cần thực hiện.' : 'Chủ nhóm chưa cấp quyền Việc gia đình.'}</p></section></div>
       {partnerDashboard?.activity_feed !== undefined && <section className="app-card content-card"><Waveform size={28} weight="duotone" /><p className="card-kicker">Hoạt động gần đây</p><h2>Cập nhật của gia đình</h2>{partnerDashboard.activity_feed.length ? <div className="guidance-list">{partnerDashboard.activity_feed.slice(0, 3).map((activity) => <article key={activity.id}><strong>{activity.title}</strong><p>{formatVietnamDateTime(activity.created_at)}</p></article>)}</div> : <p>Chưa có hoạt động mới.</p>}<Link className="text-link" to="/app/family?tab=activity">Xem tất cả hoạt động</Link></section>}
       {partnerDashboard?.shared_calendar !== undefined && <section className="app-card content-card"><CalendarBlank size={28} weight="duotone" /><p className="card-kicker">Lịch được chia sẻ</p><h2>Các mốc sắp tới</h2>{partnerDashboard.shared_calendar.length ? <div className="guidance-list">{partnerDashboard.shared_calendar.slice(0, 3).map((event) => <article key={`${event.source}:${event.source_id}:${event.starts_at}`}><strong>{event.title}</strong><p>{formatDate(event.date)} · {formatEventTime(event)}</p></article>)}</div> : <p>Chưa có mốc lịch nào được chia sẻ.</p>}</section>}

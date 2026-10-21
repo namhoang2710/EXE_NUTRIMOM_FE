@@ -1,3 +1,4 @@
+import { invalidateDashboards } from '../../../core/api/dashboard-cache.ts'
 import { getSessionScope } from '../../../core/auth/token-store.ts'
 import { profileRead, seedProfileResource, invalidateProfileResources, requireCurrentScope } from '../../../core/api/profile-requests.ts'
 import { apiClient } from '../../../core/api/api-client.ts'
@@ -10,6 +11,7 @@ export const userApi = {
     const scope = getSessionScope()
     const latest = await apiClient.request<UserProfile>('/users/me', { method: 'PATCH', body: JSON.stringify(body) })
     requireCurrentScope(scope)
+    invalidateDashboards()
     seedProfileResource('user:profile', latest)
     return latest
   },
@@ -25,6 +27,7 @@ export const userApi = {
     const scope = getSessionScope()
     const result = await apiClient.request<Pregnancy>('/pregnancies', { method: 'POST', body: JSON.stringify(body) })
     requireCurrentScope(scope)
+    invalidateDashboards()
     invalidateProfileResources('pregnancy:')
     invalidateProfileResources('care:')
     invalidateProfileResources('user:profile')

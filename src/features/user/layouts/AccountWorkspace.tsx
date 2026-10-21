@@ -46,9 +46,10 @@ export function AccountWorkspace() {
   }, [mobileOpen])
 
   async function signOut() {
+    if (loggingOut) return
     setLoggingOut(true)
     try { await logout() } catch { /* The local session is cleared even if the server is unavailable. */ }
-    finally { setLoggingOut(false); navigate('/', { replace: true }) }
+    finally { setLoggingOut(false); navigate('/login', { replace: true }) }
   }
 
   const name = profile?.display_name || 'Thành viên NutriMom'

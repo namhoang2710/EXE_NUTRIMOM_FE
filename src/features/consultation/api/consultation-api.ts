@@ -34,6 +34,7 @@ export const consultationApi = {
     })
     requireCurrentScope(scope)
     invalidateProfileResources('consultation:list:')
+    invalidateProfileResources('calendar:')
     return mapConsultationRequest(dto)
   },
   async createRandom(input: RandomConsultationInput) {
@@ -43,6 +44,7 @@ export const consultationApi = {
     })
     requireCurrentScope(scope)
     invalidateProfileResources('consultation:list:')
+    invalidateProfileResources('calendar:')
     return mapConsultationRequest(dto)
   },
   async list(page: number, pageSize: number, signal?: AbortSignal) {
@@ -58,6 +60,7 @@ export const consultationApi = {
     const dto = await request<ConsultationRequestDto>(`/consultation-requests/${encodeURIComponent(id)}/cancel`, { method: 'POST' })
     requireCurrentScope(scope)
     invalidateProfileResources('consultation:list:')
+    invalidateProfileResources('calendar:')
     seedProfileResource(`consultation:detail:${id}`, dto)
     return mapConsultationRequest(dto)
   },

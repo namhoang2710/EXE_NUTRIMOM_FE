@@ -73,7 +73,9 @@ export async function parseApiError(response: Response) {
 
   return new ApiClientError(response.status, {
     code: ErrorCodes.requestFailed,
-    message: response.status >= 500
+    message: response.status === 429
+      ? 'Bạn đang thao tác quá nhanh. Vui lòng chờ một chút rồi thử lại.'
+      : response.status >= 500
       ? 'Máy chủ đang bận. Vui lòng thử lại sau.'
       : 'Yêu cầu chưa được xử lý. Vui lòng kiểm tra lại thông tin.',
   }, retryAfterMs)

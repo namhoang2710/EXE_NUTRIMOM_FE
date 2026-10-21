@@ -1,12 +1,8 @@
 .family-page { width: 100%; padding: 0 0 96px; color: var(--text); }
-.family-hero { position: relative; overflow: hidden; border-block: 1px solid color-mix(in srgb, var(--border) 72%, transparent); background: radial-gradient(circle at 18% 15%, color-mix(in srgb, #f472b6 31%, transparent), transparent 36%), radial-gradient(circle at 84% 78%, color-mix(in srgb, #8b5cf6 30%, transparent), transparent 39%), linear-gradient(135deg, color-mix(in srgb, var(--surface) 76%, #f3d5e9), color-mix(in srgb, var(--accent-soft) 76%, #c9b6f4)); box-shadow: 0 18px 54px color-mix(in srgb, var(--accent) 11%, transparent); }
-.family-hero::before, .family-hero::after { position: absolute; border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 50%; content: ''; pointer-events: none; }
-.family-hero::before { top: -110px; right: -70px; width: 260px; height: 260px; }
-.family-hero::after { bottom: -135px; left: -45px; width: 230px; height: 230px; }
-.family-hero-inner { position: relative; z-index: 1; display: grid; width: min(1180px, calc(100% - 40px)); min-height: clamp(270px, 28vw, 350px); margin: 0 auto; place-items: center; align-content: center; gap: 22px; padding: 36px 0 30px; }
-.family-hero img { width: min(570px, 72vw); height: auto; object-fit: contain; }
-.family-hero-caption { display: flex; width: min(900px, 100%); align-items: center; justify-content: center; gap: 28px; }
-.family-hero-caption p { max-width: 68ch; margin: 0; color: var(--muted); font-size: clamp(.95rem, 1.5vw, 1.08rem); line-height: 1.65; text-align: center; }
+.family-hero { position: relative; isolation: isolate; overflow: hidden; background: var(--surface); }
+.family-hero-image { position: absolute; z-index: -1; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.family-hero-inner { position: relative; z-index: 1; display: grid; width: min(1180px, calc(100% - 40px)); min-height: clamp(270px, 28vw, 350px); margin: 0 auto; justify-items: end; align-content: end; padding: 36px 0 30px; }
+.family-hero-caption { display: flex; width: 100%; justify-content: flex-end; }
 .family-page-body { width: min(1180px, calc(100% - 40px)); margin: 34px auto 0; }
 .family-role-badge { display: inline-flex; align-items: center; gap: 8px; flex: none; border: 1px solid var(--border); border-radius: 999px; padding: 9px 13px; color: var(--accent-strong); background: color-mix(in srgb, var(--surface) 90%, transparent); box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 9%, transparent); font-size: .88rem; font-weight: 750; backdrop-filter: blur(8px); }
 .family-tabs { display: flex; width: 100%; margin-bottom: 0; }
@@ -191,7 +187,6 @@
   .family-page { padding-bottom: 72px; }
   .family-hero-inner, .family-page-body { width: min(100% - 28px, 1180px); }
   .family-hero-inner { min-height: 260px; }
-  .family-hero-caption { flex-direction: column; gap: 14px; }
   .family-section-heading { align-items: flex-start; flex-direction: column; }
   .family-invitations .family-section-heading { align-items: flex-start; flex-direction: row; }
   .family-section-heading .primary-button, .family-section-heading .secondary-button { width: 100%; justify-content: center; }
@@ -209,9 +204,8 @@
 
 @media (max-width: 520px) {
   .family-hero-inner, .family-page-body { width: min(100% - 20px, 1180px); }
-  .family-hero-inner { min-height: 230px; gap: 13px; padding-block: 28px 24px; }
-  .family-hero img { width: min(420px, 88vw); }
-  .family-hero-caption p { font-size: .9rem; line-height: 1.5; }
+  .family-hero-inner { min-height: 230px; padding-block: 28px 24px; }
+  .has-banner-header .family-page .family-hero-inner { min-height: 280px; }
   .family-page-body { margin-top: 24px; }
   .family-section, .family-onboarding { border-radius: 16px; padding: 18px; }
   .family-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
