@@ -1,6 +1,6 @@
 import { ArrowRight, User } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
@@ -11,6 +11,8 @@ import { getDeviceId } from '@/core/auth/device'
 import { loginIdentifierError, loginPasswordError } from '../model/auth-validation'
 
 export function LoginPage() {
+  // Giữ đường dẫn đích (state.from) khi chuyển sang trang Đăng ký.
+  const location = useLocation()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -77,7 +79,7 @@ export function LoginPage() {
     <AuthLayout
       title="Đăng nhập NutriMom"
       subtitle="Đăng nhập bằng Email hoặc Số điện thoại của bạn."
-      footer={<p>Chưa có tài khoản? <Link to="/register">Tạo tài khoản</Link></p>}
+      footer={<p>Chưa có tài khoản? <Link to="/register" state={location.state}>Tạo tài khoản</Link></p>}
       panelVariant="login"
       showHomeLink
     >

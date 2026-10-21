@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth'
 import type { OnboardingStatus } from '@/features/user/model/user-types'
 import { authenticatedDestination, isAdminUser, isExpertUser } from '@/features/auth/model/role-routing'
 import { AuthLoginTransition } from '@/shared/layouts/AuthLoginTransition'
+import { peekReturnPath } from '@/features/community/model/community-return-path'
 
 function PageSkeleton() {
   return <main className="page-skeleton" aria-label="Đang kiểm tra phiên đăng nhập"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
@@ -11,7 +12,8 @@ function PageSkeleton() {
 
 function destination(status?: OnboardingStatus) {
   if (status === 'PROFILE_REQUIRED') return '/onboarding/profile'
-  return '/app'
+  // Khách bấm Đăng nhập/Đăng ký từ trang Cộng đồng: hồ sơ xong thì quay lại đó.
+  return peekReturnPath() ?? '/app'
 }
 
 function ProfileUnavailable() {

@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { activateOnce, activationErrorMessage, isUsedOrInvalidActivation } from '../model/activation-request'
 import { isValidEmail } from '../model/auth-validation'
 import { authenticatedDestination } from '../model/role-routing'
+import { peekReturnPath } from '@/features/community/model/community-return-path'
 
 export function ActivateAccountPage() {
   const [searchParams] = useSearchParams()
@@ -51,7 +52,7 @@ export function ActivateAccountPage() {
         setSuccess(true)
         setLoading(false)
         setTimeout(() => {
-          navigate(authenticatedDestination(user), { replace: true })
+          navigate(authenticatedDestination(user, undefined, peekReturnPath()), { replace: true })
         }, 1200)
       } catch (err) {
         if (!active) return
@@ -80,7 +81,7 @@ export function ActivateAccountPage() {
       setSuccess(true)
       setLoading(false)
       setTimeout(() => {
-        navigate(authenticatedDestination(user), { replace: true })
+        navigate(authenticatedDestination(user, undefined, peekReturnPath()), { replace: true })
       }, 1200)
     } catch (err) {
       setLoading(false)
