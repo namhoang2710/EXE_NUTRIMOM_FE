@@ -203,7 +203,7 @@ test('family route is protected by the app guard and navbar links to it', async 
   const navbar = await readFile(new URL('../src/shared/layouts/AuthenticatedNavbar.tsx', import.meta.url), 'utf8')
   assert.match(router, /path="app" element=\{<ProtectedRoute><AppLayout \/><\/ProtectedRoute>\}/)
   assert.match(router, /path="family"/)
-  assert.match(navbar, /to="\/app\/family"[^>]*>Gia đình<\/NavLink>/)
+  assert.match(navbar, /to="\/app\/family"[^>]*>\s*Gia đình\s*<\/Link>/)
 })
 
 test('partner dashboard reads optional activity_feed and links to Family Hub', async () => {
@@ -269,7 +269,7 @@ test('Family Hub uses the branded hero, accessible animated tabs and live group 
   const group = await readFile(new URL('../src/features/family/components/FamilyGroupPanel.tsx', import.meta.url), 'utf8')
   const tabs = await readFile(new URL('../src/components/ui/tabs.tsx', import.meta.url), 'utf8')
   const styles = await readFile(new URL('../src/features/family/styles/family.css', import.meta.url), 'utf8')
-  assert.match(page, /src="\/banner_logos_family_hubs\.png"/)
+  assert.match(page, /src="\/bannerHub\.png"/)
   assert.doesNotMatch(page, /<FeaturePage>/)
   assert.match(page, /<h1 className="sr-only">Family Hub<\/h1>/)
   assert.doesNotMatch(page, /<h1>Family Hub<\/h1>/)

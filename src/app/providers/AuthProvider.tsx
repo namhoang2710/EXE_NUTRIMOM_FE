@@ -1,3 +1,5 @@
+import { overviewLoginEntry } from '@/features/user/model/overview-login-entry'
+import { dashboardApi } from '@/features/maternity/api/domain-api'
 import { expireProfileResource } from '@/core/api/profile-requests'
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react'
 import { clearSession, getSession, getSessionScope } from '@/core/auth/token-store'
@@ -64,9 +66,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const acceptSession = useCallback(async (sessionUser: User) => {
     const scope = getSessionScope()
+    if (!isAdminUser(sessionUser) && !isExpertUser(sessionUser)) {
+      overviewLoginEntry.arm(scope)
+    }
     setUser(sessionUser)
     setProfile(null)
-    if (!isAdminUser(sessionUser) && !isExpertUser(sessionUser)) await reloadProfile(false).catch(() => undefined)
+    if (!isAdminUser(sessionUser) && !isExpertUser(sessionUser)) {
+      const latest = await reloadProfile(false).catch(() => undefined)
+      if (latest && scope === getSessionScope()) {
+        const role = latest.role || sessionUser.role
+        const shared = role === 'PARTNER' || role === 'FAMILY_MEMBER'
+        void (shared ? dashboardApi.partner() : dashboardApi.mom()).catch(() => undefined)
+      }
+    }
     if (mounted.current && scope === getSessionScope() && getSession()) setStatus('authenticated')
     return sessionUser
   }, [reloadProfile])

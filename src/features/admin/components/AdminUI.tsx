@@ -3,17 +3,9 @@ import {
   ArrowClockwise,
   ArrowLeft,
   ArrowRight,
-  CalendarCheck,
-  ChatCircleText,
-  CurrencyCircleDollar,
-  Heartbeat,
   Tray,
-  TrendDown,
-  TrendUp,
-  UsersThree,
 } from '@phosphor-icons/react'
 import type { ReactNode } from 'react'
-import type { AdminMetric } from '../model/admin-types'
 import { adminLabel } from '../model/admin-workspace-query'
 
 export function StatusBadge({ value }: { value: string }) {
@@ -26,32 +18,6 @@ export function StatusBadge({ value }: { value: string }) {
         ? 'warning'
         : 'neutral'
   return <span className={`admin-badge ${tone}`}>{adminLabel(value)}</span>
-}
-
-const metricIcons = {
-  users: UsersThree,
-  appointments: CalendarCheck,
-  consultations: ChatCircleText,
-  alerts: Heartbeat,
-  revenue: CurrencyCircleDollar,
-}
-
-export function MetricCard({ metric }: { metric: AdminMetric }) {
-  const Icon = metricIcons[metric.icon]
-  const TrendIcon = metric.trend === 'down' ? TrendDown : TrendUp
-  return (
-    <article className={`admin-metric-card metric-${metric.icon}`}>
-      <div className="admin-metric-heading">
-        <span>{metric.label}</span>
-        <span className="admin-metric-icon"><Icon size={21} weight="duotone" /></span>
-      </div>
-      <strong className="admin-metric-value">{metric.value}</strong>
-      <div className="admin-metric-foot">
-        <span className={`admin-trend ${metric.trend}`}><TrendIcon size={14} weight="bold" />{metric.change}</span>
-        <span>{metric.helper}</span>
-      </div>
-    </article>
-  )
 }
 
 export function PageHeading({ eyebrow, title, description, actions }: {

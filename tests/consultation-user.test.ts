@@ -208,8 +208,8 @@ test('navbar keeps consultations inside the expert booking flow', async () => {
   assert.doesNotMatch(navbar, /<NavLink to="\/app\/consultations"/)
   assert.match(navbar, /location\.pathname\.startsWith\('\/app\/consultations'\)/)
   assert.match(navbar, /Hướng dẫn khách hàng/)
-  assert.match(navbar, /to="\/app\/experts"[^>]*>Tìm bác sĩ<\/Link>/)
-  assert.match(navbar, /to="\/app\/consultations\/history"[^>]*>Lịch sử tư vấn<\/Link>/)
+  assert.match(navbar, /to="\/app\/experts"[^>]*>\s*Tìm bác sĩ\s*<\/Link>/)
+  assert.match(navbar, /to="\/app\/consultations\/history"[^>]*>\s*Lịch sử tư vấn\s*<\/Link>/)
 })
 
 test('app navigation opens a new page at the top while preserving intentional hash targets', async () => {

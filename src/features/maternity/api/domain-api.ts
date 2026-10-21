@@ -1,3 +1,4 @@
+import { dashboardCache, invalidateDashboards } from '../../../core/api/dashboard-cache.ts'
 import { apiClient } from '../../../core/api/api-client.ts'
 import { createSingleFlight } from '../../../core/api/single-flight.ts'
 import { getSessionScope } from '../../../core/auth/token-store.ts'
@@ -26,6 +27,7 @@ export const pregnancyApi = {
     const scope = getSessionScope()
     const created = await apiClient.request<Pregnancy>('/pregnancies', { method: 'POST', body: JSON.stringify(body) })
     requireCurrentScope(scope)
+    invalidateDashboards()
     invalidateProfileResources('pregnancy:')
     invalidateProfileResources('care:')
     invalidateProfileResources('user:profile')
@@ -36,6 +38,7 @@ export const pregnancyApi = {
     const scope = getSessionScope()
     const updated = await apiClient.request<Pregnancy>(`/pregnancies/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
     requireCurrentScope(scope)
+    invalidateDashboards()
     invalidateProfileResources('pregnancy:')
     invalidateProfileResources('care:')
     seedProfileResource('pregnancy:current', updated)
@@ -44,8 +47,8 @@ export const pregnancyApi = {
 }
 
 export const dashboardApi = {
-  mom: (signal?: AbortSignal) => apiClient.request<MomDashboard>('/dashboard/mom', { signal }),
-  partner: (signal?: AbortSignal) => apiClient.request<PartnerDashboard>('/dashboard/partner', { signal }),
+  mom: (signal?: AbortSignal) => forConsumer(dashboardCache.read('mom', () => apiClient.request<MomDashboard>('/dashboard/mom')), signal),
+  partner: (signal?: AbortSignal) => forConsumer(dashboardCache.read('partner', () => apiClient.request<PartnerDashboard>('/dashboard/partner')), signal),
 }
 
 export const careApi = {
@@ -70,6 +73,7 @@ export const careApi = {
 }
 
 function acceptRecord(record: MedicalRecord) {
+  invalidateProfileResources('calendar:')
   invalidateProfileResources(`records:list:${record.pregnancy_id}:`)
   invalidateProfileResources('records:list::')
   seedProfileResource(`records:detail:${record.id}`, record)
@@ -102,6 +106,7 @@ export const recordsApi = {
     invalidateProfileResources(pregnancyId ? `records:list:${pregnancyId}:` : 'records:list:')
     invalidateProfileResources('records:list::')
     invalidateProfileResources(`records:detail:${id}`)
+    invalidateProfileResources('calendar:')
   },
 }
 

@@ -25,6 +25,8 @@ Object.assign(globalThis, {
 })
 
 const { apiClient } = await import('../src/core/api/api-client.ts')
+const { ApiClientError } = await import('../src/core/api/api-error.ts')
+const { calendarApi } = await import('../src/features/calendar/api/calendar-api.ts')
 const { clearSession, getSession, saveApiSession } = await import('../src/core/auth/token-store.ts')
 const { clearDiagnosticEvents, getDiagnosticEvents } = await import('../src/core/diagnostics/logger.ts')
 await import('../src/features/auth/api/auth-api.ts')
@@ -59,6 +61,87 @@ function resetSession() {
   localStorage.clear()
   localStorage.setItem('nutrimom.device-id', 'runtime-device')
 }
+
+test('an already cancelled consumer never dispatches fetch', async () => {
+  resetSession()
+  let calls = 0
+  globalThis.fetch = (async () => { calls++; return jsonResponse([]) }) as typeof fetch
+  const controller = new AbortController()
+  controller.abort()
+  await assert.rejects(apiClient.request('/calendar/month', { signal: controller.signal }), (reason: unknown) => reason instanceof ApiClientError && reason.code === 'REQUEST_ABORTED')
+  assert.equal(calls, 0)
+})
+
+test('429 blocks repeated query variants at the API boundary without retries or blocking unrelated endpoints', async () => {
+  resetSession()
+  let calls = 0
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    calls++
+    return String(input).includes('/calendar/month')
+      ? new Response(JSON.stringify({ error: { code: 'RATE_LIMITED', message: 'Wait' } }), { status: 429, headers: { 'Retry-After': '12', 'Content-Type': 'application/json' } })
+      : jsonResponse([])
+  }) as typeof fetch
+  const rateLimited = (error: unknown) => error instanceof ApiClientError && error.status === 429 && (error.retryAfterMs ?? 0) > 0
+  await assert.rejects(apiClient.request('/calendar/month?month=10'), rateLimited)
+  for (let i = 0; i < 5; i++) await assert.rejects(apiClient.request(`/calendar/month?month=${i + 1}`), rateLimited)
+  assert.equal(calls, 1)
+  await apiClient.request('/calendar/events?from=2026-10-19')
+  assert.equal(calls, 2)
+  resetSession()
+  globalThis.fetch = (async () => { calls++; return jsonResponse([]) }) as typeof fetch
+  await apiClient.request('/calendar/month?month=10')
+  assert.equal(calls, 3, 'a new session does not inherit another account cooldown')
+})
+
+test('429 does not replay writes and a repeated click is blocked before a second POST', async () => {
+  resetSession()
+  let calls = 0
+  globalThis.fetch = (async () => { calls++; return new Response('Too many', { status: 429 }) }) as typeof fetch
+  for (let i = 0; i < 3; i++) {
+    await assert.rejects(apiClient.request('/calendar/reminders', { method: 'POST', body: '{}' }), (reason: unknown) => reason instanceof ApiClientError && reason.status === 429)
+  }
+  assert.equal(calls, 1)
+})
+
+test('calendar StrictMode consumer replay and equivalent filters share one request and keep independent cancellation', async () => {
+  resetSession()
+  let calls = 0
+  globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+    calls++
+    await new Promise(resolve => setTimeout(resolve, 20))
+    assert.equal(init?.signal?.aborted, false)
+    return jsonResponse([])
+  }) as typeof fetch
+  const controller = new AbortController()
+  const abandoned = assert.rejects(calendarApi.month(2026, 10, controller.signal), { name: 'AbortError' })
+  controller.abort()
+  const live = calendarApi.month(2026, 10)
+  await Promise.all([abandoned, live])
+  await calendarApi.month(2026, 10)
+  assert.equal(calls, 1)
+  await calendarApi.events('2026-10-19', '2026-10-19', undefined, ['REMINDER', 'CONSULTATION'])
+  await calendarApi.events('2026-10-19', '2026-10-19', undefined, ['CONSULTATION', 'REMINDER'])
+  assert.equal(calls, 2)
+})
+
+test('successful calendar mutations and login changes invalidate cached calendar reads', async () => {
+  resetSession()
+  let reads = 0
+  globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'DELETE') return new Response(null, { status: 204 })
+    reads++
+    return jsonResponse([])
+  }) as typeof fetch
+  await calendarApi.month(2026, 10)
+  await calendarApi.month(2026, 10)
+  assert.equal(reads, 1)
+  await calendarApi.deleteReminder('fixture-reminder')
+  await calendarApi.month(2026, 10)
+  assert.equal(reads, 2)
+  resetSession()
+  await calendarApi.month(2026, 10)
+  assert.equal(reads, 3)
+})
 
 test('protected requests attach the current Bearer token', async () => {
   resetSession()

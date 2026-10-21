@@ -5,6 +5,37 @@
 
 Mọi session làm module dinh dưỡng bên FE đọc file này trước, rồi đọc file `fe-0N-*.md` của nhánh mình.
 
+## Đồng bộ BE main `f0a1b0f` — 20/10/2026
+
+Mục này cập nhật các giới hạn cũ trong fe-01/02/03. Bằng chứng triển khai và kiểm tra tại
+[nutrition-branch-10-completion-validation-2026-10-20.md](nutrition-branch-10-completion-validation-2026-10-20.md).
+
+- PUT hồ sơ trả `SaveNutritionProfileResponse`: `profile`, `profile_version`, `items_to_revalidate`.
+  Dùng ngay profile trả về; giữ đủ response trong state hành trình. Không GET profile lại sau PUT.
+  Danh sách ID có thể thuộc nhiều plan; số món cần đổi của màn hình lấy từ `item.conflict` trong GET plan hiện tại.
+- Sau lưu, chỉ refresh plan đang mở. Giữ card/tổng hiện có trong lúc tải hoặc lỗi; khóa thao tác ghi dùng snapshot cũ.
+  Refresh lỗi có nút thử lại chủ động. Không GET từng món, mọi plan đã nhớ hoặc nhật ký mọi ngày.
+- `PlanItem.conflict` là boolean bắt buộc, ở cả preview (`false`) và plan đã lưu.
+  `lifecycle_state` và cờ item do BE quyết định; lệch `profile_version` chỉ là khác thời điểm hồ sơ,
+  không tự chứng minh xung đột và không khóa cả thực đơn.
+- `NEEDS_UPDATE` vẫn xem/sửa được. Món giữ bị conflict hiện cả “Đang giữ” và “Cần đổi”, lý do từ BE;
+  người dùng được đổi hoặc bỏ giữ. Không tự unlock/thay món. Dùng plan trong response sửa để trở lại `SAVED`.
+- “Áp dụng cho thực đơn hiện tại” mở dialog xác nhận rồi gọi regenerate bằng plan version hiện tại
+  và profile version mới nhất. Lưu hồ sơ không tự regenerate. BE vẫn giữ `plan.profile_version` lúc lập plan,
+  kể cả sau regenerate; FE không viết lại trường này. Lần áp dụng thành công được nhớ trong component đang mở
+  để tránh nhắc lặp; sau mở lại trang có thể tiếp tục thấy lựa chọn áp dụng vì API không trả mốc áp dụng gần nhất.
+- Regenerate không preflight diary: BE giữ bữa đã ghi theo **ngày + loại bữa**, gồm món tự nhập/ngoài plan.
+  Hiện `PLAN_KEPT_EATEN_MEAL` từ response. Không tạo/sửa diary trong thao tác này.
+  Món giữ vi phạm trả 422 `RECIPE_NOT_ELIGIBLE` + `fields.item_id`: chỉ đúng card; nếu ở ngày khác có nút mở ngày đó.
+- `VERSION_CONFLICT`: đọc dữ liệu cần thiết, yêu cầu chọn lại, không replay mutation.
+  `IDEMPOTENCY_CONFLICT`: thông báo lần gửi đã gắn với nội dung khác, giữ lựa chọn;
+  chỉ ý định mới được người dùng xác nhận mới có ID mới. Không dùng GET recovery của version conflict cho lỗi này.
+- Retry kết quả chưa chắc chắn của preview/diary giữ **cùng ID và nguyên payload**, gồm seed, ngày,
+  khẩu phần, versions, constraints và món giữ. Không sinh ID mới sau mọi lỗi, không tự retry mutation.
+- Giữ cache/single-flight theo phiên, tối đa ba lượt đọc dinh dưỡng, bỏ consumer cũ, TTL/cooldown,
+  Retry-After và chặn nhấn trùng. Response muộn sau đổi tài khoản/plan/ngày/tab không công bố lên màn mới.
+  Mutation plan bắt đầu trước lần lưu hồ sơ không seed snapshot cũ vào cache mới; vẫn invalidation shopping/diary.
+
 ---
 
 ## 1. Hợp đồng API
@@ -69,6 +100,7 @@ Thêm: **không có mục tiêu năng lượng thì không hiển thị phần t
 
 Nhận `VERSION_CONFLICT` (409) → **tải lại kế hoạch và yêu cầu người dùng chọn lại**.
 Không thay trên bản cũ, không ghi đè âm thầm.
+Không áp dụng cách xử lý này cho `IDEMPOTENCY_CONFLICT` dù cùng HTTP 409.
 
 ---
 
@@ -77,7 +109,8 @@ Không thay trên bản cũ, không ghi đè âm thầm.
 `request_id` nằm **trong body** (không phải header). Áp cho: tạo bản xem trước, tạo nhật ký.
 
 Nút tạo phải chuyển sang **trạng thái xử lý và chặn nhấn trùng**. Lỗi mạng → thử lại với **cùng
-`request_id`**, server trả lại đúng bản ghi cũ chứ không sinh bản thứ hai.
+`request_id` và cùng nội dung**, server trả lại đúng bản ghi cũ chứ không sinh bản thứ hai.
+Cùng ID nhưng nội dung khác trả `IDEMPOTENCY_CONFLICT`, không được coi là thành công.
 
 ---
 

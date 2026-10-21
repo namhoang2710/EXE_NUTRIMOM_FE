@@ -22,6 +22,7 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
   const [stateOwner, setStateOwner] = useState(accountId)
   const enabled = accountId !== null && stateOwner === accountId
   const [open, setOpen] = useState(false)
+  const assistantVisible = open || pathname === '/app/assistant'
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -109,7 +110,11 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
     if (loadPromise.current === pending) loadPromise.current = null
   }, [enabled, isCurrent, report, run])
 
-  useEffect(() => { if (enabled) void ensureLoaded() }, [enabled, ensureLoaded])
+  useEffect(() => {
+    if (!enabled || !assistantVisible) return
+    if (!loadedRef.current) lastOverviewPath.current = pathname
+    void ensureLoaded()
+  }, [enabled, assistantVisible, pathname, ensureLoaded])
 
   const refreshOverview = useCallback(async () => {
     if (!loadedRef.current || !isCurrent()) return
@@ -121,13 +126,13 @@ function AssistantAccountScope({ children, accountId }: PropsWithChildren<{ acco
   }, [isCurrent, preferences?.version, run])
 
   useEffect(() => {
-    if (!enabled || !loaded || lastOverviewPath.current === pathname) return
+    if (!enabled || !loaded || !assistantVisible || lastOverviewPath.current === pathname) return
     const timer = window.setTimeout(() => {
       lastOverviewPath.current = pathname
       void refreshOverview()
     }, 250)
     return () => window.clearTimeout(timer)
-  }, [enabled, loaded, pathname, refreshOverview])
+  }, [enabled, loaded, assistantVisible, pathname, refreshOverview])
 
   const refreshList = useCallback(async () => {
     const epoch = accountEpoch.current
