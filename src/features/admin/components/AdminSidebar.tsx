@@ -1,4 +1,4 @@
-import { BookOpenText, CalendarDots, ChartBar, ChatsCircle, Headset, SquaresFour, UsersThree, Stethoscope, Wallet, Bell, X } from '@phosphor-icons/react'
+import { BookOpenText, CalendarDots, ChartBar, ChatsCircle, ChatTeardropText, Headset, SquaresFour, UsersThree, Stethoscope, Wallet, Bell, X } from '@phosphor-icons/react'
 import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { focusTargetForTab, getFocusableElements, restoreDialogFocus } from '@/shared/model/dialog-focus'
@@ -10,6 +10,7 @@ const navigation = [
   { label:'Lịch sử tư vấn',to:'/admin/consultations',icon:ChatsCircle },
   { label:'Hỗ trợ',to:'/admin/support',icon:Headset },
   { label:'Kiến thức',to:'/admin/knowledge',icon:BookOpenText },
+  { label:'Cộng đồng',to:'/admin/community',icon:ChatTeardropText },
   { label:'Doanh thu & Gói dịch vụ',to:'/admin/revenue',icon:Wallet },
   { label:'Báo cáo',to:'/admin/reports',icon:ChartBar },
   { label:'Thông báo',to:'/admin/notifications',icon:Bell },

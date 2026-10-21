@@ -47,13 +47,6 @@
 .nm-app-home-image { width: 100%; border-radius: 36px; object-fit: cover; aspect-ratio: 1.1; }
 .nm-app-home-note { display: flex; gap: 12px; align-items: center; max-width: 380px; margin-top: 48px; color: var(--muted); font-size: .93rem; }
 .nm-app-home-note svg { flex: none; color: var(--accent); }
-.nm-community-page { min-height: 66dvh; display: grid; align-items: center; padding: 70px 24px 100px; }
-.nm-community-page-inner { width: min(100%,800px); margin: 0 auto; padding: clamp(28px,5vw,60px); border: 1px solid var(--border); border-radius: 32px; background: var(--surface); box-shadow: 0 18px 50px rgba(72,58,99,.07); }
-.nm-community-page-icon { display: grid; width: 64px; height: 64px; place-items: center; margin-bottom: 25px; border-radius: 20px; color: var(--accent); background: var(--accent-soft); }
-.nm-community-page h1 { margin: 12px 0; font-size: clamp(2.2rem,5vw,4rem); letter-spacing: -.04em; }
-.nm-community-page p { max-width: 650px; color: var(--muted); line-height: 1.75; }
-.nm-community-page .nm-coming-soon { display: inline-flex; margin: 4px 0 26px; }
-.nm-community-page .nm-primary-action { width: fit-content; }
 .nm-account-page { width: min(100% - 40px, 850px); margin: 0 auto; padding: 72px 0 100px; }
 .nm-account-intro { text-align: center; margin-bottom: 35px; }
 .nm-account-intro span { color: var(--accent); font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }

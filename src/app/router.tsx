@@ -40,7 +40,9 @@ const ExpertsPage = lazy(() => import('@/features/experts/pages/ExpertsPage').th
 const BlogArticlePage = lazy(() => import('@/features/knowledge/pages/BlogArticlePage').then((module) => ({ default: module.BlogArticlePage })))
 const BlogPage = lazy(() => import('@/features/knowledge/pages/BlogPage').then((module) => ({ default: module.BlogPage })))
 const KnowledgePage = lazy(() => import('@/features/knowledge/pages/KnowledgePage').then((module) => ({ default: module.KnowledgePage })))
-const CommunityPage = lazy(() => import('@/features/knowledge/pages/CommunityPage').then((module) => ({ default: module.CommunityPage })))
+const CommunityPage = lazy(() => import('@/features/community/pages/CommunityPage').then((module) => ({ default: module.CommunityPage })))
+const CommunityGatePage = lazy(() => import('@/features/community/pages/CommunityGatePage').then((module) => ({ default: module.CommunityGatePage })))
+const AdminCommunityPage = lazy(() => import('@/features/community/pages/AdminCommunityPage').then((module) => ({ default: module.AdminCommunityPage })))
 const AboutPage = lazy(() => import('@/features/landing/pages/AboutPage').then((module) => ({ default: module.AboutPage })))
 const ContactPage = lazy(() => import('@/features/landing/pages/ContactPage').then((module) => ({ default: module.ContactPage })))
 const HomePage = lazy(() => import('@/features/landing/pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -84,6 +86,7 @@ export function AppRouter() {
         <Route path="services/:serviceSlug" element={<ServiceDetailPage />} />
         <Route path="blog" element={<BlogPage />} />
         <Route path="blog/:articleSlug" element={<BlogArticlePage />} />
+        <Route path="community" element={<CommunityGatePage />} />
         <Route path="experts" element={<ExpertsPage />} />
         <Route path="contact" element={<ContactPage />} />
       </Route>
@@ -159,6 +162,7 @@ export function AppRouter() {
         <Route path="health" element={<AdminHealthPage />} />
         <Route path="nutrition" element={<AdminNutritionPage />} />
         <Route path="knowledge" element={<AdminKnowledgePage />} />
+        <Route path="community" element={<AdminCommunityPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="revenue" element={<AdminRevenuePage />} />
         <Route path="notifications" element={<AdminNotificationsPage />} />

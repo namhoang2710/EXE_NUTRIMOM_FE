@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+// Khách bấm Đăng nhập/Đăng ký từ trang Cộng đồng: hoàn tất hồ sơ xong thì quay lại đúng trang đó.
+import { peekReturnPath } from '@/features/community/model/community-return-path'
 import { profileDraft, buildProfilePatch, reconcileProfileDraft } from '../model/profile-patch'
 import type { Gender } from '../model/user-types'
 
@@ -53,7 +55,7 @@ export function ProfilePage({ onboarding = false }: { onboarding?: boolean }) {
     if ((profile.date_of_birth && !draft.date_of_birth) || (profile.gender && !draft.gender)) { setError('Hiện chưa hỗ trợ xóa ngày sinh hoặc giới tính đã lưu. Hãy chọn giá trị thay thế.'); return }
     const body = buildProfilePatch(profile, draft)
     if (!body) {
-      if (onboarding) navigate('/app', { replace: true })
+      if (onboarding) navigate(peekReturnPath() ?? '/app', { replace: true })
       else setSuccess('Không có thay đổi cần lưu.')
       return
     }
@@ -64,7 +66,7 @@ export function ProfilePage({ onboarding = false }: { onboarding?: boolean }) {
       dirty.current = false
       setDraft(profileDraft(latest))
       setConflict(false)
-      if (onboarding) navigate('/app', { replace: true })
+      if (onboarding) navigate(peekReturnPath() ?? '/app', { replace: true })
       else setSuccess('Hồ sơ đã được cập nhật.')
     } catch (reason) {
       if (reason instanceof ApiClientError && reason.status === 409) { setConflict(true); setError('Hồ sơ đã thay đổi ở nơi khác. Vui lòng tải lại dữ liệu mới nhất.') }

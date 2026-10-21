@@ -1,6 +1,6 @@
 import { ArrowRight, EnvelopeSimple, Phone, User } from '@phosphor-icons/react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
@@ -42,6 +42,8 @@ export function RegisterPage() {
 
   const { register, resendActivation, activateAccount } = useAuth()
   const navigate = useNavigate()
+  // Đường dẫn đích (vd. Cộng đồng) do trang trước gửi; authenticatedDestination chỉ nhận đường dẫn nội bộ /app.
+  const returnTo = (useLocation().state as { from?: unknown } | null)?.from
 
   useEffect(() => {
     if (countdown <= 0) return
@@ -74,7 +76,7 @@ export function RegisterPage() {
     setActivationError('')
     try {
       const user = await activateOnce(codeToVerify, form.email.trim(), () => activateAccount(codeToVerify, form.email.trim()))
-      navigate(authenticatedDestination(user), { replace: true })
+      navigate(authenticatedDestination(user, undefined, returnTo), { replace: true })
     } catch (err) {
       if (err instanceof ApiClientError) {
         setActivationError(err.serverMessage || err.message || 'Mã xác thực kích hoạt không chính xác hoặc đã hết hạn.')
@@ -261,7 +263,7 @@ export function RegisterPage() {
       title="Tạo tài khoản NutriMom"
       error={error}
       subtitle="Bắt đầu hồ sơ chăm sóc thai kỳ của bạn chỉ trong vài phút."
-      footer={<p>Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>}
+      footer={<p>Đã có tài khoản? <Link to="/login" state={returnTo ? { from: returnTo } : undefined}>Đăng nhập</Link></p>}
       panelVariant="register"
       showHomeLink
     >
