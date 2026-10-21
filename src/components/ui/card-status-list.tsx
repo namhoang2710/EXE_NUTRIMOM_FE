@@ -8,6 +8,7 @@ export interface CardStatusItem<T extends string = string> {
   id: T
   title: string
   comingSoon?: boolean
+  disabled?: boolean
 }
 
 interface AnimatedCardStatusListProps<T extends string> {
@@ -29,8 +30,9 @@ export function AnimatedCardStatusList<T extends string>({
 }: AnimatedCardStatusListProps<T>) {
   const reduceMotion = useReducedMotion()
 
-  function toggle(cardId: T) {
-    if (disabled) return
+  function toggle(card: CardStatusItem<T>) {
+    if (disabled || card.disabled) return
+    const cardId = card.id
     onSelectionChange(selectedIds.includes(cardId)
       ? selectedIds.filter((id) => id !== cardId)
       : [...selectedIds, cardId])
@@ -47,25 +49,26 @@ export function AnimatedCardStatusList<T extends string>({
       >
         {cards.map((card) => {
           const selected = selectedIds.includes(card.id)
+          const cardDisabled = disabled || card.disabled
           return (
             <motion.label
               layout
               key={card.id}
-              className={cn('nm-card-status-item', selected && 'is-selected', card.comingSoon && 'is-coming-soon')}
+              className={cn('nm-card-status-item', selected && 'is-selected', card.comingSoon && 'is-coming-soon', card.disabled && 'is-disabled')}
               variants={{
                 hidden: { opacity: 0, y: 16, scale: 0.985 },
                 visible: { opacity: 1, y: 0, scale: 1 },
               }}
               transition={{ type: 'spring', stiffness: 360, damping: 30 }}
-              whileHover={reduceMotion || disabled ? undefined : { y: -2 }}
-              whileTap={reduceMotion || disabled ? undefined : { scale: 0.985 }}
+              whileHover={reduceMotion || cardDisabled ? undefined : { y: -2 }}
+              whileTap={reduceMotion || cardDisabled ? undefined : { scale: 0.985 }}
             >
               <input
                 className="sr-only"
                 type="checkbox"
                 checked={selected}
-                disabled={disabled}
-                onChange={() => toggle(card.id)}
+                disabled={cardDisabled}
+                onChange={() => toggle(card)}
               />
               <span className="nm-card-status-icon" aria-hidden="true">
                 <AnimatePresence initial={false} mode="wait">

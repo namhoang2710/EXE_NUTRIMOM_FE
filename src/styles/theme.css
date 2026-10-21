@@ -1,0 +1,34 @@
+@keyframes nm-overview-fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.nm-overview-hero.is-login-entry .nm-overview-hero__personal {
+  animation: nm-overview-fade-rise 0.7s ease-out both;
+}
+.nm-overview-hero.is-login-entry
+  .nm-overview-hero__personal
+  .nm-overview-hero__description {
+  animation: nm-overview-fade-rise 0.7s 0.12s ease-out both;
+}
+.nm-overview-hero.is-login-entry
+  .nm-overview-hero__personal
+  .nm-overview-hero__actions {
+  animation: nm-overview-fade-rise 0.7s 0.24s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-overview-hero.is-login-entry .nm-overview-hero__personal,
+  .nm-overview-hero.is-login-entry
+    .nm-overview-hero__personal
+    .nm-overview-hero__description,
+  .nm-overview-hero.is-login-entry
+    .nm-overview-hero__personal
+    .nm-overview-hero__actions {
+    animation: none;
+  }
+}

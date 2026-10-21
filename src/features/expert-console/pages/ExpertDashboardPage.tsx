@@ -1,3 +1,6 @@
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
+import { adaptExpertDeepLink } from '@/features/notifications/model/notification-helpers'
+import '@/features/notifications/styles/notifications.css'
 import { CalendarBlank, CalendarDots, ChartPieSlice, FirstAidKit, List, SignOut, Star, UsersThree, X } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -54,7 +57,7 @@ export function ExpertDashboardPage() {
 
   useEffect(() => {
     const refreshOnReturn = () => {
-      if (document.visibilityState !== 'visible' || Date.now() - lastFocusRefresh.current < 10_000) return
+      if (document.visibilityState !== 'visible' || !navigator.onLine || Date.now() - lastFocusRefresh.current < 30_000) return
       lastFocusRefresh.current = Date.now()
       setRefreshToken((value) => value + 1)
       void Promise.allSettled([profileReloadRef.current(), overviewReloadRef.current()])
@@ -107,7 +110,7 @@ export function ExpertDashboardPage() {
       </aside>
       {menuOpen && <button className="expert-sidebar-backdrop" type="button" aria-label="Đóng menu" onClick={() => setMenuOpen(false)} />}
       <div className="expert-workspace">
-        <header className="expert-topbar"><button className="expert-menu-button" type="button" aria-label="Mở menu" onClick={() => setMenuOpen(true)}><List size={22} /></button><div className="expert-topbar-context"><FirstAidKit size={20} weight="duotone" /><span>Không gian làm việc chuyên gia</span></div><div className="expert-topbar-actions"><ThemeToggle /><button className="expert-logout" type="button" onClick={() => void handleLogout()}><SignOut size={18} /><span>Đăng xuất</span></button></div></header>
+        <header className="expert-topbar"><button className="expert-menu-button" type="button" aria-label="Mở menu" onClick={() => setMenuOpen(true)}><List size={22} /></button><div className="expert-topbar-context"><FirstAidKit size={20} weight="duotone" /><span>Không gian làm việc chuyên gia</span></div><div className="expert-topbar-actions"><NotificationBell adaptLink={adaptExpertDeepLink}/><ThemeToggle /><button className="expert-logout" type="button" onClick={() => void handleLogout()}><SignOut size={18} /><span>Đăng xuất</span></button></div></header>
         <main className="expert-content">
           {profile.error && <div className="expert-profile-error" role="alert">Không thể tải hồ sơ chuyên gia. <button type="button" onClick={() => void profile.reload()}>Thử lại</button></div>}
           <motion.div

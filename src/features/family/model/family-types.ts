@@ -15,6 +15,7 @@ export type ActivityType =
   | 'CONSULTATION_CANCELLED'
   | 'CONTACT_COMPLETED'
   | 'FAMILY_TASK_ASSIGNED'
+  | 'FAMILY_TASK_STATUS_CHANGED'
   | 'FAMILY_TASK_COMPLETED'
 
 export interface FamilyGroup {
@@ -31,8 +32,54 @@ export interface FamilyInvitation {
   invited_phone?: string
   invited_email?: string
   token: string
+  invite_url: string
   relationship: string
-  scopes: string[]
+  scopes: FamilyScope[]
+  status: FamilyInvitationStatus
+  delivery_status: InvitationDeliveryStatus
+  sent_at?: string
+  expires_at: string
+  created_at: string
+}
+
+export type FamilyInvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
+export type InvitationDeliveryStatus = 'SENT' | 'FAILED' | 'SKIPPED'
+
+export interface FamilyInvitationPreview {
+  inviter_display_name: string
+  relationship: string
+  relationship_label: string
+  scopes: FamilyScope[]
+  scope_labels: string[]
+  target_type: 'EMAIL' | 'PHONE'
+  masked_target: string
+  expires_at: string
+  status: FamilyInvitationStatus
+}
+
+export interface FamilyInvitationSummary {
+  id: string
+  target_type: 'EMAIL' | 'PHONE'
+  masked_target: string
+  relationship: string
+  scopes: FamilyScope[]
+  status: FamilyInvitationStatus
+  delivery_status?: InvitationDeliveryStatus
+  sent_at?: string
+  expires_at: string
+  created_at: string
+}
+
+export interface ReceivedFamilyInvitation {
+  id: string
+  inviter_display_name: string
+  relationship: string
+  relationship_label: string
+  scopes: FamilyScope[]
+  scope_labels: string[]
+  target_type: 'EMAIL' | 'PHONE'
+  masked_target: string
+  status: FamilyInvitationStatus
   expires_at: string
   created_at: string
 }
@@ -41,6 +88,7 @@ export interface FamilyMember {
   id: string
   family_group_id: string
   user_id: string
+  display_name: string
   relationship: string
   membership_role: 'PARTNER' | 'FAMILY_MEMBER'
   scopes: FamilyScope[]
@@ -80,8 +128,7 @@ export interface ActivityPage {
 }
 
 export interface CreateInvitationInput {
-  invited_phone?: string
-  invited_email?: string
+  invited_email: string
   relationship: FamilyRelationship
   scopes: FamilyScope[]
   expires_in_hours?: number

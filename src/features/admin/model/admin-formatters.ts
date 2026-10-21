@@ -1,5 +1,6 @@
 export function formatAdminDate(value: string, withTime = false) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     day: '2-digit',
     month: 'short',
     year: withTime ? undefined : 'numeric',

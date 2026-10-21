@@ -19,7 +19,7 @@ export function FormField({ label, icon, hint, error, id, ...inputProps }: FormF
         <input id={inputId} aria-invalid={Boolean(error)} aria-describedby={describedBy} {...inputProps} />
       </div>
       {error
-        ? <p className="field-error" id={`${inputId}-error`}>{error}</p>
+        ? <p className="field-error" id={`${inputId}-error`} aria-live="polite">{error}</p>
         : hint && <p className="field-hint" id={`${inputId}-hint`}>{hint}</p>}
     </div>
   )

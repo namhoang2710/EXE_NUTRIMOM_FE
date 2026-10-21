@@ -123,63 +123,37 @@ test('provides contract labels and Vietnam-safe date/time formatting', () => {
   assert.equal(formatVietnamDateTime('not-a-date'), null)
 })
 
-test('API uses the real completed-consultation endpoint and forwards AbortSignal', async () => {
-  const source = await readFile(new URL('../src/features/admin/api/admin-api.ts', import.meta.url), 'utf8')
-  assert.match(source, /getConsultations\(params: AdminConsultationsQuery, signal\?: AbortSignal\)/)
-  assert.match(source, /apiClient\.request<AdminConsultationPageDto>\(`\/admin\/consultation-requests/)
-  assert.match(source, /\{ signal \}/)
-  assert.equal(source.includes('fromMock(adminConsultations)'), false)
-})
-
-test('page has URL search, debounce, abort, loading, error, empty and pagination states', async () => {
+test('history uses the existing endpoint through the shared abortable Admin coordinator', async () => {
   const page = await readFile(new URL('../src/features/admin/pages/AdminConsultationsPage.tsx', import.meta.url), 'utf8')
-  assert.match(page, /useSearchParams/)
-  assert.match(page, /window\.setTimeout\([^]*400\)/)
-  assert.match(page, /new AbortController\(\)/)
-  assert.match(page, /controller\.abort\(\)/)
-  assert.match(page, /import \{ Swirling \}/)
-  assert.match(page, /<Swirling[^>]*aria-hidden="true"/)
-  assert.match(page, /role="status" aria-live="polite"/)
-  assert.match(page, /Đang tìm kiếm\.\.\./)
-  assert.match(page, /busy=\{isBusy\}/)
-  assert.match(page, /Could not load consultations/)
-  assert.match(page, /Retry/)
-  assert.match(page, /No completed consultations yet/)
-  assert.match(page, /No matching consultations/)
-  assert.match(page, /TablePagination/)
-  const headingStart = page.indexOf('<header className="admin-card-heading admin-consultations-heading">')
-  const headingEnd = page.indexOf('</header>', headingStart)
-  const searchInHeading = page.indexOf('<label className="admin-users-search">', headingStart)
-  assert.ok(headingStart >= 0 && searchInHeading > headingStart && searchInHeading < headingEnd)
-  assert.equal(page.includes('admin-consultations-toolbar'), false)
-  for (const removed of ['Live now', 'Create session', 'Avg. response', 'Current and recently completed care sessions']) {
-    assert.equal(page.includes(removed), false, removed)
-  }
+  const hook = await readFile(new URL('../src/features/admin/hooks/useAdminResource.ts', import.meta.url), 'utf8')
+  assert.match(page, /\/admin\/consultation-requests/)
+  assert.match(page, /mapAdminConsultation\(item as AdminConsultationDto\)/)
+  assert.match(hook, /controller.signal/)
+  assert.match(hook, /controller.abort\(\)/)
+  assert.doesNotMatch(page, /fromMock|\/app\/consultations/)
 })
 
-test('read-only responsive UI has six Vietnamese columns, specialty badges and compact mobile cards', async () => {
+test('history shares validated filters, debounced search, resource states and independent detail', async () => {
+  const page = await readFile(new URL('../src/features/admin/pages/AdminConsultationsPage.tsx', import.meta.url), 'utf8')
+  const filters = await readFile(new URL('../src/features/admin/hooks/useAdminFilters.ts', import.meta.url), 'utf8')
+  assert.match(page, /useAdminFilters\('consultations'\)/)
+  assert.match(page, /f.valid \?/)
+  assert.match(page, /reviewed/)
+  assert.match(page, /PeriodFilter/)
+  assert.match(page, /DataState/)
+  assert.match(page, /WorkspacePagination/)
+  assert.match(page, /AppointmentDrawer/)
+  assert.match(page, /completedOnly/)
+  assert.match(filters, /400/)
+})
+
+test('completed history retains reviews and responsive cards with read-only detail', async () => {
   const table = await readFile(new URL('../src/features/admin/components/AdminConsultationsTable.tsx', import.meta.url), 'utf8')
-  const css = await readFile(new URL('../src/features/admin/styles/admin.css', import.meta.url), 'utf8')
-  assert.match(table, /<thead><tr><th>Khách hàng<\/th><th>Chuyên gia<\/th><th>Tư vấn<\/th><th>Lịch tư vấn<\/th><th>Hoàn thành<\/th><th>Feedback<\/th><\/tr><\/thead>/)
-  assert.match(table, /Đánh giá \$\{review\.rating\} trên 5 sao/)
-  assert.match(table, /aria-hidden="true"/)
   assert.match(table, /Chưa đánh giá/)
   assert.match(table, /Không có nhận xét/)
-  assert.match(table, /admin-consultation-specialty/)
-  assert.match(table, /<dt>Khách hàng<\/dt>/)
-  assert.match(table, /<dt>Chuyên gia<\/dt>/)
-  assert.match(table, /<dt>Tư vấn<\/dt>/)
-  assert.match(table, /<dt>Lịch tư vấn<\/dt>/)
-  assert.match(table, /<dt>Hoàn thành<\/dt>/)
-  assert.match(table, /<dt>Feedback<\/dt>/)
-  for (const removed of ['StatusBadge', 'getAdminConsultationAssignmentTypeLabel', 'DIRECT', 'RANDOM', 'COMPLETED', 'Created ', 'admin-consultation-id']) {
-    assert.equal(table.includes(removed), false, removed)
-  }
-  assert.match(css, /admin-consultation-cards/)
-  assert.match(css, /var\(--rating-gold\)/)
-  assert.match(css, /\.admin-consultation-rating \.is-filled[^}]*fill: var\(--rating-gold\)/)
-  assert.match(css, /admin-consultations-results \{ position: relative; min-height:/)
-  assert.match(css, /@media \(max-width: 760px\)/)
+  assert.match(table, /admin-consultation-cards/)
+  assert.match(table, /onView\(consultation.id\)/)
+  assert.doesNotMatch(table, /VideoRoomLink|medical.history|cancelConsultation|completeConsultation/i)
 })
 
 test('Swirling loader supports reduced motion', async () => {
@@ -188,11 +162,10 @@ test('Swirling loader supports reduced motion', async () => {
   assert.match(loader, /prefers-reduced-motion: reduce/)
 })
 
-test('sidebar and AdminOnly router keep the single consultations route protected', async () => {
-  const sidebar = await readFile(new URL('../src/features/admin/components/AdminSidebar.tsx', import.meta.url), 'utf8')
+test('AdminOnly protects all workspace routes including the history deep link', async () => {
   const router = await readFile(new URL('../src/app/router.tsx', import.meta.url), 'utf8')
-  assert.match(sidebar, /to: '\/admin\/consultations'/)
   assert.equal((router.match(/<Route path="consultations" element=\{<AdminConsultationsPage \/>\} \/>/g) ?? []).length, 1)
   assert.match(router, /<Route path="admin" element=\{<AdminOnly>/)
+  for (const route of ['experts','revenue','notifications']) assert.ok(router.includes('<Route path="'+route+'" element={<Admin'))
 })
 

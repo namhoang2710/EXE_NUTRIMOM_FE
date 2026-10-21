@@ -26,27 +26,30 @@ export function useConsultationHistory({ onNotify, onCancelled }: {
   const [reviewComment, setReviewComment] = useState('')
   const [reviewBusy, setReviewBusy] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
+  const loadSequence = useRef(0)
   const cancelSubmitting = useRef(false)
   const reviewSubmitting = useRef(false)
 
   const load = useCallback(async (targetPage = pageNumber, signal?: AbortSignal) => {
+    const sequence = ++loadSequence.current
     setLoading(true); setError(null)
     try {
       const response = await consultationApi.list(targetPage, CONSULTATION_PAGE_SIZE, signal)
+      if (signal?.aborted || sequence !== loadSequence.current) return
       if (response.items.length === 0 && targetPage > 1 && response.totalPages < targetPage) {
         setPageNumber(Math.max(1, response.totalPages))
         return
       }
       setPage(response); setLoading(false)
     } catch (requestError) {
-      if (!isAbortError(requestError)) { setError(consultationErrorMessage(requestError)); setLoading(false) }
+      if (!signal?.aborted && sequence === loadSequence.current && !isAbortError(requestError)) { setError(consultationErrorMessage(requestError)); setLoading(false) }
     }
   }, [pageNumber])
 
   useEffect(() => {
     const controller = new AbortController()
     void load(pageNumber, controller.signal)
-    return () => controller.abort()
+    return () => { controller.abort(); loadSequence.current += 1 }
   }, [load, pageNumber])
 
   function openCancel(item: ConsultationRequest) { setCancelItem(item); setCancelError(null) }

@@ -1,3 +1,5 @@
+import { AcceptanceDeadline } from '@/features/consultation/components/AcceptanceDeadline'
+import { consultationServerNow } from '@/features/consultation/model/consultation-timing'
 import { CalendarBlank, Clock, MagnifyingGlass, Stethoscope, UserCircle } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -61,7 +63,8 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
   const [dialogError, setDialogError] = useState('')
   const acceptLock = useRef(false)
   const reduceMotion = useReducedMotion()
-  const { minDate, maxDate } = consultationHorizon()
+  const { minDate, maxDate } = consultationHorizon(new Date(consultationServerNow()??Date.now()))
+  const expiredPreferred=!!accepting?.preferredDate&&accepting.preferredDate<minDate
 
   useEffect(() => setSearchValue(query), [query])
   useEffect(() => {
@@ -76,12 +79,12 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
     [key],
   )
   const summaryResource = useExpertResource(
-    (signal) => accepting ? expertConsoleApi.scheduleSummary(minDate, maxDate, signal) : Promise.resolve([]),
+    (signal) => accepting&&!accepting.preferredDate ? expertConsoleApi.scheduleSummary(minDate, maxDate, signal) : Promise.resolve([]),
     [accepting?.id, refreshToken, minDate, maxDate],
   )
   const scheduleResource = useExpertResource<DaySchedule | null>(
-    (signal) => accepting && selectedDate ? expertConsoleApi.schedule(selectedDate, signal) : Promise.resolve(null),
-    [accepting?.id, selectedDate, refreshToken],
+    (signal) => accepting && !expiredPreferred && selectedDate ? expertConsoleApi.schedule(selectedDate, signal) : Promise.resolve(null),
+    [accepting?.id, selectedDate, refreshToken,expiredPreferred],
   )
   const summaries = useMemo(() => Object.fromEntries((summaryResource.data || []).map((item): [string, DateStripSummary] => [item.date, {
     openCount: item.openCount,
@@ -90,10 +93,11 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
   }])), [summaryResource.data])
   const cells = useMemo(() => scheduleCells(scheduleResource.data), [scheduleResource.data])
   const selectedCellAvailable = cells.some((cell) => cell.startTime === selectedStartTime && cell.selectable)
-  const hasOpenDay = (summaryResource.data || []).some((item) => item.openCount > 0 && !item.dayOff)
+  const hasOpenDay=accepting?.preferredDate?cells.some(cell=>cell.selectable):(summaryResource.data||[]).some(item=>item.openCount>0&&!item.dayOff)
 
   useEffect(() => {
     if (!accepting || summaryResource.loading || !summaryResource.data) return
+    if(accepting.preferredDate){setSelectedDate(accepting.preferredDate);return}
     const today = vietnamToday()
     const preferred = summaryResource.data.find((item) => item.date === today && item.openCount > 0 && !item.dayOff)
       || summaryResource.data.find((item) => item.openCount > 0 && !item.dayOff)
@@ -122,7 +126,7 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
 
   function openAcceptDialog(item: Consultation) {
     setAccepting(item)
-    setSelectedDate(null)
+    setSelectedDate(item.preferredDate??null)
     setSelectedStartTime(null)
     setDialogError('')
   }
@@ -136,7 +140,7 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
   }
 
   async function accept() {
-    if (!accepting || !selectedDate || !selectedStartTime || !selectedCellAvailable || acceptLock.current || acceptingId) return
+    if (!accepting || expiredPreferred || !selectedDate || accepting.preferredDate&&selectedDate!==accepting.preferredDate || !selectedStartTime || !selectedCellAvailable || acceptLock.current || acceptingId) return
     const target = accepting
     const targetDate = selectedDate
     acceptLock.current = true
@@ -144,7 +148,8 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
     setDialogError('')
     try {
       await expertConsoleApi.acceptConsultation(target.id, targetDate, selectedStartTime)
-      await Promise.allSettled([resource.reload(), scheduleResource.reload(), summaryResource.reload(), onMutate()])
+      setAccepting(null)
+      await Promise.allSettled([resource.reload(),onMutate()])
       notify(`Đã nhận yêu cầu của ${target.userDisplayName || 'người dùng'}.`)
       setAccepting(null)
       setSelectedStartTime(null)
@@ -158,7 +163,7 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
       } else if (isExpertApiError(error, 'REQUEST_ALREADY_CLAIMED')) {
         setAccepting(null)
         setSelectedStartTime(null)
-        await Promise.allSettled([resource.reload(), summaryResource.reload(), onMutate()])
+        await Promise.allSettled([resource.reload(),onMutate()])
         notify(REQUEST_ALREADY_CLAIMED_MESSAGE, 'error')
       } else {
         const message = expertActionErrorMessage(error, 'Không thể nhận yêu cầu tư vấn.')
@@ -186,6 +191,7 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
         {type === 'assigned' && <ExpertDateField label="Từ ngày" value={from} max={to || undefined} onChange={(value) => setParams({ request_from: value || undefined, request_page: undefined })} />}
         {type === 'assigned' && <ExpertDateField label="Đến ngày" value={to} min={from || undefined} onChange={(value) => setParams({ request_to: value || undefined, request_page: undefined })} />}
       </div>
+      {focusId&&!resource.loading&&!resource.data?.items.some(item=>item.id===focusId)&&<p className="expert-inline-note" role="status">Yêu cầu từ thông báo không nằm trong trang hoặc trạng thái đang xem. Bạn có thể đổi bộ lọc/trang để tìm lịch; hệ thống không tự quét toàn bộ lịch sử.</p>}
       <ResourceState
         loading={resource.loading}
         error={resource.error}
@@ -214,7 +220,8 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
                   <span><Clock size={16} />{item.slot ? `${formatDate(item.slot.date)} | ${formatTime(item.slot.startTime)} - ${formatTime(item.slot.endTime)}` : type === 'pool' ? `Tạo lúc ${formatDateTime(item.createdAt)}` : 'Chưa xếp lịch'}</span>
                   <span><Stethoscope size={16} />{item.assignmentType === 'DIRECT' ? 'Đặt trực tiếp' : 'Ghép ngẫu nhiên'}</span>
                 </div>
-                {type === 'pool' && <button className="expert-button primary" type="button" disabled={acceptingId === item.id} onClick={() => openAcceptDialog(item)}>{acceptingId === item.id ? 'Đang tiếp nhận...' : 'Nhận yêu cầu'}</button>}
+                {item.assignmentType==='RANDOM'&&item.status!=='CANCELLED'&&<AcceptanceDeadline timing={item} pending={item.status==='PENDING_EXPERT'} expert/>}
+                {type === 'pool' && <button className="expert-button primary" type="button" disabled={acceptingId===item.id||!!item.preferredDate&&item.preferredDate<minDate} onClick={() => openAcceptDialog(item)}>{acceptingId === item.id ? 'Đang tiếp nhận...' : 'Nhận yêu cầu'}</button>}
               </motion.article>
             ))}
           </AnimatePresence>
@@ -227,14 +234,15 @@ export function RequestsPanel({ search, setParams, notify, onMutate, refreshToke
         description={`Chọn một khung giờ còn mở để nhận yêu cầu của ${accepting.userDisplayName || 'người dùng'}.`}
         onClose={closeAcceptDialog}
         busy={acceptingId === accepting.id}
-        actions={<><button className="expert-button secondary" type="button" disabled={acceptingId === accepting.id} onClick={closeAcceptDialog}>Hủy</button><button className="expert-button primary" type="button" disabled={!selectedDate || !selectedStartTime || !selectedCellAvailable || acceptingId === accepting.id || scheduleResource.loading} onClick={() => void accept()}>{acceptingId === accepting.id ? 'Đang tiếp nhận...' : 'Xác nhận tiếp nhận'}</button></>}
+        actions={<><button className="expert-button secondary" type="button" disabled={acceptingId === accepting.id} onClick={closeAcceptDialog}>Hủy</button><button className="expert-button primary" type="button" disabled={expiredPreferred || !selectedDate || !selectedStartTime || !selectedCellAvailable || acceptingId === accepting.id || scheduleResource.loading} onClick={() => void accept()}>{acceptingId === accepting.id ? 'Đang tiếp nhận...' : 'Xác nhận tiếp nhận'}</button></>}
       >
         <div className="expert-accept-schedule">
-          {summaryResource.loading ? <p className="expert-inline-note" role="status">Đang tải lịch 30 ngày...</p> : summaryResource.error ? <p className="expert-inline-error" role="alert">{summaryResource.error} <button type="button" onClick={() => void summaryResource.reload()}>Thử lại</button></p> : <>
-            <DateStrip selectedDate={selectedDate || minDate} summaries={summaries} disabled={acceptingId === accepting.id} onSelect={(date) => { setSelectedDate(date); setSelectedStartTime(null); setDialogError('') }} />
-            {!hasOpenDay ? <div className="expert-accept-empty"><CalendarBlank size={24} weight="duotone" /><p>Bạn chưa có khung giờ có thể nhận lịch.</p><button className="expert-button secondary" type="button" onClick={() => { closeAcceptDialog(); setParams({ section: 'slots' }) }}>Đến Lịch làm việc</button></div>
-              : scheduleResource.loading ? <AcceptScheduleSkeleton />
+          <AcceptanceDeadline timing={accepting} expert/>
+          {expiredPreferred?<p className="expert-inline-error">Ngày mong muốn đã qua. Người dùng cần hủy và tạo lại yêu cầu; không thể tự dời ngày.</p>:summaryResource.loading ? <p className="expert-inline-note" role="status">Đang tải lịch 30 ngày...</p> : summaryResource.error ? <p className="expert-inline-error" role="alert">{summaryResource.error} <button type="button" onClick={() => void summaryResource.reload()}>Thử lại</button></p> : <>
+            {accepting.preferredDate?<p className="expert-inline-note"><strong>Ngày người dùng chọn: {formatDate(accepting.preferredDate)}</strong>. Chỉ xếp khung giờ trong ngày này.</p>:<DateStrip selectedDate={selectedDate || minDate} summaries={summaries} disabled={acceptingId === accepting.id} onSelect={(date) => { setSelectedDate(date); setSelectedStartTime(null); setDialogError('') }} />}
+            {scheduleResource.loading?<AcceptScheduleSkeleton/>
                 : scheduleResource.error ? <p className="expert-inline-error" role="alert">{scheduleResource.error} <button type="button" onClick={() => void scheduleResource.reload()}>Thử lại</button></p>
+                :!hasOpenDay ? <div className="expert-accept-empty"><CalendarBlank size={24} weight="duotone" /><p>Bạn chưa có khung giờ có thể nhận lịch.</p><button className="expert-button secondary" type="button" onClick={() => { closeAcceptDialog(); setParams({ section: 'slots' }) }}>Đến Lịch làm việc</button></div>
                   : <TimeSlotGrid cells={cells} selectedStartTime={selectedStartTime} onSelect={(time) => { setSelectedStartTime(time); setDialogError('') }} disabled={acceptingId === accepting.id} />}
           </>}
           {dialogError && <p className="expert-inline-error" role="alert">{dialogError}</p>}

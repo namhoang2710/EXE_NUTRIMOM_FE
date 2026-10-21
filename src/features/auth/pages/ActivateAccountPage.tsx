@@ -6,9 +6,10 @@ import { FormField } from '@/shared/components/FormField'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { OtpInput } from '@/shared/components/OtpInput'
 import { useAuth } from '../hooks/useAuth'
-import { ApiClientError } from '@/core/api/api-error'
+import { activateOnce, activationErrorMessage, isUsedOrInvalidActivation } from '../model/activation-request'
 import { isValidEmail } from '../model/auth-validation'
 import { authenticatedDestination } from '../model/role-routing'
+import { peekReturnPath } from '@/features/community/model/community-return-path'
 
 export function ActivateAccountPage() {
   const [searchParams] = useSearchParams()
@@ -19,6 +20,7 @@ export function ActivateAccountPage() {
   const [otpCode, setOtpCode] = useState(tokenParam && tokenParam.length === 6 ? tokenParam : '')
   const [loading, setLoading] = useState(Boolean(tokenParam))
   const [error, setError] = useState<string | null>(null)
+  const [suggestLogin, setSuggestLogin] = useState(false)
   const [success, setSuccess] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const [resending, setResending] = useState(false)
@@ -44,17 +46,19 @@ export function ActivateAccountPage() {
     let active = true
     async function doActivate() {
       try {
-        const user = await activateAccount(tokenParam!, emailParam || undefined)
+        const user = await activateOnce(tokenParam!, emailParam || undefined,
+          () => activateAccount(tokenParam!, emailParam || undefined))
         if (!active) return
         setSuccess(true)
         setLoading(false)
         setTimeout(() => {
-          navigate(authenticatedDestination(user), { replace: true })
+          navigate(authenticatedDestination(user, undefined, peekReturnPath()), { replace: true })
         }, 1200)
       } catch (err) {
         if (!active) return
         setLoading(false)
-        setError(err instanceof ApiClientError ? err.message : 'Kích hoạt tài khoản thất bại. Vui lòng kiểm tra lại mã.')
+        setSuggestLogin(isUsedOrInvalidActivation(err))
+        setError(activationErrorMessage(err, 'Kích hoạt tài khoản thất bại. Vui lòng kiểm tra lại mã.'))
       }
     }
 
@@ -71,16 +75,18 @@ export function ActivateAccountPage() {
 
     setLoading(true)
     setError(null)
+    setSuggestLogin(false)
     try {
-      const user = await activateAccount(codeToVerify, email.trim())
+      const user = await activateOnce(codeToVerify, email.trim(), () => activateAccount(codeToVerify, email.trim()))
       setSuccess(true)
       setLoading(false)
       setTimeout(() => {
-        navigate(authenticatedDestination(user), { replace: true })
+        navigate(authenticatedDestination(user, undefined, peekReturnPath()), { replace: true })
       }, 1200)
     } catch (err) {
       setLoading(false)
-      setError(err instanceof ApiClientError ? err.message : 'Mã xác thực không hợp lệ hoặc đã hết hạn.')
+      setSuggestLogin(isUsedOrInvalidActivation(err))
+      setError(activationErrorMessage(err, 'Mã xác thực không hợp lệ hoặc đã hết hạn.'))
     }
   }
 
@@ -164,6 +170,11 @@ export function ActivateAccountPage() {
             {error && (
               <div style={{ marginBottom: 16 }}>
                 <StatusMessage tone="error">{error}</StatusMessage>
+                {suggestLogin && (
+                  <p style={{ fontSize: 14, margin: '8px 0 0' }}>
+                    <Link to="/login">Đi đến trang đăng nhập</Link>
+                  </p>
+                )}
               </div>
             )}
 

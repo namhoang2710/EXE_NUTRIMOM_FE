@@ -1,0 +1,40 @@
+.vercel-tabs {
+  --vercel-tabs-active: var(--text, #0e0e10);
+  --vercel-tabs-inactive: color-mix(in srgb, var(--text, #0e0f11) 60%, transparent);
+  --vercel-tabs-hover: color-mix(in srgb, var(--text, #0e0f11) 8%, transparent);
+  position: relative;
+  min-width: 0;
+  padding-bottom: 6px;
+}
+.vercel-tabs-track { position: relative; display: flex; align-items: center; gap: 6px; }
+.vercel-tabs-trigger {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--vercel-tabs-inactive);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 300ms ease;
+}
+.vercel-tabs-trigger.is-active, .vercel-tabs-trigger:hover { color: var(--vercel-tabs-active); }
+.vercel-tabs-trigger:focus-visible { outline: 2px solid var(--vercel-tabs-active); outline-offset: 2px; }
+.vercel-tabs-hover, .vercel-tabs-indicator {
+  position: absolute;
+  pointer-events: none;
+  transition: left 300ms ease-out, top 300ms ease-out, width 300ms ease-out, height 300ms ease-out, opacity 160ms ease-out;
+}
+.vercel-tabs-hover { border-radius: 6px; background: var(--vercel-tabs-hover); }
+.vercel-tabs-indicator { height: 2px; background: var(--vercel-tabs-active); }
+@media (prefers-reduced-motion: reduce) {
+  .vercel-tabs-trigger, .vercel-tabs-hover, .vercel-tabs-indicator { transition: none; }
+}

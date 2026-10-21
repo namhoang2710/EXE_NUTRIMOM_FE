@@ -1,7 +1,8 @@
 import { CheckCircle, FirstAidKit, FloppyDisk } from '@phosphor-icons/react'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
+import { expireProfileResource } from '@/core/api/profile-requests'
 import { FeaturePage as AppShell } from '@/shared/layouts/FeaturePage'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { careApi, pregnancyApi } from '@/features/maternity/api/domain-api'
@@ -28,6 +29,9 @@ const milestoneStatusLabels: Record<string, string> = {
 }
 
 export function CarePage() {
+  const generation = useRef(0)
+  const saving = useRef(false)
+  const pending = useRef(new Set<string>())
   const [plan, setPlan] = useState<CarePlan | null>(null)
   const [items, setItems] = useState<PreparationItem[]>([])
   const [birthPlan, setBirthPlan] = useState<BirthPlan | null>(null)
@@ -41,22 +45,26 @@ export function CarePage() {
   const [pendingItem, setPendingItem] = useState<string | null>(null)
   const [conflict, setConflict] = useState(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
+    if (force) for (const resource of ['care:current', 'care:guidance', 'care:items', 'care:birth-plan', 'pregnancy:current']) expireProfileResource(resource)
+    const request = ++generation.current
     setLoading(true)
     setError('')
     setGuidanceError('')
     setConflict(false)
     try {
       const guidanceResult = await careApi.guidance().catch((reason) => {
-        setGuidanceError(reason instanceof Error ? reason.message : 'Chưa thể tải hướng dẫn đã kiểm duyệt.')
+        if (request === generation.current) setGuidanceError(reason instanceof Error ? reason.message : 'Chưa thể tải hướng dẫn đã kiểm duyệt.')
         return null
       })
+      if (request !== generation.current) return
       setGuidance(guidanceResult?.items || [])
 
       try {
         await pregnancyApi.current()
       } catch (reason) {
         if (reason instanceof ApiClientError && (reason.code === 'RESOURCE_NOT_FOUND' || reason.code === 'ACTIVE_PREGNANCY_NOT_FOUND')) {
+          if (request !== generation.current) return
           setHasPregnancy(false)
           setPlan(null)
           setItems([])
@@ -66,12 +74,14 @@ export function CarePage() {
         throw reason
       }
 
+      if (request !== generation.current) return
       setHasPregnancy(true)
       const results = await Promise.allSettled([
         careApi.current(),
         careApi.items(),
         careApi.birthPlan(),
       ])
+      if (request !== generation.current) return
       const [planResult, itemsResult, birthPlanResult] = results
       setPlan(planResult.status === 'fulfilled' ? planResult.value : null)
       setItems(itemsResult.status === 'fulfilled' ? itemsResult.value : [])
@@ -80,13 +90,17 @@ export function CarePage() {
         setError('Một phần kế hoạch chăm sóc chưa tải được. Bạn có thể thử lại sau.')
       }
     } catch (reason) {
+      if (request !== generation.current) return
       setError(reason instanceof Error ? reason.message : 'Không thể tải kế hoạch chăm sóc.')
-    } finally { setLoading(false) }
+    } finally { if (request === generation.current) setLoading(false) }
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { void load(); return () => { generation.current += 1 } }, [load])
 
   async function toggle(item: PreparationItem) {
+    if (pending.current.has(item.id)) return
+    pending.current.add(item.id)
+    generation.current += 1
     setPendingItem(item.id)
     setError('')
     try {
@@ -97,12 +111,14 @@ export function CarePage() {
         setConflict(true)
         setError('Danh sách việc cần chuẩn bị đã thay đổi ở nơi khác. Hãy tải lại dữ liệu mới nhất.')
       } else setError(reason instanceof Error ? reason.message : 'Không thể cập nhật việc cần chuẩn bị.')
-    } finally { setPendingItem(null) }
+    } finally { pending.current.delete(item.id); setPendingItem(null) }
   }
 
   async function saveBirthPlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!birthPlan) return
+    if (!birthPlan || saving.current) return
+    saving.current = true
+    generation.current += 1
     const form = new FormData(event.currentTarget)
     setSavingBirthPlan(true)
     setError('')
@@ -123,14 +139,14 @@ export function CarePage() {
         setConflict(true)
         setError('Kế hoạch sinh đã thay đổi ở nơi khác. Hãy tải lại dữ liệu mới nhất.')
       } else setError(reason instanceof Error ? reason.message : 'Không thể lưu kế hoạch sinh.')
-    } finally { setSavingBirthPlan(false) }
+    } finally { saving.current = false; setSavingBirthPlan(false) }
   }
 
   return <AppShell>
     <header className="nm-account-workspace-heading"><span>Chăm sóc trước sinh</span><h1>Kế hoạch chăm sóc</h1><p>Theo dõi mốc khám, chuẩn bị và những lựa chọn quan trọng cho ngày sinh.</p></header>
     {error && <StatusMessage tone="error">{error}</StatusMessage>}
     {message && <StatusMessage tone="success">{message}</StatusMessage>}
-    {conflict && <button className="secondary-button" type="button" onClick={() => void load()}>Tải lại dữ liệu mới nhất</button>}
+    {(conflict || error || guidanceError) && <button className="secondary-button" type="button" disabled={loading} onClick={() => void load(true)}>Tải lại dữ liệu mới nhất</button>}
     {loading ? <section className="empty-state"><FirstAidKit size={42} weight="duotone" /><h2>Đang tải kế hoạch chăm sóc</h2><p>NutriMom đang lấy các nội dung mới nhất.</p></section> : <>
       {hasPregnancy === false ? <section className="empty-state"><FirstAidKit size={42} weight="duotone" /><h2>Chưa có hồ sơ thai kỳ</h2><p>Hãy cập nhật hành trình thai kỳ trước để xem danh sách việc cần chuẩn bị và kế hoạch sinh phù hợp.</p><Link className="primary-button" to="/app/profile/health">Cập nhật tuổi thai</Link></section> : <>
       <section className="app-card"><div className="section-title-row"><div><p className="card-kicker">Tiến độ</p><h2>{plan ? `${plan.progress.completed}/${plan.progress.total} việc đã hoàn thành` : 'Chưa có kế hoạch'}</h2></div><FirstAidKit size={32} weight="duotone" /></div>{plan?.milestones.length ? <div className="milestone-list">{plan.milestones.map((milestone) => <article key={milestone.id}><span>Tuần {milestone.week}</span><div><strong>{milestone.title}</strong><p>{milestone.description}</p></div><em>{milestoneStatusLabels[milestone.status] ?? 'Chưa xác định'}</em></article>)}</div> : <p>Chưa có mốc chăm sóc được cấu hình cho thai kỳ hiện tại.</p>}</section>

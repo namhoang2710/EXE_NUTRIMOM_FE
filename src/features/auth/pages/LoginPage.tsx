@@ -1,6 +1,6 @@
 import { ArrowRight, User } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
@@ -8,10 +8,11 @@ import { StatusMessage } from '@/shared/components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
-import { isValidEmail, isValidPhone } from '../model/auth-validation'
-import { authenticatedDestination, isAdminUser, isExpertUser } from '../model/role-routing'
+import { loginIdentifierError, loginPasswordError } from '../model/auth-validation'
 
 export function LoginPage() {
+  // Giữ đường dẫn đích (state.from) khi chuyển sang trang Đăng ký.
+  const location = useLocation()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,8 +23,6 @@ export function LoginPage() {
   const [resendStatus, setResendStatus] = useState<string | null>(null)
 
   const { login, resendActivation } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
 
   async function handleResendActivation() {
     if (!identifier.includes('@') || resending) return
@@ -31,8 +30,8 @@ export function LoginPage() {
     try {
       const res = await resendActivation(identifier.trim())
       setResendStatus(res.message || 'Đã gửi lại mã kích hoạt vào email thành công!')
-    } catch {
-      setResendStatus('Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
+    } catch (err) {
+      setResendStatus(err instanceof ApiClientError ? err.serverMessage || err.message : 'Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
     } finally {
       setResending(false)
     }
@@ -40,41 +39,23 @@ export function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting) return
     setError('')
     setShowResend(false)
     setResendStatus(null)
     const trimmed = identifier.trim()
 
-    let identifierError: string | undefined
-    if (!trimmed) {
-      identifierError = 'Vui lòng nhập email hoặc số điện thoại.'
-    } else if (trimmed.includes('@')) {
-      if (!isValidEmail(trimmed)) identifierError = 'Địa chỉ email chưa đúng định dạng.'
-    } else {
-      if (!isValidPhone(trimmed)) identifierError = 'Số điện thoại Việt Nam chưa hợp lệ.'
-    }
-
     const nextErrors = {
-      identifier: identifierError,
-      password: password && password.length <= 72 ? undefined : 'Vui lòng nhập mật khẩu.',
+      identifier: loginIdentifierError(identifier),
+      password: loginPasswordError(password),
     }
     setFieldErrors(nextErrors)
     if (nextErrors.identifier || nextErrors.password) return
 
     setSubmitting(true)
     try {
-      const authenticatedUser = await login({ phone: trimmed, password, deviceId: getDeviceId() })
-      const requestedPath = (location.state as { from?: string } | null)?.from
-      if (isAdminUser(authenticatedUser) || isExpertUser(authenticatedUser)) {
-        navigate(authenticatedDestination(authenticatedUser), { replace: true })
-      } else if (requestedPath?.startsWith('/admin') || requestedPath?.startsWith('/expert')) {
-        navigate('/app', {
-          replace: true,
-          state: { authorizationError: 'Bạn không có quyền truy cập khu vực này.' },
-        })
-      } else {
-        navigate(authenticatedDestination(authenticatedUser, undefined, requestedPath), { replace: true })
-      }
+      // GuestOnly retains this form until its panels finish closing, then routes by role.
+      await login({ phone: trimmed, password, deviceId: getDeviceId() })
     } catch (requestError) {
       const isActivationPending = requestError instanceof ApiClientError && (
         requestError.code === 'ACCOUNT_PENDING_ACTIVATION' || requestError.message.includes('kích hoạt')
@@ -82,7 +63,7 @@ export function LoginPage() {
       if (isActivationPending && trimmed.includes('@')) {
         setShowResend(true)
       }
-      setError(requestError instanceof ApiClientError ? requestError.message : 'Tài khoản hoặc mật khẩu không chính xác.')
+      setError(requestError instanceof ApiClientError ? requestError.serverMessage || requestError.message : 'Tài khoản hoặc mật khẩu không chính xác.')
       if (requestError instanceof ApiClientError && requestError.fields) {
         setFieldErrors({
           identifier: requestError.fields.phone || requestError.fields.email,
@@ -98,7 +79,7 @@ export function LoginPage() {
     <AuthLayout
       title="Đăng nhập NutriMom"
       subtitle="Đăng nhập bằng Email hoặc Số điện thoại của bạn."
-      footer={<p>Chưa có tài khoản? <Link to="/register">Tạo tài khoản</Link></p>}
+      footer={<p>Chưa có tài khoản? <Link to="/register" state={location.state}>Tạo tài khoản</Link></p>}
       panelVariant="login"
       showHomeLink
     >
@@ -142,12 +123,14 @@ export function LoginPage() {
           onChange={(e) => {
             setIdentifier(e.target.value)
             setError('')
-            setFieldErrors((prev) => ({ ...prev, identifier: undefined }))
+            setShowResend(false)
+            setResendStatus(null)
+            setFieldErrors((prev) => ({ ...prev, identifier: prev.identifier ? loginIdentifierError(e.target.value) : undefined }))
           }}
+          onBlur={() => setFieldErrors((prev) => ({ ...prev, identifier: loginIdentifierError(identifier) }))}
           error={fieldErrors.identifier}
           icon={<User size={20} />}
           disabled={submitting}
-          autoFocus
         />
 
         <PasswordField
@@ -159,8 +142,9 @@ export function LoginPage() {
           onChange={(e) => {
             setPassword(e.target.value)
             setError('')
-            setFieldErrors((prev) => ({ ...prev, password: undefined }))
+            setFieldErrors((prev) => ({ ...prev, password: prev.password ? loginPasswordError(e.target.value) : undefined }))
           }}
+          onBlur={() => setFieldErrors((prev) => ({ ...prev, password: loginPasswordError(password) }))}
           error={fieldErrors.password}
           disabled={submitting}
         />
