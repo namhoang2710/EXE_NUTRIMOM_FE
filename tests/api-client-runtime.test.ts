@@ -29,7 +29,7 @@ const { ApiClientError } = await import('../src/core/api/api-error.ts')
 const { calendarApi } = await import('../src/features/calendar/api/calendar-api.ts')
 const { clearSession, getSession, saveApiSession } = await import('../src/core/auth/token-store.ts')
 const { clearDiagnosticEvents, getDiagnosticEvents } = await import('../src/core/diagnostics/logger.ts')
-await import('../src/features/auth/api/auth-api.ts')
+const { authApi } = await import('../src/features/auth/api/auth-api.ts')
 
 function authResponse(accessToken: string, refreshToken: string) {
   return {
@@ -291,4 +291,36 @@ test('refresh failure clears the session and emits one auth-state event for conc
   assert.equal(clearedEvents, 1)
   assert.equal(getSession(), null)
   assert.ok(results.every((result) => result.status === 'rejected'))
+})
+
+test('logout clears local auth before revocation completes and cannot clear a newer login', async () => {
+  resetSession()
+  saveApiSession(authResponse('access-a', 'refresh-a'))
+  let finish!: (response: Response) => void
+  let requestBody: unknown
+  globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+    requestBody = JSON.parse(String(init?.body))
+    return new Promise<Response>((resolve) => { finish = resolve })
+  }) as typeof fetch
+  const pending = authApi.logout()
+  assert.equal(getSession(), null)
+  assert.equal(sessionStorage.getItem('nutrimom.auth-session'), null)
+  assert.deepEqual(requestBody, { refresh_token: 'refresh-a' })
+  const next = authResponse('access-b', 'refresh-b')
+  next.user.id = 'user-2'
+  saveApiSession(next)
+  finish(jsonResponse({ logged_out: true }))
+  await pending
+  assert.equal(getSession()?.user.id, 'user-2')
+  assert.equal(getSession()?.accessToken, 'access-b')
+})
+
+test('failed logout revocation leaves local auth cleared', async () => {
+  resetSession()
+  saveApiSession(authResponse('access-a', 'refresh-a'))
+  globalThis.fetch = (async () => jsonResponse({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Unavailable' } }, 503)) as typeof fetch
+  const pending = authApi.logout()
+  assert.equal(getSession(), null)
+  await assert.rejects(pending)
+  assert.equal(getSession(), null)
 })

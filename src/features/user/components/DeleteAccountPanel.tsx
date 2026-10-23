@@ -1,12 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { getDeviceId } from '@/core/auth/device'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { userApi } from '../api/user-api'
 
 export function DeleteAccountPanel() {
   const { profile, requestOtp, logout } = useAuth()
-  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [method, setMethod] = useState<'password' | 'otp'>('password')
   const [reason, setReason] = useState('')
@@ -39,8 +37,7 @@ export function DeleteAccountPanel() {
     setBusy(true); setError('')
     try {
       await userApi.disableAccount(method === 'password' ? { reason: reason.trim(), password } : { reason: reason.trim(), otp_challenge_id: challengeId, otp_code: code })
-      await logout().catch(() => undefined)
-      navigate('/', { replace: true })
+      await logout('/').catch(() => undefined)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa thể vô hiệu hóa tài khoản.') }
     finally { setBusy(false) }
   }

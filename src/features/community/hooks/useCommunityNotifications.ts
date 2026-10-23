@@ -1,86 +1,54 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { communityApi } from '../api/community-api'
-import { friendlyError, isAbort } from '../model/community-errors'
+import { friendlyError } from '../model/community-errors'
 import type { CommunityNotification } from '../model/community-types'
+import { useCursorCollection } from './useCursorCollection'
 
+const keyOf = (item: CommunityNotification) => item.id
 const MIN_REFRESH_GAP_MS = 60_000
-const PAGE_SIZE = 20
-
-/**
- * Thông báo riêng của Cộng đồng (tách khỏi chuông header).
- * Số chưa đọc chỉ tải khi mở trang và khi tab được focus lại (cách nhau ≥ 60 giây) — không polling.
- * Danh sách chỉ tải khi mở panel.
- */
+/** Personal notifications only load on demand; focus refresh is throttled and never polls. */
 export function useCommunityNotifications(panelOpen: boolean) {
   const [unread, setUnread] = useState(0)
-  const [items, setItems] = useState<CommunityNotification[]>([])
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [writeError, setWriteError] = useState<string | null>(null)
   const lastCountAt = useRef(0)
-  const inFlight = useRef(false)
-
-  const refreshCount = useCallback(async (force = false) => {
-    if (!force && Date.now() - lastCountAt.current < MIN_REFRESH_GAP_MS) return
+  const cooldown = useRef(0)
+  const writing = useRef(new Set<string>())
+  const loader = useCallback((cursor: string | null, signal: AbortSignal) => panelOpen
+    ? communityApi.notifications(cursor, 20, signal)
+    : Promise.resolve({ items: [], has_more: false }), [panelOpen])
+  const list = useCursorCollection(loader, keyOf)
+  const { setItems } = list
+  const refreshCount = useCallback(async () => {
+    if (Date.now() - lastCountAt.current < MIN_REFRESH_GAP_MS || Date.now() < cooldown.current) return
     lastCountAt.current = Date.now()
-    try {
-      setUnread((await communityApi.unreadCount()).unread_count)
-    } catch { /* Số chưa đọc không quan trọng bằng nội dung trang; lần focus sau sẽ thử lại. */ }
+    try { setUnread((await communityApi.unreadCount()).unread_count) }
+    catch (reason) { cooldown.current = friendlyError(reason).retryAt }
   }, [])
-
   useEffect(() => {
-    void refreshCount(true)
+    void refreshCount()
     const onFocus = () => { if (document.visibilityState === 'visible') void refreshCount() }
-    document.addEventListener('visibilitychange', onFocus)
-    window.addEventListener('focus', onFocus)
-    return () => {
-      document.removeEventListener('visibilitychange', onFocus)
-      window.removeEventListener('focus', onFocus)
-    }
+    document.addEventListener('visibilitychange', onFocus); window.addEventListener('focus', onFocus)
+    return () => { document.removeEventListener('visibilitychange', onFocus); window.removeEventListener('focus', onFocus) }
   }, [refreshCount])
-
-  const load = useCallback(async (from: string | null, signal?: AbortSignal) => {
-    if (inFlight.current) return
-    inFlight.current = true
-    setLoading(true)
-    setError(null)
+  const markRead = useCallback(async (item: CommunityNotification) => {
+    if (item.read || writing.current.has(item.id) || writing.current.has('all') || Date.now() < cooldown.current) return
+    writing.current.add(item.id)
     try {
-      const page = await communityApi.notifications(from, PAGE_SIZE, signal)
-      setItems((current) => (from ? [...current, ...page.items] : page.items))
-      setCursor(page.next_cursor ?? null)
-      setHasMore(page.has_more)
-    } catch (reason) {
-      if (!isAbort(reason)) setError(friendlyError(reason).message)
-    } finally {
-      inFlight.current = false
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!panelOpen) return
-    const controller = new AbortController()
-    void load(null, controller.signal)
-    return () => controller.abort()
-  }, [panelOpen, load])
-
-  const markRead = useCallback(async (notification: CommunityNotification) => {
-    if (notification.read) return
-    setItems((current) => current.map((item) => (item.id === notification.id ? { ...item, read: true } : item)))
-    setUnread((count) => Math.max(0, count - 1))
-    try { await communityApi.markRead(notification.id) } catch { /* Không chặn điều hướng; lần mở sau sẽ đồng bộ lại. */ }
-  }, [])
-
+      await communityApi.markRead(item.id)
+      setItems((current) => current.map((row) => row.id === item.id ? { ...row, read: true } : row))
+      setUnread((count) => Math.max(0, count - 1))
+    } catch (reason) { const error = friendlyError(reason); cooldown.current = error.retryAt; setWriteError(error.message) }
+    finally { writing.current.delete(item.id) }
+  }, [setItems])
   const markAllRead = useCallback(async () => {
+    if (writing.current.size || Date.now() < cooldown.current) return
+    writing.current.add('all')
     try {
       await communityApi.markAllRead()
-      setItems((current) => current.map((item) => ({ ...item, read: true })))
-      setUnread(0)
-    } catch (reason) {
-      setError(friendlyError(reason).message)
-    }
-  }, [])
-
-  return { unread, items, hasMore, loading, error, loadMore: () => { if (cursor) void load(cursor) }, retry: () => void load(null), markRead, markAllRead }
+      setItems((current) => current.map((row) => ({ ...row, read: true })))
+      setUnread(0); setWriteError(null)
+    } catch (reason) { const error = friendlyError(reason); cooldown.current = error.retryAt; setWriteError(error.message) }
+    finally { writing.current.delete('all') }
+  }, [setItems])
+  return { ...list, unread, error: writeError ?? list.error?.message ?? null, retryAt: list.error?.retryAt ?? cooldown.current, retry: () => { setWriteError(null); list.retry() }, markRead, markAllRead }
 }

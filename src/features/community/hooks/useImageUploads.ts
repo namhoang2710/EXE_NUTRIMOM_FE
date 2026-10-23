@@ -12,9 +12,12 @@ export interface UploadItem {
   previewUrl: string
   status: UploadStatus
   error?: string
+  retryAt?: number
   /** id ảnh trên BE sau khi upload xong. */
   imageId?: string
   file?: File
+  name: string
+  size?: number
 }
 
 let sequence = 0
@@ -26,13 +29,15 @@ let sequence = 0
  */
 export function useImageUploads(initial: CommunityImage[] = []) {
   const [items, setItems] = useState<UploadItem[]>(() => initial.map((image) => ({
-    key: `existing-${image.id}`, previewUrl: image.url, status: 'done', imageId: image.id,
+    key: `existing-${image.id}`, previewUrl: image.url, status: 'done', imageId: image.id, name: `Ảnh ${initial.indexOf(image) + 1}`,
   })))
   const [notice, setNotice] = useState<string | null>(null)
   const itemsRef = useRef(items)
   const runningRef = useRef(false)
   const controllerRef = useRef<AbortController | null>(null)
   const ownedUrls = useRef(new Set<string>())
+  const mounted = useRef(true)
+  const cooldown = useRef(0)
 
   // Cập nhật ref ngay (không chờ render) để vòng tải tuần tự luôn thấy trạng thái mới nhất.
   const update = (key: string, patch: Partial<UploadItem>) => {
@@ -42,6 +47,11 @@ export function useImageUploads(initial: CommunityImage[] = []) {
 
   const pump = useCallback(async () => {
     if (runningRef.current) return
+    if (Date.now() < cooldown.current) {
+      itemsRef.current = itemsRef.current.map((item) => item.status === 'queued' ? { ...item, status: 'error', error: 'Vui lòng chờ trước khi tải lại ảnh.', retryAt: cooldown.current } : item)
+      setItems(itemsRef.current)
+      return
+    }
     runningRef.current = true
     try {
       for (;;) {
@@ -49,6 +59,7 @@ export function useImageUploads(initial: CommunityImage[] = []) {
         if (!next?.file) break
         update(next.key, { status: 'compressing', error: undefined })
         const blob = await compressImage(next.file)
+        if (!mounted.current) return
         update(next.key, { status: 'uploading' })
         const controller = new AbortController()
         controllerRef.current = controller
@@ -61,7 +72,8 @@ export function useImageUploads(initial: CommunityImage[] = []) {
           update(next.key, { status: 'error', error: error.message })
           // 429: dừng cả hàng đợi, người dùng tự bấm thử lại sau.
           if (error.status === 429) {
-            itemsRef.current = itemsRef.current.map((item) => (item.status === 'queued' ? { ...item, status: 'error', error: error.message } : item))
+            cooldown.current = error.retryAt
+            itemsRef.current = itemsRef.current.map((item) => (item.status === 'queued' || item.key === next.key ? { ...item, status: 'error', error: error.message, retryAt: error.retryAt } : item))
             setItems(itemsRef.current)
             break
           }
@@ -82,7 +94,7 @@ export function useImageUploads(initial: CommunityImage[] = []) {
       if (invalid) { problems.push(`${file.name}: ${invalid}`); continue }
       const previewUrl = URL.createObjectURL(file)
       ownedUrls.current.add(previewUrl)
-      accepted.push({ key: `new-${++sequence}`, previewUrl, status: 'queued', file })
+      accepted.push({ key: `new-${++sequence}`, previewUrl, status: 'queued', file, name: file.name, size: file.size })
     }
     setNotice(problems.length ? problems.join(' ') : null)
     if (accepted.length) {
@@ -103,15 +115,21 @@ export function useImageUploads(initial: CommunityImage[] = []) {
   }, [])
 
   const retry = useCallback((key: string) => {
+    if (Date.now() < cooldown.current) return
     itemsRef.current = itemsRef.current.map((item) => (item.key === key && item.file ? { ...item, status: 'queued', error: undefined } : item))
     setItems(itemsRef.current)
     void pump()
   }, [pump])
 
-  useEffect(() => () => {
-    controllerRef.current?.abort()
-    for (const url of ownedUrls.current) URL.revokeObjectURL(url)
-    ownedUrls.current.clear()
+  useEffect(() => {
+    mounted.current = true
+    const urls = ownedUrls.current
+    return () => {
+      mounted.current = false
+      controllerRef.current?.abort()
+      for (const url of urls) URL.revokeObjectURL(url)
+      urls.clear()
+    }
   }, [])
 
   const busy = items.some((item) => item.status === 'queued' || item.status === 'compressing' || item.status === 'uploading')

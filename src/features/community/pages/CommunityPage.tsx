@@ -1,4 +1,3 @@
-import { PencilLine } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -169,7 +168,7 @@ export function CommunityPage() {
       {visibleItems.map((post) => <PostCard key={post.id} post={post} showStatus={tab === 'mine'} {...cardProps} />)}
 
       {state.status === 'ready' && visibleItems.length === 0 && visiblePinned.length === 0 && !focusedPost && (
-        tab === 'mine' ? <FeedEmpty title="Bạn chưa có bài viết nào" text="Hãy chia sẻ câu chuyện đầu tiên với các mẹ nhé." action={<button type="button" className="nm-primary-action" onClick={() => compose()}>Viết bài</button>} />
+        tab === 'mine' ? <FeedEmpty title="Bạn chưa có bài viết nào" text="Hãy chia sẻ câu chuyện đầu tiên với các mẹ nhé." />
           : tab === 'saved' ? <FeedEmpty title="Chưa có bài đã lưu" text="Bấm “Lưu” trên bài viết để đọc lại sau." />
             : <FeedEmpty title="Chưa có bài viết phù hợp" text="Thử chọn chủ đề khác hoặc là người mở đầu câu chuyện." />)}
 
@@ -184,7 +183,7 @@ export function CommunityPage() {
   return <main className={`nm-community-page${isDesktop ? ' is-wide' : ''}`}>
     {isDesktop
       ? <div className="nm-community-layout">
-        <CommunitySidebar tab={tab} topic={topic} hasImages={hasImages} onChange={changeFilters} onCompose={compose} />
+        <CommunitySidebar tab={tab} topic={topic} hasImages={hasImages} onChange={changeFilters} />
         <div className="nm-community-center">
           {tab !== 'saved' && <ComposerPrompt name={displayName} onCompose={compose} />}
           {feedSection}
@@ -193,17 +192,17 @@ export function CommunityPage() {
       </div>
       : <>
         <header className="nm-community-hero">
-          <div>
+          <div className="nm-community-intro">
             <span className="nm-eyebrow">NutriMom · Cộng đồng</span>
-            <h1>Cộng đồng dành cho mẹ</h1>
-            <p>Chia sẻ hành trình mang thai, hỏi đáp và động viên nhau mỗi ngày.</p>
+            <h1>Cộng đồng của mẹ</h1>
+            <p>Chia sẻ, hỏi đáp và đồng hành cùng mẹ mỗi ngày.</p>
           </div>
           <div className="nm-community-hero__actions">
             {notifications}
-            <button type="button" className="nm-primary-action" onClick={compose}><PencilLine size={18} aria-hidden="true" />Viết bài</button>
           </div>
         </header>
         <CommunityFilters tab={tab} topic={topic} hasImages={hasImages} onChange={changeFilters} />
+        {tab !== 'saved' && <ComposerPrompt name={displayName} onCompose={compose} />}
         {feedSection}
       </>}
 

@@ -1,6 +1,6 @@
 import { CaretDown, List, X } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { AnimatedTabs, type AnimatedTab } from '@/components/ui/animated-tabs'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
@@ -26,7 +26,6 @@ export function AuthenticatedNavbar() {
     movement: 0,
     visible: true,
   })
-  const navigate = useNavigate()
   const location = useLocation()
   useEffect(() => {
     function onPointer(event: PointerEvent) {
@@ -97,7 +96,6 @@ export function AuthenticatedNavbar() {
       /* The local session is cleared even if the server is unavailable. */
     } finally {
       setBusy(false)
-      navigate('/login', { replace: true })
     }
   }
   const name =

@@ -147,19 +147,17 @@ async function me(): Promise<User> {
 }
 
 async function logout() {
-  const scope = getSessionScope()
   const current = getSession()
-  try {
-    if (current?.refreshToken) {
-      await apiClient.request<{ logged_out: boolean }>('/auth/logout', {
-        method: 'POST',
-        authenticated: false,
-        retryAfterRefresh: false,
-        body: JSON.stringify({ refresh_token: current.refreshToken }),
-      })
-    }
-  } finally {
-    if (scope === getSessionScope()) clearSession()
+  // Local logout is immediate, even when remote token revocation is slow or fails.
+  // Its eventual response must not clear a session accepted in the meantime.
+  clearSession()
+  if (current?.refreshToken) {
+    await apiClient.request<{ logged_out: boolean }>('/auth/logout', {
+      method: 'POST',
+      authenticated: false,
+      retryAfterRefresh: false,
+      body: JSON.stringify({ refresh_token: current.refreshToken }),
+    })
   }
 }
 

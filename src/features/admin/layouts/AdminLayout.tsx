@@ -12,6 +12,7 @@ import { parseAdminNotificationQuery } from '../model/admin-notifications'
 import { useAdminRealtimeOwner } from '../hooks/useAdminRealtimeOwner'
 import '../styles/admin.css'
 import '../styles/admin-dashboard.css'
+import '../styles/admin-sidebar.css'
 import '@/features/notifications/styles/notifications.css'
 
 export function AdminLayout() {
@@ -23,6 +24,8 @@ export function AdminLayout() {
 function AdminWorkspace() {
   useAdminRealtimeOwner()
   const [sidebarOpen,setSidebarOpen] = useState(false)
+  // Intentionally not persisted: every full reload starts at the original width.
+  const [sidebarCollapsed,setSidebarCollapsed] = useState(false)
   const [bellOpen,setBellOpen] = useState(false)
   const [denied,setDenied] = useState(false)
   const location = useLocation()
@@ -54,8 +57,8 @@ function AdminWorkspace() {
     }
   },[])
   useEffect(() => { setSidebarOpen(false); setBellOpen(false) },[location.pathname])
-  return <AdminLoginRevealContext.Provider value={revealContext}><AdminNotificationContext.Provider value={feed}><div className="admin-shell" ref={shell}>
-    <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+  return <AdminLoginRevealContext.Provider value={revealContext}><AdminNotificationContext.Provider value={feed}><div className={`admin-shell${sidebarCollapsed ? ' has-collapsed-sidebar' : ''}`} ref={shell}>
+    <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((value) => !value)} />
     <div className="admin-main"><AdminTopbar onMenuOpen={() => setSidebarOpen(true)} bellOpen={bellOpen} setBellOpen={setBellOpen} />
       <main className="admin-content">{denied ? <section className="admin-card admin-state" role="alert"><h1>Bạn không đủ quyền truy cập Admin</h1><p>Dữ liệu của phiên đã được xóa. Vui lòng đăng nhập bằng tài khoản có quyền phù hợp.</p></section> : <Outlet />}</main>
     </div>

@@ -1,0 +1,42 @@
+/* Collapse is local to the shell. Hover expansion overlays content and never reloads a page. */
+.admin-sidebar { overflow: hidden; }
+.admin-brand { flex-shrink: 0; padding-inline: 12px; }
+.admin-brand > div { min-width: 0; }
+.admin-sidebar-scroll { flex: 1; min-height: 0; width: 100%; }
+.admin-sidebar-scroll [data-slot="scroll-area-viewport"] { overscroll-behavior: contain; }
+.admin-sidebar-scroll [data-slot="scroll-area-thumb"] { background: var(--workspace-sidebar-text-muted); opacity: .4; }
+.admin-nav { gap: 19px; padding: 16px 12px 22px; }
+.admin-nav-group { display: grid; gap: 3px; min-width: 0; }
+.admin-nav-label { margin-bottom: 5px; padding-inline: 10px; font-size: 9px; letter-spacing: .08em; line-height: 1.6; }
+.admin-nav-link { min-height: 39px; }
+.admin-nav-link span, .admin-brand > div { transition: opacity .18s ease, transform .18s ease; }
+.admin-sidebar-toggle { display: flex; align-items: center; gap: 9px; flex: none; min-height: 34px; margin: 0 12px; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--workspace-sidebar-text-muted) 25%, transparent); border-radius: 9px; color: var(--workspace-sidebar-text-muted); background: transparent; cursor: pointer; font: inherit; font-size: 10px; }
+.admin-sidebar-toggle svg { flex: none; }
+.admin-sidebar-toggle:hover { color: var(--workspace-sidebar-text-strong); background: rgba(255,255,255,.06); }
+.admin-sidebar :is(button, a):focus-visible { outline: 2px solid var(--workspace-sidebar-text); outline-offset: -2px; }
+.admin-sidebar-footer { flex: none; margin: 0; padding: 16px 22px; border-top: 1px solid color-mix(in srgb, var(--workspace-sidebar-text-muted) 15%, transparent); white-space: nowrap; }
+@media (min-width: 1021px) {
+  .admin-sidebar { transition: width .28s cubic-bezier(.22, 1, .36, 1), box-shadow .28s ease; }
+  .admin-main { transition: margin-left .28s cubic-bezier(.22, 1, .36, 1); }
+  /* Keep the menu layout fixed while the outer rail reveals/clips it. */
+  .admin-sidebar .admin-brand, .admin-sidebar .admin-sidebar-scroll, .admin-sidebar .admin-sidebar-footer { width: 220px; flex-shrink: 0; }
+  .admin-sidebar-toggle { width: 196px; overflow: hidden; white-space: nowrap; }
+  .admin-sidebar-toggle svg { transition: transform .28s cubic-bezier(.22, 1, .36, 1); }
+  .admin-sidebar.is-collapsed .admin-sidebar-toggle svg { transform: rotateY(180deg); }
+  .admin-sidebar .admin-nav-link { padding-inline: 14px; }
+  .admin-sidebar .admin-brand { padding-left: 18px; }
+  .admin-sidebar :is(.admin-brand > div, .admin-sidebar-toggle span, .admin-nav-link span, .admin-nav-label, .admin-sidebar-footer) { opacity: 1; transform: translateX(0); transition: opacity .18s ease, transform .24s cubic-bezier(.22, 1, .36, 1); }
+  .has-collapsed-sidebar .admin-main { margin-left: 72px; }
+  .admin-sidebar.is-collapsed { width: 72px; }
+  .admin-sidebar.is-collapsed.is-peek { width: 220px; box-shadow: 12px 0 32px rgba(20,15,30,.16); }
+  .admin-sidebar.is-collapsed:not(.is-peek) .admin-brand > div,
+  .admin-sidebar.is-collapsed:not(.is-peek) .admin-sidebar-toggle span,
+  .admin-sidebar.is-collapsed:not(.is-peek) .admin-nav-link span,
+  .admin-sidebar.is-collapsed:not(.is-peek) .admin-nav-label,
+  .admin-sidebar.is-collapsed:not(.is-peek) .admin-sidebar-footer { opacity: 0; transform: translateX(-6px); }
+}
+@media (max-width: 1020px) { .admin-sidebar-toggle { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar, .admin-main, .admin-sidebar .admin-sidebar-toggle svg,
+  .admin-sidebar :is(.admin-brand > div, .admin-sidebar-toggle span, .admin-nav-link span, .admin-nav-label, .admin-sidebar-footer) { transition: none; }
+}

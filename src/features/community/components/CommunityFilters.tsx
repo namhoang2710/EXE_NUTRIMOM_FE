@@ -1,5 +1,6 @@
 import { communityTopics } from '../model/community-topics'
 import type { PostTopic } from '../model/community-types'
+import { CommunitySelect } from './CommunitySelect'
 
 export type CommunityTab = 'all' | 'saved' | 'mine'
 
@@ -21,9 +22,8 @@ export function CommunityFilters({ tab, topic, hasImages, onChange }: Props) {
     <div className="nm-community-tabs" role="tablist" aria-label="Danh sách bài viết">
       {tabs.map((item) => <button key={item.value} type="button" role="tab" aria-selected={tab === item.value} className={tab === item.value ? 'is-active' : ''} onClick={() => onChange({ tab: item.value })}>{item.label}</button>)}
     </div>
-    {tab !== 'mine' && <div className="nm-community-chips" role="group" aria-label="Lọc theo chủ đề">
-      <button type="button" aria-pressed={!topic} className={!topic ? 'is-active' : ''} onClick={() => onChange({ topic: null })}>Tất cả</button>
-      {communityTopics.map((item) => <button key={item.value} type="button" aria-pressed={topic === item.value} className={topic === item.value ? 'is-active' : ''} onClick={() => onChange({ topic: item.value })}>{item.label}</button>)}
+    {tab !== 'mine' && <div className="nm-community-mobile-filters">
+      <CommunitySelect label="Chủ đề" value={topic ?? ''} options={[{ value: '', label: 'Tất cả chủ đề' }, ...communityTopics]} onChange={(value) => onChange({ topic: value ? value as PostTopic : null })} />
       <label className="nm-community-switch"><input type="checkbox" checked={hasImages} onChange={(event) => onChange({ hasImages: event.target.checked })} />Có ảnh</label>
     </div>}
   </div>

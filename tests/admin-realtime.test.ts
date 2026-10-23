@@ -8,6 +8,13 @@ import { createAdminReadCoordinator } from '../src/features/admin/model/admin-re
 import { normalizeAdminNotificationCount, normalizeAdminNotificationPage } from '../src/features/admin/model/admin-notifications.ts'
 
 const userId = '11111111-1111-4111-8111-111111111111'
+test('community pending count is optional for old servers and validated when present', () => {
+  const base = { protocol_version: 1, admin_user_id: userId, dashboard_revision: '1', notifications_revision: '1', unread_count: 0 }
+  const event = decodeRealtimeEvent('update', JSON.stringify({ ...base, community_pending_count: 3 }), userId)
+  assert.equal(event?.type === 'update' && event.snapshot.community_pending_count, 3)
+  assert.equal(decodeRealtimeEvent('ready', JSON.stringify(base), userId)?.type, 'ready')
+  for (const count of [-1, 1.5, '3', null]) assert.throws(() => decodeRealtimeEvent('update', JSON.stringify({ ...base, community_pending_count: count }), userId), AdminRealtimeContractError)
+})
 const snapshot = (d='17',n='8',count=3) => ({ protocol_version:1 as const,admin_user_id:userId,dashboard_revision:d,notifications_revision:n,unread_count:count })
 const tick = async () => { for (let i=0;i<15;i++) await Promise.resolve() }
 function fakeClock() {

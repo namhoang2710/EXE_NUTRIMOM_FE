@@ -4,6 +4,7 @@ import { communityApi } from '../api/community-api'
 import { friendlyError } from '../model/community-errors'
 import { communityLimits, reportReasons } from '../model/community-topics'
 import type { ReportReason } from '../model/community-types'
+import { RetryButton } from './FeedStatus'
 
 interface Props {
   postId: string | null
@@ -18,15 +19,16 @@ export function ReportDialog({ postId, onClose }: Props) {
   const sendingRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [retryAt, setRetryAt] = useState(0)
 
   function close() {
     if (busy) return
-    setReason('SPAM'); setNote(''); setError(null); setDone(false)
+    setReason('SPAM'); setNote(''); setError(null); setDone(false); setRetryAt(0)
     onClose()
   }
 
   async function submit() {
-    if (!postId || sendingRef.current) return
+    if (!postId || sendingRef.current || Date.now() < retryAt) return
     sendingRef.current = true
     setBusy(true)
     setError(null)
@@ -34,17 +36,17 @@ export function ReportDialog({ postId, onClose }: Props) {
       await communityApi.report(postId, reason, note.trim())
       setDone(true)
     } catch (reason) {
-      setError(friendlyError(reason).message)
+      const error = friendlyError(reason); setError(error.message); setRetryAt(error.retryAt)
     } finally {
       sendingRef.current = false
       setBusy(false)
     }
   }
 
-  return <AccessibleDialog open={postId !== null} title="Báo cáo bài viết" description="Báo cáo được gửi cho quản trị viên. Người đăng không biết ai đã báo cáo." onClose={close} busy={busy}
+  return <AccessibleDialog animated open={postId !== null} title="Báo cáo bài viết" description="Báo cáo được gửi cho quản trị viên. Người đăng không biết ai đã báo cáo." onClose={close} busy={busy}
     footer={done
       ? <button type="button" className="nm-primary-action" onClick={close}>Đóng</button>
-      : <><button type="button" className="nm-secondary-action" onClick={close} disabled={busy}>Huỷ</button><button type="button" className="nm-primary-action" onClick={() => void submit()} disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi báo cáo'}</button></>}>
+      : <><button type="button" className="nm-secondary-action" onClick={close} disabled={busy}>Huỷ</button>{retryAt ? <RetryButton retryAt={retryAt} onRetry={() => void submit()} /> : <button type="button" className="nm-primary-action" onClick={() => void submit()} disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi báo cáo'}</button>}</>}>
     {done
       ? <p role="status" className="nm-community-success">Cảm ơn bạn! Báo cáo đã được ghi nhận và sẽ được xem xét.</p>
       : <div className="nm-community-report">

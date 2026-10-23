@@ -21,6 +21,13 @@ function ProfileUnavailable() {
   return <main className="page-skeleton"><section className="skeleton-panel"><h1>Chưa thể tải hồ sơ</h1><p>{profileError}</p><button type="button" onClick={() => void reloadProfile().catch(() => undefined)}>Tải lại</button></section></main>
 }
 
+function LoginRequired() {
+  const { logoutRedirect } = useAuth()
+  const location = useLocation()
+  if (location.key === logoutRedirect?.locationKey) return <Navigate to={logoutRedirect.to} replace state={null} />
+  return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />
+}
+
 export function GuestOnly({ children, animateExit = false }: PropsWithChildren<{ animateExit?: boolean }>) {
   const { status, user, profile } = useAuth()
   const location = useLocation()
@@ -45,27 +52,24 @@ export function GuestOnly({ children, animateExit = false }: PropsWithChildren<{
 
 export function AdminOnly({ children }: PropsWithChildren) {
   const { status, user, profile } = useAuth()
-  const location = useLocation()
   if (status === 'loading') return <PageSkeleton />
-  if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (status === 'anonymous') return <LoginRequired />
   if (!isAdminUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
   return children
 }
 
 export function ExpertOnly({ children }: PropsWithChildren) {
   const { status, user, profile } = useAuth()
-  const location = useLocation()
   if (status === 'loading') return <PageSkeleton />
-  if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
+  if (status === 'anonymous') return <LoginRequired />
   if (!isExpertUser(user) || isAdminUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
   return children
 }
 
 export function ProtectedRoute({ children, publicLoadingFallback }: PropsWithChildren<{ publicLoadingFallback?: ReactNode }>) {
   const { status, profile, profileError, user } = useAuth()
-  const location = useLocation()
   if (status === 'loading') return publicLoadingFallback ?? <PageSkeleton />
-  if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />
+  if (status === 'anonymous') return <LoginRequired />
   if (isAdminUser(user) || isExpertUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
   if (!profile) return profileError ? <ProfileUnavailable /> : <PageSkeleton />
   if (profile.onboarding_status === 'PROFILE_REQUIRED') return <Navigate to="/onboarding/profile" replace />
@@ -74,9 +78,8 @@ export function ProtectedRoute({ children, publicLoadingFallback }: PropsWithChi
 
 export function OnboardingRoute({ children, step }: PropsWithChildren<{ step: 'PROFILE_REQUIRED' | 'CONTEXT_REQUIRED' }>) {
   const { status, profile, profileError, user } = useAuth()
-  const location = useLocation()
   if (status === 'loading') return <PageSkeleton />
-  if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (status === 'anonymous') return <LoginRequired />
   if (isAdminUser(user) || isExpertUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
   if (!profile) return profileError ? <ProfileUnavailable /> : <PageSkeleton />
   if (step === 'CONTEXT_REQUIRED') return profile.onboarding_status === 'CONTEXT_REQUIRED' ? children : <Navigate to={destination(profile.onboarding_status)} replace />
