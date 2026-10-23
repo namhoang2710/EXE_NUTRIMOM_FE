@@ -18,6 +18,7 @@ export interface PricingPlan {
   amount: number
   cadence: string
   durationDays: number
+  durationLabel: string
   description: string
   featured: boolean
   features: PricingFeature[]
@@ -49,7 +50,8 @@ export function toPricingPlan(dto: SubscriptionPlanDto): PricingPlan {
     name: dto.name,
     price: `${dto.price.toLocaleString('vi-VN')}đ`,
     amount: dto.price,
-    cadence: dto.id === 'FREE' ? 'Mãi mãi' : `${dto.duration_days} ngày`,
+    cadence: dto.duration_label,
+    durationLabel: dto.duration_label,
     durationDays: dto.duration_days,
     description: dto.description,
     featured: dto.featured,

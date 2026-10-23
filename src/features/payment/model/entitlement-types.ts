@@ -21,6 +21,8 @@ export interface SubscriptionPlanDto {
   price: number
   currency: string
   duration_days: number
+  duration_iso: string
+  duration_label: string
   featured: boolean
   features: PlanFeatureDto[]
   scan_quota: ScanQuotaDto
