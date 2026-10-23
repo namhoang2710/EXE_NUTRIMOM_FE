@@ -12,7 +12,7 @@ export function PostImages({ images }: { images: CommunityImage[] }) {
         <img src={image.url} alt="" width={image.width} height={image.height} loading="lazy" decoding="async" />
       </button>)}
     </div>
-    <AccessibleDialog open={viewing !== null} title="Xem ảnh" onClose={() => setViewing(null)} className="nm-community-viewer">
+    <AccessibleDialog animated open={viewing !== null} title="Xem ảnh" onClose={() => setViewing(null)} className="nm-community-viewer">
       {viewing && <img src={viewing.url} alt="" width={viewing.width} height={viewing.height} decoding="async" />}
     </AccessibleDialog>
   </>

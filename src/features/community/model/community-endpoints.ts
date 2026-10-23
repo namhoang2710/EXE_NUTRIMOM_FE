@@ -14,7 +14,7 @@ function withQuery(path: string, params: Record<string, string | number | boolea
 
 export const communityEndpoints = {
   feed: (query: FeedQuery, cursor: string | null, limit: number) => withQuery('/community/posts', {
-    cursor, limit, topic: query.topic, has_images: query.hasImages, saved: query.saved,
+    cursor, limit, topic: query.topic, hasImages: query.hasImages, saved: query.saved,
   }),
   post: (postId: string) => `/community/posts/${id(postId)}`,
   posts: '/community/posts',
@@ -32,7 +32,9 @@ export const communityEndpoints = {
   savedItems: (type: 'ALL' | 'KNOWLEDGE' | 'COMMUNITY', cursor: string | null, limit: number) =>
     withQuery('/me/saved-items', { type, cursor, limit }),
   admin: {
-    posts: (status: PostStatus | undefined, cursor: string | null, limit: number) => withQuery('/admin/community/posts', { status, cursor, limit }),
+    pendingCount: '/admin/community/posts/pending-count',
+    posts: (status: PostStatus | undefined, cursor: string | null, limit: number, pinned = false) => withQuery('/admin/community/posts', { status, pinned, cursor, limit }),
+    create: '/admin/community/posts',
     post: (postId: string) => `/admin/community/posts/${id(postId)}`,
     approve: (postId: string) => `/admin/community/posts/${id(postId)}/approve`,
     reject: (postId: string) => `/admin/community/posts/${id(postId)}/reject`,

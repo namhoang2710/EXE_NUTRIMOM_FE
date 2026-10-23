@@ -34,6 +34,7 @@ export function friendlyError(reason: unknown, now = Date.now()): FriendlyError 
       return { message, retryAt: now + waitMs, status: 429, retryable: true }
     }
     const message = byStatus[reason.status]
+      || (reason.code === 'COMMUNITY_PIN_LIMIT_REACHED' ? 'Cộng đồng đã đủ 3 bài ghim. Hãy bỏ ghim một bài hoặc đăng bài này không ghim.' : '')
       || (reason.status >= 500 || reason.status === 0 ? 'Máy chủ đang gặp sự cố hoặc mất kết nối. Vui lòng thử lại.' : reason.message)
     return { message, retryAt: 0, status: reason.status, retryable: reason.status === 0 || reason.status >= 500 || reason.retryable }
   }

@@ -4,7 +4,7 @@ import '@/features/notifications/styles/notifications.css'
 import { CalendarBlank, CalendarDots, ChartPieSlice, FirstAidKit, List, SignOut, Star, UsersThree, X } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { expertConsoleApi } from '../api/expert-console-api'
@@ -41,7 +41,6 @@ export function ExpertDashboardPage() {
   const toastId = useRef(0)
   const reduceMotion = useReducedMotion()
   const { logout } = useAuth()
-  const navigate = useNavigate()
   const profile = useExpertResource((signal) => expertConsoleApi.profile(signal), [])
   const overview = useExpertResource((signal) => expertConsoleApi.overview(signal), [])
   const profileReloadRef = useRef(profile.reload)
@@ -92,8 +91,7 @@ export function ExpertDashboardPage() {
   const initials = useMemo(() => profile.data?.fullName.split(/\s+/).slice(-2).map((word) => word[0]).join('').toUpperCase() || 'NM', [profile.data])
 
   async function handleLogout() {
-    await logout()
-    navigate('/login', { replace: true })
+    await logout().catch(() => undefined)
   }
 
   function openProfile() {

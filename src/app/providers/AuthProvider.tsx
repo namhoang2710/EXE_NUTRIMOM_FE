@@ -2,6 +2,7 @@ import { overviewLoginEntry } from '@/features/user/model/overview-login-entry'
 import { dashboardApi } from '@/features/maternity/api/domain-api'
 import { expireProfileResource } from '@/core/api/profile-requests'
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { clearSession, getSession, getSessionScope } from '@/core/auth/token-store'
 import { authApi } from '@/features/auth/api/auth-api'
 import type { LoginInput, RegisterInput, RequestOtpInput, User, VerifyOtpInput } from '@/features/auth/model/auth-types'
@@ -10,8 +11,12 @@ import { userApi } from '@/features/user/api/user-api'
 import type { UserProfile, ProfilePatch } from '@/features/user/model/user-types'
 import { isAdminUser, isExpertUser } from '@/features/auth/model/role-routing'
 import { adminLoginAnimation } from '@/features/admin/model/admin-login-animation'
+import { clearReturnPath } from '@/features/community/model/community-return-path'
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [logoutRedirect, setLogoutRedirect] = useState<AuthContextValue['logoutRedirect']>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -66,6 +71,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const acceptSession = useCallback(async (sessionUser: User) => {
     const scope = getSessionScope()
+    setLogoutRedirect(null)
     if (!isAdminUser(sessionUser) && !isExpertUser(sessionUser)) {
       overviewLoginEntry.arm(scope)
     }
@@ -111,15 +117,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return acceptSession(session.user)
   }, [acceptSession])
   const refresh = useCallback(async () => { const session = await authApi.refresh(); if (mounted.current) setUser(session.user) }, [])
-  const logout = useCallback(async () => {
-    const scope = getSessionScope()
-    try { await authApi.logout() } finally {
-      if (mounted.current && (scope === getSessionScope() || !getSession())) { setUser(null); setProfile(null); setProfileError(null); setStatus('anonymous') }
-    }
-  }, [])
+  const logout = useCallback(async (destination: '/login' | '/' = '/login') => {
+    // Router navigation may be deferred. Guards must not save this old history
+    // entry as a return target while the logout navigation is still committing.
+    setLogoutRedirect({ locationKey: location.key, to: destination })
+    clearReturnPath()
+    navigate(destination, { replace: true, state: null })
+    await authApi.logout()
+  }, [location.key, navigate])
 
   const value = useMemo<AuthContextValue>(() => ({
-    status, user, profile, profileError, reloadProfile, updateProfile, login, register, activateAccount, resendActivation, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout,
-  }), [status, user, profile, profileError, reloadProfile, updateProfile, login, register, activateAccount, resendActivation, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout])
+    status, user, profile, profileError, logoutRedirect, reloadProfile, updateProfile, login, register, activateAccount, resendActivation, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout,
+  }), [status, user, profile, profileError, logoutRedirect, reloadProfile, updateProfile, login, register, activateAccount, resendActivation, requestOtp, verifyOtp, requestMagicLink, verifyMagicLink, refresh, logout])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

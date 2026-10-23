@@ -19,6 +19,7 @@ import {
 let scrollLockCount = 0
 let previousOverflow = ''
 let previousPaddingRight = ''
+const dialogStack: Array<HTMLElement | null> = []
 
 interface AccessibleDialogProps {
   open: boolean
@@ -81,6 +82,8 @@ function DialogPanel({
   onCloseRef.current = onClose
 
   useEffect(() => {
+    const element = panelRef.current
+    dialogStack.push(element)
     const opener = document.activeElement as HTMLElement | null
     const frame = window.requestAnimationFrame(() =>
       (initialFocusRef?.current ?? closeRef.current)?.focus(),
@@ -98,6 +101,7 @@ function DialogPanel({
     }
 
     function onKeyDown(event: KeyboardEvent) {
+      if (dialogStack.at(-1) !== element) return
       if (event.key === 'Escape') {
         if (shouldCloseDialogForKey(event.key, busyRef.current))
           onCloseRef.current()
@@ -131,6 +135,8 @@ function DialogPanel({
 
     document.addEventListener('keydown', onKeyDown)
     return () => {
+      const stackIndex = dialogStack.lastIndexOf(element)
+      if (stackIndex !== -1) dialogStack.splice(stackIndex, 1)
       window.cancelAnimationFrame(frame)
       document.removeEventListener('keydown', onKeyDown)
       scrollLockCount = Math.max(0, scrollLockCount - 1)

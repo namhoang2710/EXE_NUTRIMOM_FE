@@ -1,5 +1,6 @@
-import { BookmarkSimple, Hash, ImageSquare, Newspaper, PencilLine, UserCircle } from '@phosphor-icons/react'
+import { BookmarkSimple, Hash, ImageSquare, Newspaper, UserCircle } from '@phosphor-icons/react'
 import type { ComponentType } from 'react'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { communityTopics } from '../model/community-topics'
 import type { PostTopic } from '../model/community-types'
 import type { CommunityTab } from './CommunityFilters'
@@ -9,7 +10,6 @@ interface Props {
   topic?: PostTopic
   hasImages: boolean
   onChange: (next: { tab?: CommunityTab; topic?: PostTopic | null; hasImages?: boolean }) => void
-  onCompose: () => void
 }
 
 const tabs: Array<{ value: CommunityTab; label: string; icon: ComponentType<{ size?: number; weight?: 'regular' | 'fill' | 'duotone' }> }> = [
@@ -19,14 +19,14 @@ const tabs: Array<{ value: CommunityTab; label: string; icon: ComponentType<{ si
 ]
 
 /** Cột trái trên desktop: điều hướng danh sách + chủ đề dạng menu dọc. */
-export function CommunitySidebar({ tab, topic, hasImages, onChange, onCompose }: Props) {
+export function CommunitySidebar({ tab, topic, hasImages, onChange }: Props) {
   return <aside className="nm-community-side is-left" aria-label="Điều hướng cộng đồng">
-    <div className="nm-community-side__brand">
+    <ScrollArea className="nm-community-sidebar-scroll"><div className="nm-community-sidebar-content">
+    <div className="nm-community-side__brand nm-community-intro">
       <span className="nm-eyebrow">NutriMom · Cộng đồng</span>
-      <h1>Cộng đồng dành cho mẹ</h1>
-      <p>Chia sẻ hành trình mang thai, hỏi đáp và động viên nhau mỗi ngày.</p>
+      <h1>Cộng đồng của mẹ</h1>
+      <p>Chia sẻ, hỏi đáp và đồng hành cùng mẹ mỗi ngày.</p>
     </div>
-    <button type="button" className="nm-primary-action nm-community-side__compose" onClick={onCompose}><PencilLine size={18} aria-hidden="true" />Viết bài</button>
 
     <nav className="nm-community-menu" aria-label="Danh sách bài viết">
       {tabs.map(({ value, label, icon: Icon }) => <button key={value} type="button" aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'is-active' : ''} onClick={() => onChange({ tab: value })}>
@@ -42,5 +42,6 @@ export function CommunitySidebar({ tab, topic, hasImages, onChange, onCompose }:
       </button>)}
       <label className="nm-community-menu__toggle"><input type="checkbox" checked={hasImages} onChange={(event) => onChange({ hasImages: event.target.checked })} /><ImageSquare size={18} aria-hidden="true" />Chỉ bài có ảnh</label>
     </div>}
+    </div></ScrollArea>
   </aside>
 }

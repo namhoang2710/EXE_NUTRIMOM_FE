@@ -30,6 +30,7 @@ export interface CommunityPost {
   liked_by_me: boolean
   saved_by_me: boolean
   pinned: boolean
+  official?: boolean
   status: PostStatus
   reject_reason?: string
   can_edit: boolean
@@ -60,6 +61,10 @@ export interface PostInput {
   content: string
   topic: PostTopic
   image_ids: string[]
+}
+
+export interface AdminPostInput extends PostInput {
+  pinned?: boolean
 }
 
 export interface MediaUpload {

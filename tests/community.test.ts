@@ -84,7 +84,7 @@ test('community return path only allows the community page with safe parameters'
 test('endpoints encode ids and skip empty filters', () => {
   assert.equal(communityEndpoints.feed({}, null, 10), '/community/posts?limit=10')
   assert.equal(communityEndpoints.feed({ topic: 'NUTRITION', hasImages: true, saved: false }, 'abc', 10),
-    '/community/posts?cursor=abc&limit=10&topic=NUTRITION&has_images=true')
+    '/community/posts?cursor=abc&limit=10&topic=NUTRITION&hasImages=true')
   assert.equal(communityEndpoints.like('a/b'), '/community/posts/a%2Fb/like')
 })
 
