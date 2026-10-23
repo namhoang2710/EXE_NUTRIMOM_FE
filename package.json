@@ -18,6 +18,7 @@
     "test:nutrition:guide": "node --experimental-strip-types tests/nutrition-guide.browser.mjs",
     "test:nutrition:refinements": "node --experimental-strip-types tests/nutrition-refinements.browser.mjs",
     "test:entitlements:browser": "node --experimental-strip-types tests/entitlements.browser.mjs",
+    "test:payment-history:browser": "node --experimental-strip-types tests/payment-history.browser.mjs",
     "test:entitlements:lighthouse": "node --experimental-strip-types tests/entitlements.lighthouse.mjs",
     "preview": "vite preview"
   },

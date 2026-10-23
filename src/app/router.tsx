@@ -51,6 +51,7 @@ const ServicesPage = lazy(() => import('@/features/landing/pages/ServicesPage').
 const NutritionPage = lazy(() => import('@/features/nutrition/pages/NutritionPage').then((module) => ({ default: module.NutritionPage })))
 const PaymentCancelPage = lazy(() => import('@/features/payment/pages/PaymentCancelPage').then((module) => ({ default: module.PaymentCancelPage })))
 const PaymentSuccessPage = lazy(() => import('@/features/payment/pages/PaymentSuccessPage').then((module) => ({ default: module.PaymentSuccessPage })))
+const PaymentHistoryPage = lazy(() => import('@/features/payment/pages/PaymentHistoryPage').then((module) => ({ default: module.PaymentHistoryPage })))
 const PricingEntry = lazy(() => import('@/features/payment/pages/PricingEntry').then((module) => ({ default: module.PricingEntry })))
 const AppHomePage = lazy(() => import('@/features/user/pages/AppHomePage').then((module) => ({ default: module.AppHomePage })))
 const ProfilePage = lazy(() => import('@/features/user/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
@@ -127,6 +128,7 @@ export function AppRouter() {
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<Navigate to="/app" replace />} />
+        <Route path="payment-history" element={<Suspense fallback={<UserRouteFallback />}><PaymentHistoryPage /></Suspense>} />
         <Route path="family" element={<Suspense fallback={<UserRouteFallback />}><FamilyPage /></Suspense>} />
         <Route path="family/invitations/:invitationId" element={<Suspense fallback={<UserRouteFallback />}><FamilyInvitationByIdPage /></Suspense>} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />

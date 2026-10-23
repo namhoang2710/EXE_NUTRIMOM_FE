@@ -1,3 +1,6 @@
+import { PaymentDeadline } from '../components/PaymentDeadline'
+import { safePayOSUrl, paymentExpiry } from '../model/payment-lifecycle'
+import { usePaymentClock } from '../hooks/usePaymentClock'
 import { useEntitlements, usePricingCatalog, refreshEntitlements } from '../hooks/useEntitlements'
 import { usePaymentCooldown } from '../hooks/usePaymentCooldown'
 import { SubscriptionStatus } from '../components/SubscriptionStatus'
@@ -317,6 +320,9 @@ function PaymentSummary({
   const reduceMotion = useReducedMotion()
   const demo = payment ? isDemoCheckout(payment.checkout_url) : false
   const amount = payment?.amount ?? plan.amount
+  const now = usePaymentClock(payment?.expires_at)
+  const expiry = paymentExpiry(payment?.expires_at)
+  const checkoutOpen = payment?.status === 'PENDING' && expiry !== null && expiry > now && safePayOSUrl(payment.checkout_url)
 
   return (
     <motion.aside
@@ -368,6 +374,7 @@ function PaymentSummary({
         <div className="nm-payment-grand-total"><dt>Tổng thanh toán</dt><dd><AnimatedPaymentAmount value={amount} /></dd></div>
       </dl>
 
+      {payment?.status === 'PENDING' && <PaymentDeadline expiresAt={payment.expires_at} demo={demo} />}
       {error && <div className="nm-payment-inline-error" role="alert"><WarningCircle size={18} aria-hidden="true" /><span>{error}</span></div>}
       <div className="sr-only" role="status" aria-live="polite">{busy ? 'Đang xử lý yêu cầu thanh toán' : ''}</div>
 
@@ -381,8 +388,8 @@ function PaymentSummary({
             {busy ? <CircleNotch className="nm-payment-spinner" size={19} aria-hidden="true" /> : <CheckCircle size={19} aria-hidden="true" />}
             {busy ? 'Đang xác nhận...' : 'Xác nhận thử nghiệm'}
           </button>
-        ) : payment.checkout_url ? (
-          <a className="nm-payment-primary" href={payment.checkout_url}>Mở cổng payOS <ArrowRight size={18} aria-hidden="true" /></a>
+        ) : checkoutOpen ? (
+          <a className="nm-payment-primary" href={checkoutOpen}>Mở cổng payOS <ArrowRight size={18} aria-hidden="true" /></a>
         ) : (
           <Link className="nm-payment-primary" to="/app/profile/support">Liên hệ hỗ trợ <ArrowRight size={18} aria-hidden="true" /></Link>
         )
@@ -460,7 +467,12 @@ function PaidPricingFlow({ planTier, screen, plans }: { planTier: PaidPlanTier; 
       if (currentFlow.current !== requestedFlow) return
       setPayment(order)
       if (!order.checkout_url) throw new Error('Chưa nhận được đường dẫn thanh toán. Vui lòng liên hệ hỗ trợ với mã đơn bên dưới.')
-      if (!isDemoCheckout(order.checkout_url)) window.location.assign(order.checkout_url)
+      if (!isDemoCheckout(order.checkout_url)) {
+        const url = safePayOSUrl(order.checkout_url)
+        const expiry = paymentExpiry(order.expires_at)
+        if (!url || order.status !== 'PENDING' || expiry === null || expiry <= Date.now()) throw new Error('Đơn chưa có liên kết hoặc thời hạn thanh toán hợp lệ. Vui lòng xem lịch sử giao dịch để kiểm tra.')
+        window.location.assign(url)
+      }
     } catch (requestError) {
       cooldown.handleRateLimit(requestError)
       if (currentFlow.current === requestedFlow) {
@@ -540,7 +552,7 @@ function PaidPricingFlow({ planTier, screen, plans }: { planTier: PaidPlanTier; 
                   <div><h3>{plan.name}</h3><p>{plan.cadence}</p></div>
                   <strong>{plan.price}</strong>
                 </div>
-                {subscription?.paid && <p className="nm-payment-purchase-note">{subscription.plan_id === planTier ? `Gia hạn thêm ${plan.durationDays} ngày vào hạn sử dụng còn lại.` : `Quyền lợi của gói mới có hiệu lực ngay khi kích hoạt. Hạn sử dụng được cộng thêm ${plan.durationDays} ngày vào thời gian còn lại.`}</p>}
+                {subscription?.paid && <p className="nm-payment-purchase-note">{subscription.plan_id === planTier ? `Gia hạn thêm ${plan.durationLabel} vào hạn sử dụng còn lại.` : `Quyền lợi của gói mới có hiệu lực ngay khi kích hoạt. Hạn sử dụng được cộng thêm ${plan.durationLabel} vào thời gian còn lại.`}</p>}
                 <ul className="nm-payment-benefits">
                   {plan.features.filter((feature) => feature.included).map((feature) => (
                     <li key={feature.label}><Check className="nm-payment-success-check" size={17} weight="bold" aria-hidden="true" /><span>{feature.label}{feature.code === 'AI_SCAN' && <small>Sắp ra mắt</small>}{feature.detail && <small>{feature.detail}</small>}</span></li>

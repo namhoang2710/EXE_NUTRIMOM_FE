@@ -26,7 +26,7 @@ export function AppLayout({ children }: PropsWithChildren) {
   const bannerHeader =
     overview ||
     pricingCatalog ||
-    ['/app/family', '/app/experts', '/app/contact', '/app/consultations', '/app/knowledge'].includes(location.pathname) ||
+    ['/app/family', '/app/experts', '/app/contact', '/app/consultations', '/app/knowledge', '/app/payment-history'].includes(location.pathname) ||
     location.pathname.startsWith('/app/nutrition')
   const entryStarted = useRef<number | null>(null)
   const [entry, setEntry] = useState<OverviewEntryPhase>('stable')

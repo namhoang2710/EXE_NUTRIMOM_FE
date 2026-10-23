@@ -4,7 +4,7 @@ import { loadPaymentOutcome, refreshPaidSubscription } from '../src/features/pay
 import { isDemoCheckout, parseOrderCode } from '../src/features/payment/model/subscription-plans.ts'
 import type { PaymentOrderResponse, SubscriptionResponse } from '../src/features/payment/model/payment-types.ts'
 
-const order: PaymentOrderResponse = { id: 'order-1', order_code: 123456789, plan_tier: 'PLAN_99K', plan_name: 'Gói Cơ bản 99K', amount: 99000, currency: 'VND', status: 'PENDING', checkout_url: 'https://pay.payos.vn/order', created_at: '2026-10-02T10:00:00Z' }
+const order: PaymentOrderResponse = { id: 'order-1', order_code: 123456789, plan_tier: 'PLAN_99K', plan_name: 'Gói Cơ bản 99K', amount: 99000, currency: 'VND', status: 'PENDING', source: 'REAL', updated_at: '2026-10-02T10:00:00Z', checkout_url: 'https://pay.payos.vn/order', created_at: '2026-10-02T10:00:00Z' }
 const subscription: SubscriptionResponse = { plan_tier: 'PLAN_99K', plan_name: 'Gói Cơ bản 99K', status: 'ACTIVE', active: true, days_remaining: 30 }
 
 test('a pending order never reports success from an existing active subscription', async () => {

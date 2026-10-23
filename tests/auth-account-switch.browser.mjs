@@ -47,6 +47,7 @@ async function scenario(path, { role = 'USER', nextRole = 'USER', width = 1440, 
     else if (apiPath === '/expert/consultation-requests') data = { items: [], page: 1, page_size: 10, total_items: 0, total_pages: 0 }
     else if (apiPath === '/subscription-plans') data = planDtos
     else if (apiPath === '/subscriptions/me') data = entitlementsFor('PLAN_399K')
+    else if (apiPath === '/payments/orders') data = { items: [{ id: activeAccount.id, order_code: activeAccount.id === accountA.id ? 123 : 456, plan_tier: 'PLAN_99K', plan_name: `Giao dịch riêng của ${activeAccount.display_name}`, amount: 99000, currency: 'VND', source: 'REAL', status: 'PAID', created_at: '2026-10-23T01:00:00Z', updated_at: '2026-10-23T01:00:00Z' }], page: 1, page_size: 20, total_items: 1, total_pages: 1 }
     else if (apiPath === '/pregnancies/current') data = null
     else if (apiPath === '/users/me/preferences') data = { timezone: 'Asia/Ho_Chi_Minh', version: 1 }
     else if (apiPath === '/family-groups') data = []
@@ -62,6 +63,7 @@ async function scenario(path, { role = 'USER', nextRole = 'USER', width = 1440, 
     await page.goto(`${base}${path}`)
     if (!guest) {
       await page.locator(role === 'ADMIN' ? '.admin-shell' : ['EXPERT', 'DOCTOR'].includes(role) ? '.expert-shell' : path.startsWith('/onboarding') ? '.nm-account-page' : path.startsWith('/app/profile') ? '.nm-account-workspace' : '.nm-floating-nav').waitFor()
+      if (path.startsWith('/app/payment-history')) await page.getByText(`Giao dịch riêng của ${firstAccount.display_name}`, { exact: true }).first().waitFor()
       if (expired) {
         await page.evaluate(async () => { const tokens = await import('/src/core/auth/token-store.ts'); tokens.clearSession() })
       } else {
@@ -111,6 +113,10 @@ async function scenario(path, { role = 'USER', nextRole = 'USER', width = 1440, 
     if (delay) await page.waitForTimeout(delay + 100)
     assert.equal(page.url(), `${base}${expected}`)
     assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('nutrimom.auth-session')).user.id), expectedId)
+    if (expected.startsWith('/app/payment-history')) {
+      await page.getByText('Giao dịch riêng của Tài khoản B', { exact: true }).first().waitFor()
+      assert.equal(await page.getByText('Giao dịch riêng của Tài khoản A', { exact: true }).count(), 0)
+    }
     results.push(label); console.log('PASS', label)
   } catch (error) {
     await page.screenshot({ path: `${output}/failure.png`, fullPage: true })
@@ -120,6 +126,8 @@ async function scenario(path, { role = 'USER', nextRole = 'USER', width = 1440, 
 }
 
 try {
+  await scenario('/app/payment-history', { freshPath: '/app/payment-history' })
+  await scenario('/app/payment-history', { guest: true })
   await scenario('/app/community?tab=saved&topic=NUTRITION')
   await scenario('/app/nutrition')
   await scenario('/app/knowledge')

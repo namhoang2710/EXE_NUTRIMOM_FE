@@ -41,12 +41,14 @@ function loadSubscription(force = false) {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('nutrimom:session-cleared', () => {
+  const clear = () => {
     cacheGeneration += 1
     cachedSubscription = null
     cachedAt = 0
     subscriptionLoad = null
-  })
+  }
+  window.addEventListener('nutrimom:session-cleared', clear)
+  window.addEventListener('nutrimom:session-changed', clear)
 }
 
 export function useSubscription(enabled = true) {

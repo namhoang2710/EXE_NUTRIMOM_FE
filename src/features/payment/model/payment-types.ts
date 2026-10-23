@@ -16,6 +16,7 @@ export interface PaymentResponse {
   checkout_url: string
   qr_code?: string | null
   description?: string
+  expires_at?: string
 }
 
 export interface SubscriptionResponse {
@@ -37,8 +38,27 @@ export interface PaymentOrderResponse {
   amount: number
   currency: string
   status: PaymentOrderStatus
-  checkout_url: string
+  source: 'REAL' | 'DEMO' | 'LEGACY_UNKNOWN'
+  checkout_url?: string
+  qr_code?: string
   description?: string
-  paid_at?: string | null
+  paid_at?: string
+  expires_at?: string
   created_at: string
+  updated_at: string
+}
+
+export interface PaymentOrderPage {
+  items: PaymentOrderResponse[]
+  page: number
+  page_size: number
+  total_items: number
+  total_pages: number
+}
+
+export interface PaymentHistoryQuery {
+  page?: number
+  pageSize?: number
+  status?: PaymentOrderStatus
+  planTier?: Exclude<PlanTier, 'FREE'>
 }

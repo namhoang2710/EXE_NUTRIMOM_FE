@@ -4,6 +4,8 @@ import { apiClient } from '../src/core/api/api-client.ts'
 import { paymentApi } from '../src/features/payment/api/payment-api.ts'
 import type { PaymentOrderResponse, PaymentResponse, SubscriptionResponse } from '../src/features/payment/model/payment-types.ts'
 
+Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: () => null } })
+
 const subscription: SubscriptionResponse = {
   plan_tier: 'PLAN_99K',
   plan_name: 'Gói Cơ bản',
@@ -19,7 +21,7 @@ const order: PaymentOrderResponse = {
   plan_name: 'Gói Cơ bản',
   amount: 99000,
   currency: 'VND',
-  status: 'PENDING',
+  status: 'PENDING', source: 'REAL', updated_at: '2026-10-02T10:00:00Z',
   checkout_url: 'https://pay.payos.vn/order',
   created_at: '2026-10-02T10:00:00Z',
 }
@@ -55,7 +57,7 @@ test('concurrent subscription and order reads share one in-flight request', asyn
 test('checkout forwards a stable idempotency key to the API client', async () => {
   const originalRequest = apiClient.request
   let capturedKey: string | undefined
-  const response: PaymentResponse = { ...order }
+  const response: PaymentResponse = { ...order, checkout_url: 'https://pay.payos.vn/order' }
   apiClient.request = (async (_path: string, options?: { idempotencyKey?: string }) => {
     capturedKey = options?.idempotencyKey
     return response
