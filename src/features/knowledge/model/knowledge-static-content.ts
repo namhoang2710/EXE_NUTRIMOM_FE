@@ -1,6 +1,6 @@
 export const communityPreview = {
   title: 'Một nơi để mẹ được lắng nghe',
-  description: 'Community sẽ là không gian riêng để thành viên đặt câu hỏi và chia sẻ trải nghiệm. Những câu chuyện cá nhân được phân biệt rõ với bài viết chính thức của NutriMom.',
+  description: 'Cộng đồng là nơi thành viên đặt câu hỏi và chia sẻ trải nghiệm. Những câu chuyện cá nhân được phân biệt rõ với bài viết chính thức của NutriMom.',
   stages: ['Chuẩn bị mang thai', 'Mẹ bầu', 'Chăm sóc sau sinh'],
 }
 

@@ -1,19 +1,21 @@
 import { LockKey } from '@phosphor-icons/react'
 import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
 import { getSessionScope } from '@/core/auth/token-store'
 import { invalidateProfileResources } from '@/core/api/profile-requests'
 import { createFileUpload, type UploadStage } from '@/features/maternity/model/file-upload'
 import { createRequestSequence, createPageLoadGate, mergeUniqueRecords } from '@/features/maternity/model/records-coordination'
-import { CalendarPlus, FileArrowUp, FileText, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { CalendarPlus, FileArrowUp, FileText, Plus } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
-import { formatDate, todayDate } from '@/core/auth/date'
 import { filesApi, pregnancyApi, recordsApi, sha256, uploadContent } from '@/features/maternity/api/domain-api'
 import { MedicalRecordAttachments } from '@/features/maternity/components/MedicalRecordAttachments'
+import { MedicalRecordGroups } from '@/features/maternity/components/MedicalRecordGroups'
 import { MedicalRecordReminderDialog } from '@/features/calendar/components/MedicalRecordReminderDialog'
 import { GlobalActionToast, type CalendarToastMessage } from '@/features/calendar/components/CalendarToast'
-import { buildMedicalRecordPayload, createCurrentPregnancyLoader, loadMedicalRecords } from '@/features/maternity/model/records-page-data'
+import { buildMedicalRecordPayload, loadMedicalRecords, medicalRecordCategoryLabels } from '@/features/maternity/model/records-page-data'
+import { groupMedicalRecords, pregnancyLabel, vietnamDateOnly } from '@/features/maternity/model/records-pregnancy'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { ActionStateDialog } from '@/shared/components/ActionStateDialog'
 import { CalendarDatePicker } from '@/shared/components/CalendarDatePicker'
@@ -21,33 +23,31 @@ import { SelectField } from '@/shared/components/SelectField'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { FeaturePage as AppShell } from '@/shared/layouts/FeaturePage'
 import type { MedicalRecord, Pregnancy } from '@/types/domain'
+import '@/features/maternity/styles/records.css'
 
-const categoryLabels: Record<string, string> = {
-  PRENATAL_VISIT: 'Khám thai',
-  ULTRASOUND: 'Siêu âm',
-  LAB_RESULT: 'Kết quả xét nghiệm',
-  PRESCRIPTION: 'Đơn thuốc',
-  DISCHARGE: 'Giấy ra viện',
-  OTHER: 'Khác',
-}
-const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }))
+const categories = Object.entries(medicalRecordCategoryLabels).map(([value, label]) => ({ value, label }))
 const filterCategories = [{ value: '', label: 'Tất cả loại hồ sơ' }, ...categories]
 const editorFormId = 'medical-record-editor-form'
 const deletedMessage = 'Đã xóa hồ sơ y tế.'
 
-function vietnamDateOnly(value: string) {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value))
-  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? ''
-  return `${part('year')}-${part('month')}-${part('day')}`
-}
-
 export function RecordsPage() {
   const reminderAccess = useFeatureAccess('CALENDAR_REMINDERS')
+  const cooldown = usePaymentCooldown('medical-records')
+  const cooldownRef = useRef(cooldown)
+  cooldownRef.current = cooldown
   const [searchParams, setSearchParams] = useSearchParams()
   const focusedRecordId = searchParams.get('record')?.trim() || ''
   const [records, setRecords] = useState<MedicalRecord[]>([])
-  const [pregnancy, setPregnancy] = useState<Pregnancy | null>(null)
+  const [pregnancies, setPregnancies] = useState<Pregnancy[]>([])
+  const [pregnancyStatus, setPregnancyStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [pregnancyError, setPregnancyError] = useState('')
+  const pregnancy = pregnancyStatus === 'ready' ? pregnancies.find((item) => item.status === 'ACTIVE') : undefined
+  const recordsToday = vietnamDateOnly()
+  const [createPregnancyId, setCreatePregnancyId] = useState('')
+  const [pregnancyChanged, setPregnancyChanged] = useState(false)
   const [error, setError] = useState('')
+  const [detailError, setDetailError] = useState('')
+  const [detailRetry, setDetailRetry] = useState(0)
   const [editing, setEditing] = useState<MedicalRecord | null>(null)
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState('ULTRASOUND')
@@ -75,9 +75,10 @@ export function RecordsPage() {
     setActionToast({ id: actionToastId.current, message, tone: 'success' })
   }, [])
   const [filterCategory, setFilterCategory] = useState('')
+  const [filterPregnancy, setFilterPregnancy] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const filterKey = JSON.stringify([filterCategory, from, to])
+  const filterKey = JSON.stringify([filterPregnancy, filterCategory, from, to])
   const currentFilter = useRef(filterKey)
   currentFilter.current = filterKey
   const [occurredAt, setOccurredAt] = useState('')
@@ -87,32 +88,38 @@ export function RecordsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingDetail, setLoadingDetail] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<MedicalRecord | null>(null)
   const [reminderRecordId, setReminderRecordId] = useState<string>()
   const [reminderRecords, setReminderRecords] = useState<MedicalRecord[]>([])
   const [reminderOpen, setReminderOpen] = useState(false)
-  const [pregnancyResolved, setPregnancyResolved] = useState(false)
-  const currentPregnancyLoader = useRef<(() => Promise<Pregnancy | null>) | null>(null)
-  const pregnancyId = pregnancy?.id
-  if (!currentPregnancyLoader.current) currentPregnancyLoader.current = createCurrentPregnancyLoader(pregnancyApi.current)
+  const pregnancySequence = useRef(0)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
+  const groups = groupMedicalRecords(records, pregnancies)
+  const pregnancyOptions = [{ value: '', label: 'Tất cả thai kỳ' }, ...pregnancies.map((item) => ({ value: item.id, label: pregnancyLabel(item) }))]
+  for (const id of new Set([...records.map((record) => record.pregnancy_id), filterPregnancy].filter(Boolean))) {
+    if (!pregnancies.some((item) => item.id === id)) pregnancyOptions.push({ value: id, label: pregnancyLabel(undefined, id) })
+  }
+  const createHint = pregnancyStatus === 'loading' ? 'Đang kiểm tra thai kỳ để thêm hồ sơ.' : pregnancyStatus === 'error' ? 'Chưa xác định được thai kỳ hiện tại. Hãy thử tải lại thông tin thai kỳ.' : !pregnancy ? 'Bạn vẫn có thể xem và cập nhật hồ sơ cũ. Cần có thai kỳ đang theo dõi để thêm hồ sơ mới.' : ''
 
-  const loadRecords = useCallback(async (activePregnancyId: string, cursor?: string) => {
+  const loadRecords = useCallback(async (cursor?: string) => {
     if (filterKey !== currentFilter.current) return
+    if (cooldownRef.current.blocked) { setError('Bạn đang thao tác quá nhanh. Vui lòng chờ rồi bấm Thử lại.'); setLoading(false); return }
     const sequence = listSequence.current
+    const scope = getSessionScope()
     const generation = cursor ? sequence.current() : sequence.begin()
     if (cursor && !moreInFlight.current.start(generation, cursor)) return
     if (cursor) { setLoadingMore(true) }
-    else { setLoading(true); setError(''); setNextCursor(null) }
-    const accepts = () => mounted.current && sequence.accepts(generation) && filterKey === currentFilter.current
+    else { moreInFlight.current.clear(); setLoadingMore(false); setLoading(true); setError(''); setNextCursor(null) }
+    const accepts = () => mounted.current && scope === getSessionScope() && sequence.accepts(generation) && filterKey === currentFilter.current
     if (from && to && from > to) { setRecords([]); setNextCursor(null); setLoading(false); return }
     try {
-      let page = await loadMedicalRecords(recordsApi.list, activePregnancyId, { category: filterCategory, from, to }, cursor)
+      let page = await loadMedicalRecords(recordsApi.list, { pregnancyId: filterPregnancy, category: filterCategory, from, to }, cursor)
       let items = page.items
       // Reload only this filtered list after CRUD, preserving its loaded pagination depth.
       if (!cursor) {
         for (let index = 1; index < loadedPages.current && page.next_cursor; index += 1) {
           if (!accepts()) return
-          page = await loadMedicalRecords(recordsApi.list, activePregnancyId, { category: filterCategory, from, to }, page.next_cursor)
+          page = await loadMedicalRecords(recordsApi.list, { pregnancyId: filterPregnancy, category: filterCategory, from, to }, page.next_cursor)
           items = mergeUniqueRecords(items, page.items)
         }
       }
@@ -120,46 +127,49 @@ export function RecordsPage() {
       setRecords((current) => cursor ? mergeUniqueRecords(current, items) : items)
       setNextCursor(page.next_cursor || null)
       if (cursor) loadedPages.current += 1
-    } catch (reason) { if (accepts()) setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ y tế.') }
+    } catch (reason) { if (accepts()) { cooldownRef.current.handleRateLimit(reason); setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ y tế.') } }
     finally {
       if (cursor) moreInFlight.current.finish(generation, cursor)
       if (accepts()) { setLoading(false); setLoadingMore(false) }
     }
-  }, [filterCategory, filterKey, from, to])
+  }, [filterCategory, filterPregnancy, filterKey, from, to])
 
-  const loadPregnancy = useCallback(async () => {
-    setLoading(true)
-    setError('')
+  const loadPregnancies = useCallback(async () => {
+    if (cooldownRef.current.blocked) return
+    const generation = ++pregnancySequence.current
+    setPregnancyStatus('loading')
+    setPregnancyError('')
     const scope = getSessionScope()
-    try { const current = await currentPregnancyLoader.current!(); if (mounted.current && scope === getSessionScope()) setPregnancy(current) }
-    catch (reason) { if (mounted.current && scope === getSessionScope()) setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ thai kỳ.') }
-    finally { if (mounted.current && scope === getSessionScope()) { setPregnancyResolved(true); setLoading(false) } }
+    const accepts = () => mounted.current && generation === pregnancySequence.current && scope === getSessionScope()
+    try { const items = await pregnancyApi.list(); if (accepts()) { setPregnancies(items); setPregnancyStatus('ready') } }
+    catch (reason) { if (accepts()) { cooldownRef.current.handleRateLimit(reason); setPregnancyStatus('error'); setPregnancyError(reason instanceof Error ? reason.message : 'Không thể tải thông tin thai kỳ.') } }
   }, [])
 
   useEffect(() => {
     const sequence = listSequence.current
     const controllerRef = uploadController
     mounted.current = true
-    void loadPregnancy()
-    return () => { mounted.current = false; editorGeneration.current += 1; sequence.invalidate(); controllerRef.current?.abort() }
-  }, [loadPregnancy])
+    void loadPregnancies()
+    return () => { mounted.current = false; pregnancySequence.current += 1; editorGeneration.current += 1; sequence.invalidate(); controllerRef.current?.abort() }
+  }, [loadPregnancies])
   useEffect(() => {
     const sequence = listSequence.current
     loadedPages.current = 1
+    setExpandedGroups({})
     moreInFlight.current.clear()
     setLoadingMore(false); setRecords([]); setNextCursor(null)
-    if (!pregnancyResolved) return
-    if (!pregnancyId) { setRecords([]); setNextCursor(null); setLoading(false); return }
-    void loadRecords(pregnancyId)
+    void loadRecords()
     return () => sequence.invalidate()
-  }, [loadRecords, pregnancyId, pregnancyResolved])
+  }, [loadRecords])
 
   useEffect(() => {
+    setDetailError('')
     if (!focusedRecordId) return
+    if (cooldownRef.current.blocked) { setDetailError('Vui lòng chờ trước khi mở lại hồ sơ.'); return }
     const controller = new AbortController()
     const generation = ++editorGeneration.current
     resetEditorState()
-    setLoadingDetail(true); setError('')
+    setLoadingDetail(true)
     void recordsApi.get(focusedRecordId, controller.signal).then((detail) => {
       if (controller.signal.aborted || generation !== editorGeneration.current) return
       setEditing(detail)
@@ -167,11 +177,11 @@ export function RecordsPage() {
       setOccurredAt(vietnamDateOnly(detail.occurred_at))
       setAttachments(detail.attachments?.map((item) => item.id) || [])
       setOpen(true)
-    }).catch(() => {
-      if (!controller.signal.aborted && generation === editorGeneration.current) setError('Không thể mở hồ sơ y tế này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.')
+    }).catch((reason) => {
+      if (!controller.signal.aborted && generation === editorGeneration.current) { cooldownRef.current.handleRateLimit(reason); setDetailError(reason instanceof ApiClientError && reason.status === 429 ? reason.message : 'Không thể mở hồ sơ y tế này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.') }
     }).finally(() => { if (!controller.signal.aborted && generation === editorGeneration.current) setLoadingDetail(false) })
     return () => controller.abort()
-  }, [focusedRecordId])
+  }, [focusedRecordId, detailRetry])
 
   function closeEditor() {
     if (savingRef.current || uploadBusy.current) return
@@ -191,16 +201,18 @@ export function RecordsPage() {
     setUploadStage(null)
     setEditorError('')
     setEditorConflict(false)
+    setPregnancyChanged(false)
     setUploadMessage('')
     setDateError('')
   }
 
   async function openEditor(record: MedicalRecord | null = null) {
-    if (savingRef.current || uploadBusy.current) return
+    if (savingRef.current || uploadBusy.current || cooldown.blocked || (!record && !pregnancy)) return
     const generation = ++editorGeneration.current
     setError('')
     resetEditorState()
     if (!record) {
+      setCreatePregnancyId(pregnancy!.id)
       setEditing(null)
       setCategory('ULTRASOUND')
       setOccurredAt('')
@@ -218,12 +230,12 @@ export function RecordsPage() {
       setOccurredAt(vietnamDateOnly(detail.occurred_at))
       setAttachments(detail.attachments?.map((item) => item.id) || [])
       setOpen(true)
-    } catch (reason) { if (mounted.current && generation === editorGeneration.current) setError(reason instanceof Error ? reason.message : 'Không thể tải chi tiết hồ sơ y tế.') }
+    } catch (reason) { if (mounted.current && generation === editorGeneration.current) { cooldown.handleRateLimit(reason); setError(reason instanceof Error ? reason.message : 'Không thể tải chi tiết hồ sơ y tế.') } }
     finally { if (mounted.current && generation === editorGeneration.current) setLoadingDetail(false) }
   }
 
   async function runUpload() {
-    if (uploadBusy.current || !uploadAttempt.current) return
+    if (uploadBusy.current || !uploadAttempt.current || cooldown.blocked || (!editing && pregnancyChanged)) return
     uploadBusy.current = true
     const generation = editorGeneration.current
     const accepts = () => mounted.current && generation === editorGeneration.current
@@ -233,12 +245,12 @@ export function RecordsPage() {
       if (!accepts()) return
       setAttachments((current) => [...new Set([...current, complete.id])])
       setUploadMessage('Tệp đã sẵn sàng. Bấm lưu hồ sơ để gắn tệp.')
-    } catch (reason) { if (accepts()) setEditorError(reason instanceof Error ? reason.message : 'Không thể tải tệp.') }
+    } catch (reason) { if (accepts()) { cooldown.handleRateLimit(reason); setEditorError(reason instanceof Error ? reason.message : 'Không thể tải tệp.') } }
     finally { uploadBusy.current = false; if (accepts()) setUploading(false) }
   }
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
-    if (uploadBusy.current || savingRef.current) return
+    if (uploadBusy.current || savingRef.current || cooldown.blocked || (!editing && pregnancyChanged)) return
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
@@ -247,7 +259,7 @@ export function RecordsPage() {
     uploadController.current = controller
     uploadAttempt.current = createFileUpload(file, {
       digest: sha256,
-      create: (digest) => filesApi.createSession({ purpose: 'MEDICAL_RECORD', file_name: file.name, mime_type: file.type, size_bytes: file.size, sha256: digest, pregnancy_id: editing?.pregnancy_id ?? pregnancy?.id }, controller.signal),
+      create: (digest) => filesApi.createSession({ purpose: 'MEDICAL_RECORD', file_name: file.name, mime_type: file.type, size_bytes: file.size, sha256: digest, pregnancy_id: editing?.pregnancy_id ?? createPregnancyId }, controller.signal),
       put: (session, content) => uploadContent(session, content, controller.signal),
       complete: (id, digest, size) => filesApi.complete(id, { sha256: digest, size_bytes: size }, controller.signal),
     }, (stage) => { if (mounted.current && generation === editorGeneration.current) setUploadStage(stage) })
@@ -256,10 +268,10 @@ export function RecordsPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (savingRef.current || uploadBusy.current) return
-    if (!pregnancy && !editing) { setEditorError('Hãy cập nhật hồ sơ thai kỳ trước khi thêm hồ sơ y tế.'); return }
+    if (savingRef.current || uploadBusy.current || cooldown.blocked || (!editing && pregnancyChanged)) return
+    if ((!pregnancy || pregnancy.id !== createPregnancyId) && !editing) { setEditorError('Hãy xác nhận thai kỳ hiện tại trước khi thêm hồ sơ y tế.'); return }
     if (!occurredAt) { setDateError('Hãy chọn ngày khám trên lịch.'); return }
-    if (occurredAt > todayDate()) { setDateError('Ngày khám không thể ở tương lai. Hãy chọn lại.'); return }
+    if (occurredAt > vietnamDateOnly()) { setDateError('Ngày khám không thể ở tương lai. Hãy chọn lại.'); return }
     const form = new FormData(event.currentTarget)
     const payload = buildMedicalRecordPayload({ category, title: String(form.get('title')), occurredAt, facilityName: String(form.get('facility_name') || ''), clinicianName: String(form.get('clinician_name') || ''), summary: String(form.get('summary') || ''), note: String(form.get('note') || ''), attachmentIds: attachments })
     const generation = editorGeneration.current
@@ -268,24 +280,31 @@ export function RecordsPage() {
     setEditorError('')
     try {
       const wasEditing = Boolean(editing)
-      const saved = editing ? await recordsApi.update(editing.id, { ...payload, version: editing.version }) : await recordsApi.create({ ...payload, pregnancy_id: pregnancy?.id })
+      if (editing) await recordsApi.update(editing.id, { ...payload, version: editing.version })
+      else await recordsApi.create({ ...payload, pregnancy_id: createPregnancyId })
       if (!mounted.current || generation !== editorGeneration.current) return
       savingRef.current = false
       closeEditor(); setEditing(null); setAttachments([])
-      void loadRecords(pregnancy?.id ?? saved.pregnancy_id)
+      void loadRecords()
       notify(wasEditing ? 'Đã cập nhật hồ sơ y tế.' : 'Đã thêm hồ sơ y tế.')
     } catch (reason) {
       if (!mounted.current || generation !== editorGeneration.current) return
+      cooldown.handleRateLimit(reason)
       if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') {
         setEditorConflict(true)
         setEditorError('Hồ sơ đã thay đổi ở nơi khác. Vui lòng tải lại dữ liệu mới nhất trước khi lưu lại.')
-        if (pregnancy) void loadRecords(pregnancy.id)
+        void loadRecords()
+      } else if (reason instanceof ApiClientError && reason.code === 'PREGNANCY_NOT_ACTIVE') {
+        setPregnancyChanged(true)
+        setEditorError('Thai kỳ dùng để thêm hồ sơ đã kết thúc. Nội dung và tệp của bạn vẫn được giữ. Hãy xác nhận thai kỳ hiện tại trước khi lưu lại.')
+        invalidateProfileResources('pregnancy:')
+        void loadPregnancies()
       } else setEditorError(reason instanceof Error ? reason.message : 'Không thể lưu hồ sơ.')
     } finally { savingRef.current = false; if (mounted.current) setSaving(false) }
   }
 
   async function refreshEditorVersion() {
-    if (!editing || loadingDetail || savingRef.current) return
+    if (!editing || loadingDetail || savingRef.current || cooldown.blocked) return
     const generation = editorGeneration.current
     setLoadingDetail(true)
     try {
@@ -296,41 +315,49 @@ export function RecordsPage() {
       setEditing((current) => current ? { ...current, version: latest.version, attachment_count: latest.attachment_count, attachments: latest.attachments } : current)
       setAttachments((current) => [...new Set([...current, ...(latest.attachments ?? []).map((file) => file.id)])])
       setEditorConflict(false); setEditorError('')
-    } catch (reason) { if (mounted.current && generation === editorGeneration.current) setEditorError(reason instanceof Error ? reason.message : 'Không thể tải phiên bản mới.') }
+    } catch (reason) { if (mounted.current && generation === editorGeneration.current) { cooldown.handleRateLimit(reason); setEditorError(reason instanceof Error ? reason.message : 'Không thể tải phiên bản mới.') } }
     finally { if (mounted.current && generation === editorGeneration.current) setLoadingDetail(false) }
   }
 
   async function remove() {
     if (!pendingDelete) return
-    await recordsApi.remove(pendingDelete, pregnancy?.id)
+    if (cooldown.blocked) throw new Error(`Vui lòng chờ ${cooldown.remaining} giây rồi thử lại.`)
+    try { await recordsApi.remove(pendingDelete.id, pendingDelete.pregnancy_id) }
+    catch (reason) { cooldown.handleRateLimit(reason); throw reason }
   }
 
   async function openRecordReminder(record?: MedicalRecord) {
+    if (cooldown.blocked || loadingDetail) return
     setError('')
     if (record) { setReminderRecords(records); setReminderRecordId(record.id); setReminderOpen(true); return }
     if (records.length) { setReminderRecords(records); setReminderRecordId(undefined); setReminderOpen(true); return }
-    if (!pregnancy) { setError('Hãy thêm ít nhất một hồ sơ y tế trước khi tạo lịch nhắc nhở.'); return }
     setLoadingDetail(true)
     try {
-      const query = new URLSearchParams({ limit: '12', pregnancy_id: pregnancy.id })
+      const query = new URLSearchParams({ limit: '12' })
+      if (filterPregnancy) query.set('pregnancy_id', filterPregnancy)
       const page = await recordsApi.list(`?${query}`)
       if (!page.items.length) { setError('Hãy thêm ít nhất một hồ sơ y tế trước khi tạo lịch nhắc nhở.'); return }
       setReminderRecords(page.items); setReminderRecordId(undefined); setReminderOpen(true)
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ để tạo lịch nhắc nhở.') }
+    } catch (reason) { cooldown.handleRateLimit(reason); setError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ để tạo lịch nhắc nhở.') }
     finally { setLoadingDetail(false) }
   }
 
   async function download(fileId: string, name?: string) {
+    if (cooldown.blocked) return
     try { await filesApi.saveDownload(fileId, name) }
-    catch (reason) { if (mounted.current) setError(reason instanceof Error ? reason.message : 'Không thể tải tệp.') }
+    catch (reason) { if (mounted.current) { cooldown.handleRateLimit(reason); setError(reason instanceof Error ? reason.message : 'Không thể tải tệp.') } }
   }
 
   return <AppShell>
-    <header className="nm-account-workspace-heading nm-account-workspace-heading-actions"><div><span>Hồ sơ riêng tư</span><h1>Hồ sơ y tế</h1><p>Lưu kết quả khám, siêu âm và tài liệu quan trọng của bạn.</p></div><div className="record-heading-actions"><button className="secondary-button" type="button" disabled={loadingDetail} onClick={() => void openRecordReminder()}>{reminderAccess.locked ? <LockKey size={20} /> : <CalendarPlus size={20} />}{reminderAccess.locked ? 'Mở quyền nhắc nhở' : 'Thêm lịch nhắc nhở'}</button><button className="primary-button" type="button" onClick={() => void openEditor()}><Plus size={20} />Thêm hồ sơ</button></div></header>
-    {error && <><StatusMessage tone="error">{error}</StatusMessage><button className="secondary-button" type="button" disabled={loading} onClick={() => void (pregnancy ? loadRecords(pregnancy.id) : loadPregnancy())}>Thử lại</button></>}
-    <section className="record-filters"><SelectField label="Lọc hồ sơ" value={filterCategory} options={filterCategories} onChange={setFilterCategory} /><CalendarDatePicker label="Từ ngày" value={from} onChange={setFrom} allowClear yearsBack={30} error={rangeError || undefined} /><CalendarDatePicker label="Đến ngày" value={to} onChange={setTo} allowClear yearsBack={30} /></section>
-    <section className="record-list">{rangeError ? null : loading ? <section className="empty-state"><p>Đang tải hồ sơ y tế...</p></section> : records.map((record) => <article className="app-card record-item" key={record.id}><FileText size={28} weight="duotone" /><div><p className="card-kicker">{categoryLabels[record.category] ?? 'Loại hồ sơ khác'}</p><h2>{record.title}</h2><p>{formatDate(record.occurred_at)} · {record.facility_name || 'Chưa có cơ sở khám'}</p><p>{record.summary}</p><MedicalRecordAttachments recordId={record.id} attachmentCount={record.attachment_count} attachments={record.attachments} onDownload={(fileId, name) => void download(fileId, name)} /></div><div className="record-actions"><button className="icon-button" type="button" aria-label={`Thêm lịch nhắc từ ${record.title}`} onClick={() => void openRecordReminder(record)} disabled={loadingDetail}><CalendarPlus size={20} /></button><button className="icon-button" type="button" aria-label="Sửa hồ sơ" onClick={() => void openEditor(record)} disabled={loadingDetail}><PencilSimple size={20} /></button><button className="icon-danger" type="button" aria-label="Xóa hồ sơ" onClick={() => setPendingDelete(record.id)} disabled={loadingDetail}><Trash size={20} /></button></div></article>)}{!rangeError && !loading && records.length === 0 && !error && <section className="empty-state"><FileText size={40} /><h2>Chưa có hồ sơ y tế</h2><p>Thêm hồ sơ đầu tiên để lưu tài liệu và tạo lịch tái khám.</p></section>}</section>
-    {nextCursor && pregnancy && <button className="secondary-button load-more" type="button" disabled={loadingMore} onClick={() => void loadRecords(pregnancy.id, nextCursor)}>{loadingMore ? 'Đang tải...' : 'Tải thêm hồ sơ'}</button>}
+    <header className="nm-account-workspace-heading nm-account-workspace-heading-actions"><div><span>Hồ sơ riêng tư</span><h1>Hồ sơ y tế</h1><p>Xem lại kết quả khám và tài liệu của bạn qua từng thai kỳ.</p></div><div className="record-heading-actions"><button className="secondary-button" type="button" disabled={loadingDetail || cooldown.remaining > 0} onClick={() => void openRecordReminder()}>{reminderAccess.locked ? <LockKey size={20} /> : <CalendarPlus size={20} />}{reminderAccess.locked ? 'Mở quyền nhắc nhở' : 'Thêm lịch nhắc nhở'}</button><button className="primary-button" type="button" disabled={!pregnancy || cooldown.remaining > 0} aria-describedby={createHint ? 'record-create-hint' : undefined} onClick={() => void openEditor()}><Plus size={20} />Thêm hồ sơ</button></div></header>
+    {createHint && <p className="record-context-notice" id="record-create-hint" role="status">{createHint}</p>}
+    {pregnancyError && <div className="record-context-error"><StatusMessage tone="error">{pregnancyError}</StatusMessage><button className="secondary-button" type="button" disabled={pregnancyStatus === 'loading' || cooldown.remaining > 0} onClick={() => void loadPregnancies()}>Tải lại thông tin thai kỳ</button></div>}
+    {cooldown.remaining > 0 && <StatusMessage tone="info">{`Bạn đang thao tác quá nhanh. Có thể thử lại sau ${cooldown.remaining} giây.`}</StatusMessage>}
+    {error && <div className="record-context-error"><StatusMessage tone="error">{error}</StatusMessage><button className="secondary-button" type="button" disabled={loading || cooldown.remaining > 0} onClick={() => void loadRecords()}>Thử lại</button></div>}
+    {detailError && <div className="record-context-error"><StatusMessage tone="error">{detailError}</StatusMessage><button className="secondary-button" type="button" disabled={loadingDetail || cooldown.remaining > 0} onClick={() => setDetailRetry((value) => value + 1)}>Thử mở lại hồ sơ</button></div>}
+    <section className="record-filters" aria-label="Bộ lọc hồ sơ"><SelectField label="Thai kỳ" value={filterPregnancy} options={pregnancyOptions} onChange={setFilterPregnancy} /><SelectField label="Lọc hồ sơ" value={filterCategory} options={filterCategories} onChange={setFilterCategory} /><CalendarDatePicker label="Từ ngày" value={from} onChange={setFrom} today={recordsToday} allowClear yearsBack={30} error={rangeError || undefined} /><CalendarDatePicker label="Đến ngày" value={to} onChange={setTo} today={recordsToday} allowClear yearsBack={30} /></section>
+    <section className="record-list" aria-label="Hồ sơ theo thai kỳ" aria-busy={loading}>{rangeError ? null : loading ? <div className="record-loading" role="status"><span>Đang tải hồ sơ y tế...</span><div className="record-skeleton" aria-hidden /><div className="record-skeleton" aria-hidden /></div> : <MedicalRecordGroups groups={groups} expanded={expandedGroups} selectedPregnancy={filterPregnancy} disabled={loadingDetail || cooldown.remaining > 0} onExpand={(id, expanded) => setExpandedGroups((current) => current[id] === expanded ? current : { ...current, [id]: expanded })} onEdit={(record) => void openEditor(record)} onDelete={setPendingDelete} onReminder={(record) => void openRecordReminder(record)} onDownload={(id, name) => void download(id, name)} />}{!rangeError && !loading && records.length === 0 && !error && <section className="empty-state"><FileText size={40} /><h2>{filterPregnancy || filterCategory || from || to ? 'Không có hồ sơ phù hợp' : 'Chưa có hồ sơ y tế'}</h2><p>{filterPregnancy || filterCategory || from || to ? 'Hãy đổi thai kỳ, loại hồ sơ hoặc khoảng ngày để xem kết quả khác.' : pregnancy ? 'Thêm hồ sơ đầu tiên để lưu kết quả khám và tài liệu của bạn.' : 'Hồ sơ đã lưu sẽ xuất hiện tại đây, kể cả khi thai kỳ đã kết thúc.'}</p></section>}</section>
+    {nextCursor && <div className="record-pagination"><p>Số hồ sơ ở mỗi nhóm là số đã tải. Vẫn còn hồ sơ khác trong kết quả.</p><button className="secondary-button load-more" type="button" disabled={loadingMore || cooldown.remaining > 0} onClick={() => void loadRecords(nextCursor)}>{loadingMore ? 'Đang tải...' : 'Tải thêm hồ sơ'}</button></div>}
 
     <AccessibleDialog
       open={open}
@@ -339,22 +366,25 @@ export function RecordsPage() {
       onClose={closeEditor}
       busy={saving || uploading}
       className="medical-record-editor"
-      footer={<><button className="secondary-button" type="button" disabled={saving || uploading} onClick={closeEditor}>Đóng</button><button className="primary-button" type="submit" form={editorFormId} disabled={saving || uploading}>{saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Lưu hồ sơ'}</button></>}
+      footer={<><button className="secondary-button" type="button" disabled={saving || uploading} onClick={closeEditor}>Đóng</button><button className="primary-button" type="submit" form={editorFormId} disabled={saving || uploading || cooldown.remaining > 0 || (!editing && pregnancyChanged)}>{saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Lưu hồ sơ'}</button></>}
     >
       <form id={editorFormId} key={editing?.id || 'new'} className="compact-form medical-record-form" onSubmit={submit}>
+        <p className="record-editor-context">{pregnancyLabel(pregnancies.find((item) => item.id === (editing?.pregnancy_id ?? createPregnancyId)), editing?.pregnancy_id ?? createPregnancyId)}</p>
         <SelectField label="Loại hồ sơ" value={category} options={categories} onChange={setCategory} />
         <label>Tiêu đề<input name="title" required defaultValue={editing?.title || ''} placeholder="Ví dụ: Siêu âm tuần 24" /></label>
-        <CalendarDatePicker label="Ngày khám" value={occurredAt} onChange={(value) => { setOccurredAt(value); setDateError('') }} error={dateError} yearsBack={30} />
+        <CalendarDatePicker label="Ngày khám" value={occurredAt} onChange={(value) => { setOccurredAt(value); setDateError('') }} today={recordsToday} error={dateError} yearsBack={30} />
         <label>Cơ sở khám<input name="facility_name" defaultValue={editing?.facility_name || ''} /></label>
         <label>Bác sĩ / chuyên viên<input name="clinician_name" defaultValue={editing?.clinician_name || ''} /></label>
         <label>Tóm tắt<textarea name="summary" defaultValue={editing?.summary || ''} /></label>
         <label>Ghi chú riêng<textarea name="note" defaultValue={editing?.note || ''} /></label>
         {editing && <><span className="field-label">Tệp đính kèm hiện có</span><MedicalRecordAttachments recordId={editing.id} initiallyOpen attachmentCount={editing.attachment_count} attachments={editing.attachments} onDownload={(fileId, name) => void download(fileId, name)} /></>}
-        <label className="file-upload"><FileArrowUp size={20} /><span>{uploading ? ({ creating: 'Đang tạo phiên tải...', uploading: 'Đang tải tệp...', completing: 'Đang kiểm tra tệp...', ready: 'Tệp đã sẵn sàng', error: 'Tải tệp thất bại' }[uploadStage ?? 'creating']) : `Đính kèm tệp${attachments.length ? ` (${attachments.length})` : ''}`}</span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={upload} disabled={uploading || saving} /></label>
-        {uploadStage === 'error' && <button className="secondary-button" type="button" disabled={saving || uploading} onClick={() => void runUpload()}>Thử tải lại tệp</button>}
+        <label className="file-upload"><FileArrowUp size={20} /><span>{uploading ? ({ creating: 'Đang tạo phiên tải...', uploading: 'Đang tải tệp...', completing: 'Đang kiểm tra tệp...', ready: 'Tệp đã sẵn sàng', error: 'Tải tệp thất bại' }[uploadStage ?? 'creating']) : `Đính kèm tệp${attachments.length ? ` (${attachments.length})` : ''}`}</span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={upload} disabled={uploading || saving || cooldown.remaining > 0 || (!editing && pregnancyChanged)} /></label>
+        {uploadStage === 'error' && <button className="secondary-button" type="button" disabled={saving || uploading || cooldown.remaining > 0 || (!editing && pregnancyChanged)} onClick={() => void runUpload()}>Thử tải lại tệp</button>}
         {uploadMessage && <p className="nm-upload-success" role="status">{uploadMessage}</p>}
         {editorError && <p className="nm-dialog-error" role="alert">{editorError}</p>}
-        {editorConflict && <button className="secondary-button" type="button" disabled={loadingDetail || saving || uploading} onClick={() => void refreshEditorVersion()}>Tải phiên bản mới (giữ nội dung đang sửa)</button>}
+        {cooldown.remaining > 0 && <p role="status">{`Vui lòng chờ ${cooldown.remaining} giây trước khi thử lại.`}</p>}
+        {pregnancyChanged && (pregnancy ? <button className="secondary-button" type="button" disabled={saving || uploading || cooldown.remaining > 0} onClick={() => { setCreatePregnancyId(pregnancy.id); setPregnancyChanged(false); setEditorError('') }}>Dùng thai kỳ hiện tại</button> : <><p>Chưa xác định được thai kỳ đang theo dõi. Bạn có thể đóng cửa sổ hoặc tải lại thông tin thai kỳ.</p><button className="secondary-button" type="button" disabled={pregnancyStatus === 'loading' || cooldown.remaining > 0} onClick={() => { invalidateProfileResources('pregnancy:'); void loadPregnancies() }}>Tải lại thông tin thai kỳ</button></>)}
+        {editorConflict && <button className="secondary-button" type="button" disabled={loadingDetail || saving || uploading || cooldown.remaining > 0} onClick={() => void refreshEditorVersion()}>Tải phiên bản mới (giữ nội dung đang sửa)</button>}
       </form>
     </AccessibleDialog>
 
@@ -367,12 +397,13 @@ export function RecordsPage() {
       closeOnSuccess
       title="Xóa hồ sơ y tế"
       description="Bạn có chắc chắn muốn xóa hồ sơ y tế?"
-      confirmLabel="Xóa hồ sơ"
+      confirmLabel={cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining} giây` : 'Xóa hồ sơ'}
+      disabled={cooldown.remaining > 0}
       cancelLabel="Giữ hồ sơ"
       busyLabel="Đang xóa hồ sơ..."
       successMessage={deletedMessage}
       onAction={remove}
-      onCompleted={() => { if (!mounted.current) return; notify(deletedMessage); if (pregnancy) void loadRecords(pregnancy.id) }}
+      onCompleted={() => { if (!mounted.current) return; notify(deletedMessage); void loadRecords() }}
       onClose={() => setPendingDelete(null)}
       errorMessage={(reason) => reason instanceof Error ? reason.message : 'Không thể xóa hồ sơ.'}
     />

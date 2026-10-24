@@ -32,24 +32,38 @@ export interface ApiPreferences {
   version: number
 }
 
+export type PregnancyStatus = 'ACTIVE' | 'COMPLETED' | 'LOSS_REPORTED' | 'ARCHIVED'
+
 export interface Pregnancy {
   id: string
-  status: string
+  status: PregnancyStatus
   last_menstrual_period?: string | null
   conception_date?: string | null
   estimated_due_date?: string | null
   is_first_pregnancy?: boolean | null
   multiple_pregnancy?: boolean | null
   timezone?: string | null
-  gestational_week: number
-  gestational_day: number
-  trimester: number
-  days_until_due: number
+  gestational_week?: number | null
+  gestational_day?: number | null
+  trimester?: number | null
+  days_until_due?: number | null
   calculation_source: string
   care_facility_name?: string | null
   care_provider_name?: string | null
   version: number
+  created_at?: string
+  updated_at?: string
 }
+
+export interface ActivePregnancy extends Pregnancy {
+  status: 'ACTIVE'
+  gestational_week: number
+  gestational_day: number
+  trimester: number
+  days_until_due: number
+}
+
+export type PregnancySummary = Pick<Pregnancy, 'id' | 'status' | 'gestational_week' | 'gestational_day' | 'trimester' | 'estimated_due_date' | 'days_until_due' | 'care_facility_name'>
 
 export interface PregnancyCalculation {
   last_menstrual_period?: string | null
@@ -68,7 +82,7 @@ export interface MomDashboard {
   subscription?: { plan_id: import('../features/payment/model/payment-types').PlanTier; plan_name: string; paid: boolean; end_date: string | null; days_remaining: number } | null
   scan_quota?: null
   profile_summary?: { display_name: string; salutation?: string | null; role: string } | null
-  pregnancy_summary?: Pregnancy | null
+  pregnancy_summary?: PregnancySummary | null
   next_appointment?: CalendarEventItem | null
   health_snapshot?: { title?: string | null; value?: string | number | null; unit?: string | null; trend?: string | null } | null
   care_progress?: { completed: number; total: number } | null

@@ -8,12 +8,13 @@ import { expireProfileResource } from '@/core/api/profile-requests'
 import { formatDate, isDateOnly, todayDate } from '@/core/auth/date'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { pregnancyApi } from '@/features/maternity/api/domain-api'
+import { isActivePregnancy } from '@/features/maternity/model/pregnancy-context'
 import { PregnancySaveDialog } from '@/features/maternity/components/PregnancySaveDialog'
 import { PregnancyStageArtwork } from '@/features/maternity/components/PregnancyStageArtwork'
 import { CalendarDatePicker } from '@/shared/components/CalendarDatePicker'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { FeaturePage as AppShell } from '@/shared/layouts/FeaturePage'
-import type { Pregnancy, PregnancyCalculation } from '@/types/domain'
+import type { ActivePregnancy, PregnancyCalculation } from '@/types/domain'
 
 const PregnancyWeekChart = lazy(() => import('@/features/maternity/components/PregnancyWeekChart').then((module) => ({ default: module.PregnancyWeekChart })))
 const DueDateRadialChart = lazy(() => import('@/features/maternity/components/DueDateRadialChart').then((module) => ({ default: module.DueDateRadialChart })))
@@ -44,7 +45,7 @@ function calculationNote(method: Method) {
 export function HealthPage() {
   const { reloadProfile } = useAuth()
   const access = useFeatureAccess('CONCEPTION_CALCULATOR')
-  const [pregnancy, setPregnancy] = useState<Pregnancy | null>(null)
+  const [pregnancy, setPregnancy] = useState<ActivePregnancy | null>(null)
   const [method, setMethod] = useState<Method>('LAST_MENSTRUAL_PERIOD')
   const [date, setDate] = useState('')
   const [week, setWeek] = useState('')
@@ -73,7 +74,7 @@ export function HealthPage() {
     try {
       const current = await pregnancyApi.current()
       if (generation !== loadGenerationRef.current) return
-      setPregnancy(current)
+      setPregnancy(isActivePregnancy(current) ? current : null)
     } catch (reason) {
       if (generation !== loadGenerationRef.current) return
       if (reason instanceof ApiClientError && (reason.code === 'RESOURCE_NOT_FOUND' || reason.code === 'ACTIVE_PREGNANCY_NOT_FOUND')) setPregnancy(null)
@@ -136,7 +137,7 @@ export function HealthPage() {
       if (generation !== loadGenerationRef.current) return
       await reloadProfile().catch(() => undefined)
       if (generation !== loadGenerationRef.current) return
-      setPregnancy(saved)
+      setPregnancy(isActivePregnancy(saved) ? saved : null)
     } catch (reason) {
       if (generation === loadGenerationRef.current && reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') {
         setConflict(true)

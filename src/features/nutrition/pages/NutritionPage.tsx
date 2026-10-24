@@ -53,11 +53,6 @@ const tabs = {
 }
 export function NutritionPage() {
   const { user } = useAuth()
-  useEffect(() => {
-    const theme = localStorage.getItem('nutrimom.theme')
-    if (theme === 'dark' || theme === 'light')
-      document.documentElement.dataset.theme = theme
-  }, [])
   return user ? <NutritionAccount key={user.id} accountId={user.id} /> : null
 }
 function NutritionAccount({ accountId }: { accountId: string }) {

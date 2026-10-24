@@ -1,5 +1,6 @@
 import { ArrowRight, User } from '@phosphor-icons/react'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
 import { Link, useLocation } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
@@ -11,6 +12,10 @@ import { getDeviceId } from '@/core/auth/device'
 import { loginIdentifierError, loginPasswordError } from '../model/auth-validation'
 
 export function LoginPage() {
+  const loginCooldown = usePaymentCooldown('auth-login')
+  const resendCooldown = usePaymentCooldown('auth-resend-activation')
+  const submittingRef = useRef(false)
+  const resendingRef = useRef(false)
   // Giữ đường dẫn đích (state.from) khi chuyển sang trang Đăng ký.
   const location = useLocation()
   const [identifier, setIdentifier] = useState('')
@@ -25,21 +30,24 @@ export function LoginPage() {
   const { login, resendActivation } = useAuth()
 
   async function handleResendActivation() {
-    if (!identifier.includes('@') || resending) return
+    if (!identifier.includes('@') || resendingRef.current || resendCooldown.blocked) return
+    resendingRef.current = true
     setResending(true)
     try {
       const res = await resendActivation(identifier.trim())
       setResendStatus(res.message || 'Đã gửi lại mã kích hoạt vào email thành công!')
     } catch (err) {
+      resendCooldown.handleRateLimit(err)
       setResendStatus(err instanceof ApiClientError ? err.serverMessage || err.message : 'Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
     } finally {
+      resendingRef.current = false
       setResending(false)
     }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (submitting) return
+    if (submittingRef.current || loginCooldown.blocked) return
     setError('')
     setShowResend(false)
     setResendStatus(null)
@@ -52,11 +60,13 @@ export function LoginPage() {
     setFieldErrors(nextErrors)
     if (nextErrors.identifier || nextErrors.password) return
 
+    submittingRef.current = true
     setSubmitting(true)
     try {
       // GuestOnly retains this form until its panels finish closing, then routes by role.
       await login({ phone: trimmed, password, deviceId: getDeviceId() })
     } catch (requestError) {
+      loginCooldown.handleRateLimit(requestError)
       const isActivationPending = requestError instanceof ApiClientError && (
         requestError.code === 'ACCOUNT_PENDING_ACTIVATION' || requestError.message.includes('kích hoạt')
       )
@@ -71,6 +81,7 @@ export function LoginPage() {
         })
       }
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }
@@ -102,10 +113,10 @@ export function LoginPage() {
                     type="button"
                     className="text-button"
                     onClick={handleResendActivation}
-                    disabled={resending}
+                    disabled={resending || resendCooldown.blocked}
                     style={{ fontSize: 12, color: '#64748b' }}
                   >
-                    {resending ? 'Đang gửi lại...' : 'Chưa nhận được mã? Gửi lại mã vào email'}
+                    {resending ? 'Đang gửi lại...' : resendCooldown.blocked ? `Gửi lại sau ${resendCooldown.remaining}s` : 'Chưa nhận được mã? Gửi lại mã vào email'}
                   </button>
                 )}
               </div>
@@ -149,8 +160,8 @@ export function LoginPage() {
           disabled={submitting}
         />
 
-        <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting}>
-          <span>{submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}</span>
+        <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting || loginCooldown.blocked}>
+          <span>{submitting ? 'Đang đăng nhập...' : loginCooldown.blocked ? `Đăng nhập lại sau ${loginCooldown.remaining}s` : 'Đăng nhập'}</span>
           {!submitting && <ArrowRight size={20} weight="bold" aria-hidden="true" />}
         </button>
       </form>
