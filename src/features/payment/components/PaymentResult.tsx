@@ -1,3 +1,4 @@
+import { formatVietnamDate } from '@/core/date-time/vietnam'
 import { ArrowCounterClockwise, ArrowLeft, ArrowRight, CheckCircle, CircleNotch, Clock, Receipt, WarningCircle } from '@phosphor-icons/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -17,8 +18,7 @@ import '../styles/payment.css'
 const paymentStatusPollDelays = [1500, 2500, 4000, 6000] as const
 
 function formatDate(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Chưa có thông tin' : date.toLocaleDateString('vi-VN')
+  return formatVietnamDate(value) || 'Chưa có thông tin'
 }
 
 export function PaymentResult({ cancelled = false }: { cancelled?: boolean }) {

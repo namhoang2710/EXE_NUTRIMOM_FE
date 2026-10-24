@@ -160,7 +160,7 @@ export function AboutPage() {
       <section className="aboutEditorialHero landing-section" aria-labelledby="about-editorial-title">
         <figure className="aboutEditorialHero__visual">
           <img
-            src="/register-panel.jpg"
+            src="/optimized/register-panel.webp"
             width="1254"
             height="1254"
             alt="Mẹ dịu dàng ôm em bé giữa những đám mây"
@@ -371,7 +371,7 @@ export function AboutPage() {
         </div>
         <figure className="aboutEditorialCta__visual">
           <img
-            src="/banner2.png"
+            src="/optimized/banner2.webp"
             width="1931"
             height="814"
             loading="lazy"

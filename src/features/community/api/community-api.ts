@@ -1,7 +1,7 @@
 import { apiClient } from '@/core/api/api-client'
 import { invalidateProfileResources, profileRead } from '@/core/api/profile-requests'
 import { communityEndpoints as endpoints } from '../model/community-endpoints'
-import { communityRead, communityWrite } from './community-requests'
+import { communityRead, communityWrite, refreshCommunityRead } from './community-requests'
 import type {
   CommunityComment,
   CommunityNotification,
@@ -24,6 +24,9 @@ export const communityApi = {
   myPosts: (cursor: string | null, limit: number, status?: PostStatus, signal?: AbortSignal) =>
     communityRead<CursorPage<CommunityPost>>(endpoints.myPosts(cursor, limit, status), signal),
   post: (postId: string, signal?: AbortSignal) => communityRead<CommunityPost>(endpoints.post(postId), signal),
+  refreshPost(postId: string, signal?: AbortSignal) {
+    return refreshCommunityRead<CommunityPost>(endpoints.post(postId), signal)
+  },
   createPost: (input: PostInput) =>
     communityWrite<CommunityPost>(endpoints.posts, { method: 'POST', body: json(input) }),
   updatePost: (postId: string, input: PostInput & { version: number }) =>

@@ -117,7 +117,7 @@ export function HomeBrandStory() {
         <figure className="homeStory__visual">
           <img
             className="homeStory__image"
-            src="/banner5.png"
+            src="/optimized/banner5.webp"
             width="1919"
             height="820"
             loading="lazy"

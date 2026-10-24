@@ -1,5 +1,6 @@
 import { FeatureLock } from '@/features/payment/components/FeatureLock'
 import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
+import { vietnamCalendarNow } from '@/core/date-time/vietnam'
 import { CalendarBlank, CaretLeft, CaretRight, Clock, GridFour, ListBullets, Plus } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -43,7 +44,7 @@ export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, sha
   const { status: authStatus } = useAuth()
   const reminderAccess = useFeatureAccess('CALENDAR_REMINDERS', !shared)
   const [view, setView] = useState<CalendarView>('MONTH')
-  const [anchor, setAnchor] = useState(() => new Date())
+  const [anchor, setAnchor] = useState(() => vietnamCalendarNow())
   const [selectedDate, setSelectedDate] = useState(initialCalendarDate)
   const [refreshToken, setRefreshToken] = useState(0)
   const [selectedSources, setSelectedSources] = useState<CalendarSource[]>(shared ? sharedSources : ownerSources)
@@ -83,14 +84,14 @@ export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, sha
     if (onChanged) onChanged()
     else window.dispatchEvent(new CustomEvent('nutrimom:calendar-changed'))
   }, [onChanged])
-  const loadDetail = useCallback(async (id: string) => {
+  const loadDetail = useCallback(async (id: string, fresh = false) => {
     if (!authenticated) return undefined
     detailController.current?.abort()
     const controller = new AbortController()
     detailController.current = controller
     setDetailLoading(true)
     try {
-      const detail = await calendarApi.reminder(id, controller.signal)
+      const detail = await (fresh ? calendarApi.refreshReminder(id, controller.signal) : calendarApi.reminder(id, controller.signal))
       if (!controller.signal.aborted) setActiveDetail(detail)
       return controller.signal.aborted ? undefined : detail
     }
@@ -138,7 +139,7 @@ export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, sha
     if (view === 'MONTH') setSelectedDate(localDate(new Date(next.getFullYear(), next.getMonth(), 1)))
   }
 
-  function goToday() { const today = new Date(); setAnchor(today); setSelectedDate(localDate(today)) }
+  function goToday() { const today = vietnamCalendarNow(); setAnchor(today); setSelectedDate(localDate(today)) }
   function changed(messageText: string) { setCreateOpen(false); setEditing(undefined); setActiveEvent(undefined); showToast(messageText); refresh() }
 
   function viewIcon(item: CalendarView) {
@@ -179,7 +180,7 @@ export function CalendarOverview({ pregnancyId, estimatedDueDate, onChanged, sha
             : <div className="calendar-range-view is-list">{data.eventsLoading || data.eventsError || !data.events.length ? <EventList events={data.events} loading={data.eventsLoading} error={data.eventsError} empty="Tháng này chưa có lịch" onOpen={openEvent} onRetry={() => void data.retryEvents()} /> : [...grouped.entries()].map(([date, events]) => <section className="calendar-date-group" key={date}><header><time dateTime={date}>{formatCalendarDate(`${date}T12:00:00`)}</time><span>{events.length} mốc</span></header><div className="calendar-event-list">{events.map((event) => <CalendarEventCard key={calendarEventKey(event)} event={event} onOpen={openEvent} />)}</div></section>)}</div>}
     </motion.div></AnimatePresence>
     </FeatureLock>
-    {!shared && <ReminderDialog open={createOpen || Boolean(editing)} detail={editing} pregnancyId={pregnancyId} estimatedDueDate={estimatedDueDate} onClose={() => { setCreateOpen(false); setEditing(undefined) }} onSaved={(saved) => changed(`${editing ? 'Đã cập nhật' : 'Đã tạo'} lịch nhắc nhở. Lần tiếp theo: ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(saved.next_occurrence || saved.starts_at))}.`)} onConflict={(latest) => setEditing(latest)} />}
-    <CalendarEventDialog readOnly={shared} open={Boolean(activeEvent)} event={activeEvent} detail={activeDetail} loading={detailLoading} onClose={() => { setActiveEvent(undefined); setActiveDetail(undefined); const params = new URLSearchParams(location.search); if (params.has('reminder')) { params.delete('reminder'); navigate({ pathname: location.pathname, search: params.toString(), hash: location.hash }, { replace: true }) } }} onEdit={(detail) => { setActiveEvent(undefined); setEditing(detail) }} onRefresh={refresh} onNotify={showToast} onReloadDetail={() => !shared && activeEvent?.source_id ? loadDetail(activeEvent.source_id) : Promise.resolve(undefined)} />
+    {!shared && <ReminderDialog open={createOpen || Boolean(editing)} detail={editing} pregnancyId={pregnancyId} estimatedDueDate={estimatedDueDate} onClose={() => { setCreateOpen(false); setEditing(undefined) }} onSaved={(saved) => changed(`${editing ? 'Đã cập nhật' : 'Đã tạo'} lịch nhắc nhở. Lần tiếp theo: ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(saved.next_occurrence || saved.starts_at))}.`)} onConflict={(latest) => setEditing(latest)} />}
+    <CalendarEventDialog readOnly={shared} open={Boolean(activeEvent)} event={activeEvent} detail={activeDetail} loading={detailLoading} onClose={() => { setActiveEvent(undefined); setActiveDetail(undefined); const params = new URLSearchParams(location.search); if (params.has('reminder')) { params.delete('reminder'); navigate({ pathname: location.pathname, search: params.toString(), hash: location.hash }, { replace: true }) } }} onEdit={(detail) => { setActiveEvent(undefined); setEditing(detail) }} onRefresh={refresh} onNotify={showToast} onReloadDetail={() => !shared && activeEvent?.source_id ? loadDetail(activeEvent.source_id, true) : Promise.resolve(undefined)} />
   </section>
 }

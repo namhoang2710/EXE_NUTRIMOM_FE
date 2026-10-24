@@ -1,5 +1,6 @@
 import { ArrowClockwise, SealCheck } from '@phosphor-icons/react'
 import { useRef, useState } from 'react'
+import { ApiClientError } from '@/core/api/api-error'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { communityApi } from '../api/community-api'
 import { useImageUploads } from '../hooks/useImageUploads'
@@ -30,10 +31,13 @@ export function PostComposerDialog({ editing, onClose, onSaved, admin = false, o
   const [retryAt, setRetryAt] = useState(0)
   const [pinned, setPinned] = useState(false)
   const [discard, setDiscard] = useState(false)
+  const [version, setVersion] = useState(editing?.version ?? 0)
+  const [conflict, setConflict] = useState(false)
+  const [latest, setLatest] = useState<CommunityPost | null>(null)
   const uploads = useImageUploads(editing?.images ?? [])
   const trimmed = content.trim()
   const tooLong = trimmed.length > communityLimits.postMaxChars
-  const canSubmit = Boolean(trimmed) && !tooLong && !uploads.busy && !uploads.failed && !busy
+  const canSubmit = Boolean(trimmed) && !tooLong && !uploads.busy && !uploads.failed && !busy && !conflict
   const dirty = content !== (editing?.content ?? '') || topic !== (editing?.topic ?? 'PREGNANCY') || pinned
     || JSON.stringify(uploads.imageIds) !== JSON.stringify(editing?.images.map((image) => image.id) ?? []) || uploads.busy || uploads.failed
   function requestClose() { if (!busy) { if (dirty) setDiscard(true); else onClose() } }
@@ -46,17 +50,31 @@ export function PostComposerDialog({ editing, onClose, onSaved, admin = false, o
     try {
       const input = { content: trimmed, topic, image_ids: uploads.imageIds }
       const saved = editing
-        ? await communityApi.updatePost(editing.id, { ...input, version: editing.version })
+        ? await communityApi.updatePost(editing.id, { ...input, version })
         : admin && onPublish ? await onPublish({ ...input, pinned }) : await communityApi.createPost(input)
       onSaved(saved, !editing)
     } catch (reason) {
       const friendly = friendlyError(reason)
       setRetryAt(friendly.retryAt)
-      setError(friendly.status === 409 && editing ? 'Bài viết đã được thay đổi ở nơi khác. Hãy đóng và mở lại để sửa bản mới nhất.' : friendly.message)
+      const versionConflict = reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT' && Boolean(editing)
+      setConflict(versionConflict)
+      setError(versionConflict ? 'Bài viết đã thay đổi ở nơi khác. Nội dung và ảnh của bạn vẫn được giữ. Xem bản mới nhất trước khi quyết định lưu.' : friendly.message)
     } finally {
       submittingRef.current = false
       setBusy(false)
     }
+  }
+
+  async function reloadLatest() {
+    if (!editing || submittingRef.current || Date.now() < retryAt) return
+    submittingRef.current = true; setBusy(true)
+    try {
+      const post = await communityApi.refreshPost(editing.id)
+      setLatest(post); setVersion(post.version); setConflict(false); setError(null)
+    } catch (reason) {
+      const friendly = friendlyError(reason)
+      setError(friendly.message); setRetryAt(friendly.retryAt)
+    } finally { submittingRef.current = false; setBusy(false) }
   }
 
   return <><AccessibleDialog open animated title={editing ? 'Sửa bài viết' : admin ? 'Viết bài từ Ban quản trị' : 'Viết bài mới'} onClose={requestClose} busy={busy || discard} stable className="nm-community-composer"
@@ -77,6 +95,8 @@ export function PostComposerDialog({ editing, onClose, onSaved, admin = false, o
       {uploads.failed && <p className="nm-community-muted">Có ảnh tải lên lỗi: bấm tải lại hoặc bỏ ảnh đó để đăng bài.</p>}
       {admin && !editing && <label className="nm-community-pin-choice"><input type="checkbox" checked={pinned} disabled={busy} onChange={(event) => setPinned(event.target.checked)} /><span><strong>Ghim bài này</strong><small>Hiển thị ở đầu bảng tin. Cộng đồng có tối đa 3 bài ghim.</small></span></label>}
       {error && <p className="nm-community-error" role="alert">{error}</p>}
+      {conflict && <button type="button" className="nm-secondary-action" disabled={busy || Date.now() < retryAt} onClick={() => void reloadLatest()}>Xem phiên bản mới nhất, giữ bản nháp</button>}
+      {latest && <details className="nm-community-muted"><summary>Bản mới trên máy chủ — bản nháp và ảnh của bạn vẫn được giữ</summary><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{latest.content}</p><p>Kiểm tra và điều chỉnh bản nháp trước khi bấm Lưu thay đổi.</p></details>}
     </div>
   </AccessibleDialog>
     <AccessibleDialog animated open={discard} title="Bỏ bản nháp này?" description="Nội dung và ảnh chưa đăng sẽ không được lưu. Bạn có thể tiếp tục viết để giữ lại bản nháp." onClose={() => setDiscard(false)} className="nm-community-discard"

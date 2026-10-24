@@ -66,7 +66,7 @@ test('experts have a paginated workspace reusing create, avatar and version-prot
   assert.match(page, /AdminExpertCreateDialog/)
   assert.match(create, /uploadSelectedAvatar\(expert\)/)
   assert.match(create, /mutationLock.current/)
-  assert.match(detail, /reason.status === 409/)
+  assert.match(detail, /reason.code === 'VERSION_CONFLICT'/)
   assert.match(detail, /version: detail.version/)
   assert.match(detail, /disabled=\{busy \|\| versionConflict\}/)
   assert.match(detail, /mapExpertFieldErrors/)

@@ -89,14 +89,15 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       offset: ['start start', 'end start'],
     })
 
-    const shouldAnimate = !prefersReducedMotion && motionProfile !== 'compact'
+    const shouldAnimate = !prefersReducedMotion
+    const isCompact = motionProfile === 'compact'
     const isTablet = motionProfile === 'tablet'
 
     const firstRowX = useSpring(
       useTransform(
         scrollYProgress,
         [0, 1],
-        shouldAnimate ? (isTablet ? [-120, -430] : [-150, -880]) : [0, 0],
+        shouldAnimate && !isCompact ? (isTablet ? [-120, -430] : [-150, -880]) : [0, 0],
       ),
       springConfig,
     )
@@ -104,7 +105,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 1],
-        shouldAnimate ? (isTablet ? [-430, -80] : [-760, -40]) : [0, 0],
+        shouldAnimate && !isCompact ? (isTablet ? [-430, -80] : [-760, -40]) : [0, 0],
       ),
       springConfig,
     )
@@ -112,7 +113,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 1],
-        shouldAnimate ? (isTablet ? [-80, -390] : [-30, -720]) : [0, 0],
+        shouldAnimate && !isCompact ? (isTablet ? [-80, -390] : [-30, -720]) : [0, 0],
       ),
       springConfig,
     )
@@ -120,7 +121,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.42],
-        shouldAnimate ? (isTablet ? [8, 0] : [14, 0]) : [0, 0],
+        shouldAnimate && !isCompact ? (isTablet ? [8, 0] : [14, 0]) : [0, 0],
       ),
       springConfig,
     )
@@ -128,7 +129,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.42],
-        shouldAnimate ? (isTablet ? [6, 0] : [12, 0]) : [0, 0],
+        shouldAnimate && !isCompact ? (isTablet ? [6, 0] : [12, 0]) : [0, 0],
       ),
       springConfig,
     )
@@ -136,7 +137,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.72],
-        shouldAnimate ? (isTablet ? [140, -64] : [220, -120]) : [0, 0],
+        shouldAnimate ? (isCompact ? [18, -18] : isTablet ? [140, -64] : [220, -120]) : [0, 0],
       ),
       springConfig,
     )
@@ -144,7 +145,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.3],
-        shouldAnimate ? [0.38, 1] : [1, 1],
+        shouldAnimate && !isCompact ? [0.38, 1] : [1, 1],
       ),
       springConfig,
     )
@@ -168,7 +169,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
               rotateX,
               rotateZ,
               y: translateY,
-              transformPerspective: shouldAnimate ? 1450 : undefined,
+              transformPerspective: shouldAnimate && !isCompact ? 1450 : undefined,
             }}
           >
             {rows.map((rowItems, index) => (
@@ -215,6 +216,7 @@ function ProductCard({ item }: { item: HeroParallaxItem }) {
     <motion.article
       className={`hero-parallax__card hero-parallax__card--${item.fit ?? 'cover'}`}
       whileHover={prefersReducedMotion ? undefined : { y: -8 }}
+      whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
       transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link className="hero-parallax__link" to={item.link}>

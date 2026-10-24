@@ -1,4 +1,5 @@
-import type { PropsWithChildren, ReactNode } from 'react'
+import { Fragment, type PropsWithChildren, type ReactNode } from 'react'
+import { getSessionScope } from '@/core/auth/token-store'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import type { OnboardingStatus } from '@/features/user/model/user-types'
@@ -55,7 +56,7 @@ export function AdminOnly({ children }: PropsWithChildren) {
   if (status === 'loading') return <PageSkeleton />
   if (status === 'anonymous') return <LoginRequired />
   if (!isAdminUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
-  return children
+  return <Fragment key={getSessionScope()}>{children}</Fragment>
 }
 
 export function ExpertOnly({ children }: PropsWithChildren) {
@@ -63,7 +64,7 @@ export function ExpertOnly({ children }: PropsWithChildren) {
   if (status === 'loading') return <PageSkeleton />
   if (status === 'anonymous') return <LoginRequired />
   if (!isExpertUser(user) || isAdminUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
-  return children
+  return <Fragment key={getSessionScope()}>{children}</Fragment>
 }
 
 export function ProtectedRoute({ children, publicLoadingFallback }: PropsWithChildren<{ publicLoadingFallback?: ReactNode }>) {
@@ -73,7 +74,7 @@ export function ProtectedRoute({ children, publicLoadingFallback }: PropsWithChi
   if (isAdminUser(user) || isExpertUser(user)) return <Navigate to={authenticatedDestination(user, profile?.onboarding_status)} replace />
   if (!profile) return profileError ? <ProfileUnavailable /> : <PageSkeleton />
   if (profile.onboarding_status === 'PROFILE_REQUIRED') return <Navigate to="/onboarding/profile" replace />
-  return children
+  return <Fragment key={getSessionScope()}>{children}</Fragment>
 }
 
 export function OnboardingRoute({ children, step }: PropsWithChildren<{ step: 'PROFILE_REQUIRED' | 'CONTEXT_REQUIRED' }>) {
@@ -84,5 +85,5 @@ export function OnboardingRoute({ children, step }: PropsWithChildren<{ step: 'P
   if (!profile) return profileError ? <ProfileUnavailable /> : <PageSkeleton />
   if (step === 'CONTEXT_REQUIRED') return profile.onboarding_status === 'CONTEXT_REQUIRED' ? children : <Navigate to={destination(profile.onboarding_status)} replace />
   if (profile.onboarding_status !== step) return <Navigate to={destination(profile.onboarding_status)} replace />
-  return children
+  return <Fragment key={getSessionScope()}>{children}</Fragment>
 }

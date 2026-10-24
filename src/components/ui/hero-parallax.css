@@ -503,9 +503,9 @@
     scroll-padding-inline: 18px;
     scroll-snap-type: inline mandatory;
     scrollbar-width: none;
-    transform: none !important;
+    /* Preserve the compact 2D scroll motion; the strip itself still swipes natively. */
     translate: none;
-    will-change: auto;
+    will-change: transform;
   }
 
   .hero-parallax__gallery::-webkit-scrollbar {

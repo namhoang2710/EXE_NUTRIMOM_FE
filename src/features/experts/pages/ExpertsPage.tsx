@@ -31,7 +31,7 @@ export function ExpertsPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
   const { status } = useAuth()
-  const { experts, loading, error, retry } = useExperts(specialty)
+  const { experts, loading, error, retry, retryIn } = useExperts(specialty)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -48,7 +48,7 @@ export function ExpertsPage() {
 
   const loadDetail = useCallback(async (userId: string, signal?: AbortSignal) => {
     setDetailLoading(true); setDetailError(null)
-    try { setDetail(await expertsApi.detail(userId, signal)) }
+    try { const latest = await expertsApi.detail(userId, signal); if (!signal?.aborted) setDetail(latest) }
     catch (error) { if (!signal?.aborted) { setDetail(null); setDetailError(error instanceof Error ? error.message : 'Không thể tải hồ sơ chuyên gia.') } }
     finally { if (!signal?.aborted) setDetailLoading(false) }
   }, [])
@@ -113,8 +113,8 @@ export function ExpertsPage() {
               <span className="experts-state__icon"><ArrowClockwise size={27} weight="duotone" aria-hidden="true" /></span>
               <h2>Danh sách chưa thể hiển thị</h2>
               <p>{error}</p>
-              <button type="button" onClick={() => void retry()}>
-                <ArrowClockwise size={18} weight="bold" aria-hidden="true" />Thử lại
+              <button type="button" disabled={retryIn > 0} onClick={() => void retry()}>
+                <ArrowClockwise size={18} weight="bold" aria-hidden="true" />{retryIn > 0 ? `Thử lại sau ${retryIn}s` : 'Thử lại'}
               </button>
             </div>
           ) : experts.length === 0 ? (

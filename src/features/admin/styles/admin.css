@@ -1,4 +1,4 @@
-.admin-shell, .admin-select-popup, .admin-date-popup, .admin-kpi-details {
+.admin-shell, .admin-select-popup, .admin-date-popup, .admin-kpi-details, .admin-editor-accessible {
   --admin-accent: #7562a8;
   --admin-accent-strong: #5c4b91;
   --admin-accent-soft: #f1ecfb;
@@ -19,7 +19,7 @@
   background: var(--admin-canvas);
 }
 
-:root[data-theme="dark"] .admin-shell, :root[data-theme="dark"] .admin-select-popup, :root[data-theme="dark"] .admin-date-popup, :root[data-theme="dark"] .admin-kpi-details {
+:root[data-theme="dark"] .admin-shell, :root[data-theme="dark"] .admin-select-popup, :root[data-theme="dark"] .admin-date-popup, :root[data-theme="dark"] .admin-kpi-details, :root[data-theme="dark"] .admin-editor-accessible {
   --admin-accent: #b5a3e4;
   --admin-accent-strong: #cbbcf0;
   --admin-accent-soft: #342a4b;
@@ -1369,3 +1369,13 @@
 @media(max-width:767px) { .admin-topbar .theme-toggle { display:inline-flex; } }
 .admin-topbar-actions > div:has(.nm-notification-root) { position:relative; }
 .admin-count-stale { position:absolute; right:-3px; bottom:0; display:grid; place-items:center; width:14px; height:14px; border-radius:50%; background:#bb643b; color:white; font-size:10px; font-weight:800; }
+
+/* Share the keyboard/focus/scroll lifecycle with other product dialogs. */
+.admin-editor-accessible .nm-dialog-body { overflow-y: auto; min-height: 0; padding: 0; }
+.admin-editor-accessible .admin-editor-form { overflow: visible; }
+.admin-editor-accessible .nm-dialog-header { flex-shrink: 0; }
+.admin-editor-accessible details > div { overflow-wrap: anywhere; }
+@media (max-width: 620px) {
+  /* Keep the portal's top/bottom gutter on short landscape phones too. */
+  .admin-editor-accessible { max-height: calc(100dvh - 16px); }
+}

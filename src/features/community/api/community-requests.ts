@@ -38,6 +38,12 @@ export function communityRead<T>(path: string, signal?: AbortSignal, ttl = 5_000
   syncScope()
   return reads.read(`GET:${path}`, (sharedSignal) => request<T>(path, { signal: sharedSignal }), signal, ttl)
 }
+export function refreshCommunityRead<T>(path: string, signal?: AbortSignal) {
+  syncScope()
+  // A deliberate conflict refresh must not join an older in-flight detail read.
+  reads.invalidate(`GET:${path}`)
+  return communityRead<T>(path, signal)
+}
 export function communityWrite<T>(path: string, options: ApiRequestOptions) {
   const currentScope = syncScope()
   if (options.body instanceof FormData) return request<T>(path, { ...options, retryAfterRefresh: false })

@@ -373,7 +373,7 @@ function MealFeedbackControls({ recipeId }: { recipeId: string }) {
       setConfirmed(result.type)
       setMessage(
         result.type === 'HARD_NOW'
-          ? `Đã ghi nhận khó ăn tạm thời${result.expires_at ? ` đến ${new Date(result.expires_at).toLocaleString('vi-VN')}` : ' theo thời hạn máy chủ'}.`
+          ? `Đã ghi nhận khó ăn tạm thời${result.expires_at ? ` đến ${new Date(result.expires_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}` : ' theo thời hạn máy chủ'}.`
           : `Đã ghi nhận: ${feedbackLabels[result.type]}.`,
       )
     } catch (reason) {

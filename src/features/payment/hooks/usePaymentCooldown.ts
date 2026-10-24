@@ -32,12 +32,12 @@ export function usePaymentCooldown(operation = 'subscription-checkout') {
   const key = `${getSessionScope()}:${operation}`
   const retryAt = useSyncExternalStore(subscribe, useCallback(() => cooldowns.get(key) ?? 0, [key]))
   const remaining = useRetryCountdown(retryAt)
-  function handleRateLimit(reason: unknown) {
+  const handleRateLimit = useCallback((reason: unknown) => {
     if (!(reason instanceof ApiClientError) || reason.status !== 429) return false
     for (const [storedKey, expires] of cooldowns) if (expires <= Date.now()) cooldowns.delete(storedKey)
     cooldowns.set(key, Math.max(cooldowns.get(key) ?? 0, Date.now() + Math.max(1000, reason.retryAfterMs ?? 30_000)))
     emit()
     return true
-  }
+  }, [key])
   return { remaining, blocked: Date.now() < retryAt, handleRateLimit }
 }
