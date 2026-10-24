@@ -15,7 +15,7 @@ interface KnowledgeLibraryProps {
 export function KnowledgeLibrary({ savedSlugs, bookmarksLoading, authenticated }: KnowledgeLibraryProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { query, pagination, loading, error, updateFilter, resetFilters, changePage, retryLoad } = useLibraryPagination()
+  const { query, pagination, loading, error, updateFilter, resetFilters, changePage, retryLoad, retryIn } = useLibraryPagination()
   const { filters } = query
   const { items, currentPage, totalPages, totalItems, pageSize } = pagination
   const [openSelect, setOpenSelect] = useState<'stage' | null>(null)
@@ -73,7 +73,7 @@ export function KnowledgeLibrary({ savedSlugs, bookmarksLoading, authenticated }
       </div>
       <div className="nm-library-results" ref={frame} aria-busy={loading}>
         <div className="nm-library-results-content" data-loading={loading} inert={loading}>
-          {error ? <div className="nm-empty-state" role="alert"><h3>Chưa thể cập nhật bài viết</h3><p>{error}</p><button type="button" className="nm-button nm-button--soft" onClick={retryLoad}>Thử lại</button></div> : items.length ? <div className="nm-post-grid" key={`${currentPage}-${items.map((post) => post.slug).join(',')}`}>
+          {error ? <div className="nm-empty-state" role="alert"><h3>Chưa thể cập nhật bài viết</h3><p>{error}</p><button type="button" className="nm-button nm-button--soft" disabled={retryIn > 0} onClick={retryLoad}>{retryIn > 0 ? `Thử lại sau ${retryIn}s` : 'Thử lại'}</button></div> : items.length ? <div className="nm-post-grid" key={`${currentPage}-${items.map((post) => post.slug).join(',')}`}>
             {items.slice(0, pageSize).map((post) => <LibraryArticleCard key={post.id} post={post} returnTo={returnTo} />)}
           </div> : !loading && <div className="nm-empty-state"><BookOpenText size={32} weight="duotone" /><h3>{filters.savedOnly ? 'Chưa có bài đã lưu phù hợp' : 'Chưa có bài phù hợp với lựa chọn này'}</h3><p>{filters.savedOnly ? 'Mẹ có thể lưu bài từ thư viện để đọc lại khi cần.' : 'Mẹ thử chọn danh mục, giai đoạn hoặc chủ đề khác nhé.'}</p><button type="button" className="nm-button nm-button--soft" onClick={resetFilters}>Xem lại thư viện</button></div>}
         </div>

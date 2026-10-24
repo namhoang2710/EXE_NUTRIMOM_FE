@@ -22,4 +22,11 @@ export const nutrimomSocials = {
     href: 'https://www.facebook.com/profile.php?id=61594748276327&locale=vi_VN',
     ariaLabel: 'Theo dõi NutriMom trên Facebook',
   },
+  tiktok: {
+    label: 'TikTok',
+    href: 'https://www.tiktok.com/@nutrimom202?_r=1&_t=ZS-9Aos3P82qHA',
+    ariaLabel: 'Theo dõi NutriMom trên TikTok',
+  },
 } as const
+
+export const nutrimomSocialOrder = ['facebook', 'instagram', 'tiktok'] as const

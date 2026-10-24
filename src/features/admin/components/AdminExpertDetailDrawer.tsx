@@ -58,6 +58,8 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
   const closeButton = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLElement>(null)
   const mutationLock = useRef(false)
+  const editingRef = useRef(editing)
+  editingRef.current = editing
   const previewUrl = useMemo(() => avatar ? URL.createObjectURL(avatar) : '', [avatar])
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
@@ -99,7 +101,9 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
     adminExpertsApi.detail(expert.userId, controller.signal).then((result) => {
       if (controller.signal.aborted) return
       setDetail(result); setStatus('success'); onChanged(result)
-      setForm(toEditState(result)); setVersionConflict(false); setSaveError(''); setErrors({})
+      if (!editingRef.current) setForm(toEditState(result))
+      else setSuccessMessage('Đã tải hồ sơ mới. Bản nháp và tệp ảnh bạn chọn vẫn được giữ; kiểm tra trước khi lưu.')
+      setVersionConflict(false); setSaveError(''); setErrors({})
     }).catch((reason: unknown) => {
       if (controller.signal.aborted) return
       setError(reason instanceof Error ? reason.message : 'Chưa thể tải chi tiết chuyên gia.'); setStatus('error')
@@ -156,7 +160,7 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
       })
       setDetail(updated); onChanged(updated); setEditing(false); setEditTouched(false); setAvatarTouched(false); setForm(toEditState(updated)); setSuccessMessage('Đã cập nhật hồ sơ chuyên gia.')
     } catch (reason) {
-      if (reason instanceof ApiClientError && (reason.code === 'VERSION_CONFLICT' || reason.status === 409)) {
+      if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') {
         adminReads.invalidate('GET:/admin/experts/' + detail.userId)
         setVersionConflict(true); setSaveError('Hồ sơ đã thay đổi. Hãy tải phiên bản mới nhất trước khi lưu.')
       } else { if (reason instanceof ApiClientError) setErrors(mapExpertFieldErrors(reason.fields)); setSaveError(reason instanceof Error ? reason.message : 'Chưa thể lưu hồ sơ.') }

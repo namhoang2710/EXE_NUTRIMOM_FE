@@ -4,7 +4,7 @@ import { access, readFile } from 'node:fs/promises'
 import { getPregnancyStageImageUrl } from '../src/features/maternity/model/pregnancy-stage-artwork.ts'
 
 test('maps early pregnancy weeks to the shared stage artwork', () => {
-  for (const week of [0, 1, 2, 3]) assert.equal(getPregnancyStageImageUrl(week), '/pregnancy-weeks/T1-3.png')
+  for (const week of [0, 1, 2, 3]) assert.equal(getPregnancyStageImageUrl(week), '/optimized/pregnancy-weeks/T1-3.webp')
 })
 
 test('maps exact, fractional, and upper-bound weeks to safe artwork URLs', () => {
@@ -12,9 +12,9 @@ test('maps exact, fractional, and upper-bound weeks to safe artwork URLs', () =>
   assert.equal(getPregnancyStageImageUrl(6 + 3 / 7), '/pregnancy-weeks/T6.png')
   assert.equal(getPregnancyStageImageUrl(29), '/pregnancy-weeks/T29.png')
   assert.equal(getPregnancyStageImageUrl(29.99), '/pregnancy-weeks/T29.png')
-  assert.equal(getPregnancyStageImageUrl(41), '/pregnancy-weeks/T41.png')
-  assert.equal(getPregnancyStageImageUrl(42), '/pregnancy-weeks/T41.png')
-  assert.equal(getPregnancyStageImageUrl(900), '/pregnancy-weeks/T41.png')
+  assert.equal(getPregnancyStageImageUrl(41), '/optimized/pregnancy-weeks/T41.webp')
+  assert.equal(getPregnancyStageImageUrl(42), '/optimized/pregnancy-weeks/T41.webp')
+  assert.equal(getPregnancyStageImageUrl(900), '/optimized/pregnancy-weeks/T41.webp')
 })
 
 test('uses fallback state for non-finite week values', () => {

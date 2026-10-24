@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { vietnamDateTimeInput } from '@/core/date-time/vietnam'
 import { Clock } from '@phosphor-icons/react'
 import { calendarEventKey, formatEventTime, localDate, startOfWeek, addDays } from '../model/calendar-helpers'
 import type { CalendarEventItem } from '../model/calendar-types'
@@ -15,8 +16,8 @@ interface TimelineProps {
 }
 
 function hourFor(event: CalendarEventItem) {
-  const value = new Date(event.starts_at)
-  return Number.isNaN(value.getTime()) ? -1 : value.getHours()
+  const value = vietnamDateTimeInput(event.starts_at)
+  return value ? Number(value.slice(11, 13)) : -1
 }
 
 function HourEvent({ event, compact = false, onOpen }: { event: CalendarEventItem; compact?: boolean; onOpen: (event: CalendarEventItem) => void }) {

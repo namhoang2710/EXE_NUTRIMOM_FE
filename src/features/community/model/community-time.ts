@@ -1,5 +1,6 @@
-import { formatDistanceToNowStrict } from 'date-fns'
+import { formatDistanceStrict } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { formatVietnamDate } from '../../../core/date-time/vietnam.ts'
 
 /** "5 phút trước", "2 ngày trước"... ; quá 7 ngày thì hiện ngày cụ thể. */
 export function relativeTime(iso: string | null | undefined, now = new Date()) {
@@ -7,10 +8,10 @@ export function relativeTime(iso: string | null | undefined, now = new Date()) {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
   if (now.getTime() - date.getTime() > 7 * 86_400_000) {
-    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return formatVietnamDate(date)
   }
   if (now.getTime() - date.getTime() < 60_000) return 'Vừa xong'
-  return `${formatDistanceToNowStrict(date, { locale: vi })} trước`
+  return `${formatDistanceStrict(date, now, { locale: vi })} trước`
 }
 
 export function initial(name: string) {

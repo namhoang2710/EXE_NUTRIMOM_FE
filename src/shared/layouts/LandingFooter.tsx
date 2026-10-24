@@ -1,13 +1,12 @@
 import {
   Clock,
   EnvelopeSimple,
-  FacebookLogo,
-  InstagramLogo,
   MapPin,
   Phone,
 } from '@phosphor-icons/react'
 import { Link } from 'react-router-dom'
-import { nutrimomContact, nutrimomSocials } from '../config/contact'
+import { nutrimomContact } from '../config/contact'
+import { SocialLinks } from '../components/SocialLinks'
 import { landingNavigation } from './landing-navigation'
 
 export function LandingFooter() {
@@ -49,24 +48,7 @@ export function LandingFooter() {
 
         <div className="landing-footer-column landing-footer-socials">
           <h2>Follow Us</h2>
-          <a
-            href={nutrimomSocials.facebook.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={nutrimomSocials.facebook.ariaLabel}
-          >
-            <FacebookLogo size={18} weight="fill" aria-hidden="true" />
-            <span>{nutrimomSocials.facebook.label}</span>
-          </a>
-          <a
-            href={nutrimomSocials.instagram.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={nutrimomSocials.instagram.ariaLabel}
-          >
-            <InstagramLogo size={18} weight="bold" aria-hidden="true" />
-            <span>{nutrimomSocials.instagram.label}</span>
-          </a>
+          <SocialLinks />
         </div>
       </div>
       <div className="landing-footer-bottom">

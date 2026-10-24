@@ -25,7 +25,7 @@ export function isAbort(reason: unknown) {
 export function friendlyError(reason: unknown, now = Date.now()): FriendlyError {
   if (reason instanceof ApiClientError) {
     if (reason.status === 429) {
-      const waitMs = reason.retryAfterMs ?? 30_000
+      const waitMs = Math.max(1000, reason.retryAfterMs ?? 30_000)
       const seconds = Math.max(1, Math.ceil(waitMs / 1000))
       // Hết quota 24 giờ: câu của BE đã đủ nghĩa. Còn lại (rate limit, ảnh đang bận): báo số giây cần chờ.
       const message = reason.code === 'QUOTA_EXCEEDED' && reason.serverMessage

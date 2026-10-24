@@ -25,7 +25,7 @@
 .landing-header .nutrimom-floating-decorations { opacity: 0.28; }
 .landing-header-main {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto minmax(120px, 1fr);
+  grid-template-columns: minmax(140px, 1fr) auto auto;
   width: min(calc(100% - var(--landing-container-inset)), var(--landing-content-max));
   min-height: 80px;
   align-items: center;
@@ -75,7 +75,7 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1120px) {
   .landing-header-main { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 72px auto; min-height: 72px; gap: 0 12px; }
   .landing-header-actions { grid-column: 2; grid-row: 1; }
   .landing-menu-toggle { display: grid; }

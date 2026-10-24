@@ -1,20 +1,19 @@
 import type { CalendarEventItem, CalendarEventStatus, CalendarSource, CreateReminderPayload, MedicalRecordReminderPayload, OccurrenceStatus, ReminderDetail, ReminderFormValue, ReminderRepeat, UpdateReminderPayload, Weekday } from './calendar-types'
+import { VIETNAM_TIME_ZONE, vietnamCalendarNow, vietnamDateTimeInput, vietnamLocalDateTimeToIso } from '../../../core/date-time/vietnam.ts'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
-export function localDate(date = new Date()) { return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` }
+export function localDate(date = vietnamCalendarNow()) { return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` }
 
 export function toLocalDateTimeValue(iso?: string) {
   if (!iso) return ''
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  return `${localDate(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return vietnamDateTimeInput(iso)
 }
 
 export function localDateTimeToUtc(value: string) {
-  const date = new Date(value)
-  if (!value || Number.isNaN(date.getTime())) throw new Error('Thời gian bắt đầu chưa hợp lệ.')
-  return date.toISOString()
+  const iso = vietnamLocalDateTimeToIso(value)
+  if (!iso) throw new Error('Thời gian bắt đầu chưa hợp lệ.')
+  return iso
 }
 
 export function calendarEventKey(event: CalendarEventItem) { return `${event.source}:${event.source_id}:${event.starts_at}` }
@@ -125,7 +124,7 @@ export function buildRepeat(value: ReminderFormValue): ReminderRepeat | undefine
 
 export function validateReminderForm(value: ReminderFormValue, now = new Date(), originalStartsAt?: string) {
   const errors: Record<string, string> = {}
-  const start = new Date(value.startsAtLocal)
+  const start = new Date(vietnamLocalDateTimeToIso(value.startsAtLocal) ?? Number.NaN)
   if (!value.title.trim()) errors.title = 'Hãy nhập tiêu đề.'
   else if (value.title.trim().length > 255) errors.title = 'Tiêu đề tối đa 255 ký tự.'
   if (!value.startsAtLocal || Number.isNaN(start.getTime())) errors.starts_at = 'Hãy chọn thời gian bắt đầu.'
@@ -142,7 +141,7 @@ export function validateReminderForm(value: ReminderFormValue, now = new Date(),
   if (value.timesOfDay.length > 6) errors.times_of_day = 'Chỉ được chọn tối đa 6 mốc giờ mỗi ngày.'
   if (new Set(value.timesOfDay).size !== value.timesOfDay.length) errors.times_of_day = 'Các mốc giờ không được trùng nhau.'
   const startDate = value.startsAtLocal.slice(0, 10)
-  if (value.until && startDate && value.until < startDate) errors.until = 'Ngày kết thúc không thể trước ngày bắt đầu.'
+  if (value.repeatMode !== 'NONE' && value.until && startDate && value.until < startDate) errors.until = 'Ngày kết thúc không thể trước ngày bắt đầu.'
   return errors
 }
 
@@ -175,9 +174,9 @@ export function reminderPatchPayload(value: ReminderFormValue, original: Reminde
 }
 
 export function medicalRecordReminderDefaults(occurredAt: string, now = new Date()) {
-  const occurred = new Date(occurredAt)
+  const occurred = new Date(vietnamDateTimeInput(occurredAt))
   let target = addDays(occurred, 28)
-  if (Number.isNaN(target.getTime()) || target <= now) { target = addDays(now, 1); target.setHours(9, 0, 0, 0) }
+  if (Number.isNaN(target.getTime()) || target <= vietnamCalendarNow(now)) { target = addDays(vietnamCalendarNow(now), 1); target.setHours(9, 0, 0, 0) }
   return { type: 'FOLLOW_UP' as const, startsAtLocal: `${localDate(target)}T${pad(target.getHours())}:${pad(target.getMinutes())}`, remindMinutesBefore: 1440 }
 }
 
@@ -194,13 +193,13 @@ export function medicalRecordReminderPayload(input: { type: MedicalRecordReminde
 }
 
 export function formatEventTime(event: Pick<CalendarEventItem, 'starts_at' | 'ends_at' | 'source'>) {
-  const format = (value: string) => new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+  const format = (value: string) => new Intl.DateTimeFormat('vi-VN', { timeZone: VIETNAM_TIME_ZONE, hourCycle: 'h23', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
   const start = format(event.starts_at)
   return event.source === 'CONSULTATION' && event.ends_at ? `${start}–${format(event.ends_at)}` : start
 }
 
 export function formatCalendarDate(value: Date | string, includeTime = false) {
-  const date = typeof value === 'string' ? new Date(value) : value
+  const date = typeof value === 'string' ? new Date(vietnamDateTimeInput(value)) : value
   if (Number.isNaN(date.getTime())) return ''
   return new Intl.DateTimeFormat('vi-VN', {
     weekday: 'long',

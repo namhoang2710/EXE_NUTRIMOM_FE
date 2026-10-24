@@ -63,7 +63,7 @@ export function ExpertAdDialog({ open, onClose, onBannerClick }: ExpertAdDialogP
           <X size={22} weight="bold" aria-hidden="true" />
         </button>
         <button ref={bannerButtonRef} className="expert-ad-dialog__banner" type="button" onClick={onBannerClick}>
-          <img src="/bannerQC.png" alt="Ưu đãi NutriMom, đăng nhập để tìm hiểu thêm" />
+          <img src="/optimized/bannerQC.webp" alt="Ưu đãi NutriMom, đăng nhập để tìm hiểu thêm" />
         </button>
       </div>
     </div>

@@ -153,3 +153,9 @@ body:has(.nm-assistant-launcher) .scroll-progress-button { right: 31px; bottom: 
     height: auto;
   }
 }
+
+@media (max-width: 700px) {
+  body:has(.contactQuickActions) .nm-assistant-launcher { bottom: calc(20px + var(--mobile-dock-clearance, 0px)); }
+  body:has(.contactQuickActions) .nm-assistant-window { bottom: calc(100px + var(--mobile-dock-clearance, 0px)); height: min(650px, calc(100dvh - 122px - var(--mobile-dock-clearance, 0px))); }
+  body:has(.contactQuickActions):has(.nm-assistant-launcher) .scroll-progress-button { bottom: calc(100px + var(--mobile-dock-clearance, 0px)); }
+}

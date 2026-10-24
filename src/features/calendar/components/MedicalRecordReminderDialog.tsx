@@ -1,4 +1,5 @@
 import { useFeatureAccess } from '@/features/payment/hooks/useFeatureAccess'
+import { vietnamLocalDateTimeToIso } from '@/core/date-time/vietnam'
 import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
 import { UpgradePrompt } from '@/features/payment/components/UpgradePrompt'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -50,7 +51,8 @@ export function MedicalRecordReminderDialog({ open, records, initialRecordId, on
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!selected || gate.current || cooldown.blocked) return
-    if (!startsAtLocal || new Date(startsAtLocal) <= new Date()) { setError('Thời gian bắt đầu phải ở tương lai.'); return }
+    const startsAt = vietnamLocalDateTimeToIso(startsAtLocal)
+    if (!startsAt || new Date(startsAt) <= new Date()) { setError('Thời gian bắt đầu phải ở tương lai.'); return }
     if (remindEnabled && (remindMinutes < 0 || remindMinutes > 10080)) { setError('Thời gian nhắc phải từ 0 đến 10080 phút.'); return }
     gate.current = true; setSaving(true); setError('')
     try {

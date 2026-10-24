@@ -26,7 +26,7 @@ export function ArticleCard({ post, saved, onToggle, featured = false, libraryCo
   const detailPath = `${location.pathname.startsWith('/app/') ? '/app/knowledge' : '/blog'}/${post.slug}`
   const returnState = { knowledgeReturnTo: returnTo ?? location.pathname + location.search + location.hash }
   return <article className={featured ? 'nm-featured-post' : 'nm-post-card'}>
-    {featured && <div className="nm-featured-post-image"><img src={post.coverImage?.url ?? '/banner2.png'} alt={post.coverImage?.alt ?? ''} loading="lazy" /></div>}
+    {featured && <div className="nm-featured-post-image"><img src={post.coverImage?.url ?? '/optimized/banner2.webp'} alt={post.coverImage?.alt ?? ''} loading="lazy" /></div>}
     {!featured && post.coverImage && <div className="nm-post-card-image"><img src={post.coverImage.url} alt={post.coverImage.alt} loading="lazy" /></div>}
     <div className={featured ? 'nm-featured-post-content' : 'nm-post-card-content'}>
       <div className="nm-post-card-top"><span className="nm-category">{post.category}</span><span className="nm-post-stage">{post.stage}</span></div>
@@ -44,7 +44,7 @@ export function LibraryArticleCard({ post, returnTo }: { post: ArticleCardViewMo
   const detailPath = `${returnTo.startsWith('/app/') ? '/app/knowledge' : '/blog'}/${post.slug}`
   return <article className="nm-library-card">
     <Link className="nm-library-card-link" to={detailPath} state={{ knowledgeReturnTo: returnTo }} aria-label={`Đọc bài viết: ${post.title}`}>
-      <span className="nm-library-card-image"><img src={post.coverImage?.url ?? '/banner2.png'} alt="" loading="lazy" /></span>
+      <span className="nm-library-card-image"><img src={post.coverImage?.url ?? '/optimized/banner2.webp'} alt="" loading="lazy" /></span>
       <span className="nm-library-card-copy"><strong>{post.title}</strong>{post.excerpt && <span className="nm-library-card-excerpt">{post.excerpt}</span>}<span className="nm-library-card-date"><CalendarBlank size={16} /><time dateTime={post.publishedAtIso}>{post.publishedAt}</time></span></span>
     </Link>
   </article>

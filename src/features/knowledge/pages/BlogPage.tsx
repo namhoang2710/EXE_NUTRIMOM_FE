@@ -51,7 +51,7 @@ export function BlogPage({ library = false }: { library?: boolean }) {
             <div className="nm-blog-trust-row"><span><ShieldCheck size={18} /> Do ban biên tập quản lý</span>{articleCount !== null && <span><BookOpenText size={18} /> {articleCount} bài đã xuất bản</span>}</div>
           </div>
           <div className="nm-blog-hero-visual" aria-hidden="true">
-            <img src="/benner_blog1.png" alt="" />
+            <img src="/optimized/benner_blog1.webp" alt="" />
             <div className="nm-hero-caption"><HandHeart size={26} weight="duotone" /><span>Mỗi hành trình đều khác nhau.<br /><strong>Mẹ cứ bước theo nhịp của mình.</strong></span></div>
           </div>
         </div>
