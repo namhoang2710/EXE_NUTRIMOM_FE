@@ -10,6 +10,8 @@ import { waitForFamilyLoading } from '../model/family-loading'
 import type { FamilyMember, FamilyTask, FamilyTaskStatus } from '../model/family-types'
 import { FamilyLoadingState } from './FamilyLoadingState'
 import { TaskEditorDialog } from './TaskEditorDialog'
+import { getSessionScope } from '@/core/auth/token-store'
+import { requireCurrentScope } from '@/core/api/profile-requests'
 
 interface Props { isOwner: boolean; canUseTasks: boolean; members: FamilyMember[]; focusedTaskId?: string; onCloseFocusedTask?: () => void; onRefreshPermissions?: () => Promise<void>; onNotify: (message: string) => void }
 
@@ -21,12 +23,13 @@ const taskFilterOptions: AnimatedSelectOption<FamilyTaskStatus | ''>[] = [
 const taskStatusOptions: AnimatedSelectOption<FamilyTaskStatus>[] = (Object.keys(taskStatusLabels) as FamilyTaskStatus[]).map((value) => ({ value, label: taskStatusLabels[value] }))
 
 function requestTasks(filters: { status?: FamilyTaskStatus; assignee_id?: string }) {
-  const key = JSON.stringify(filters)
+  const scope = getSessionScope()
+  const key = JSON.stringify([scope, filters])
   const existing = taskRequests.get(key)
   if (existing) return existing
-  const request = familyApi.tasks(filters)
+  const request = familyApi.tasks(filters).then((tasks) => { requireCurrentScope(scope); return tasks })
   taskRequests.set(key, request)
-  void request.finally(() => { window.setTimeout(() => taskRequests.delete(key), 0) }).catch(() => undefined)
+  void request.finally(() => { window.setTimeout(() => { if (taskRequests.get(key) === request) taskRequests.delete(key) }, 0) }).catch(() => undefined)
   return request
 }
 

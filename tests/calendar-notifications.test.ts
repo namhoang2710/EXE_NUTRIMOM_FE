@@ -332,7 +332,7 @@ test('deep-link adapter allows only known app routes', () => {
 })
 
 test('dashboard greeting follows pregnancy and no-pregnancy contracts', () => {
-  assert.deepEqual(dashboardGreeting({ profile_summary: { display_name: 'An', salutation: 'chị', role: 'MOM' }, pregnancy_summary: { id: 'p', status: 'ACTIVE', gestational_week: 20, gestational_day: 3, trimester: 2, days_until_due: 100, calculation_source: 'LMP', version: 1 } }), { title: 'Chào mẹ An', subtitle: 'Hiện tại bé đã được 20 tuần 3 ngày.' })
+  assert.deepEqual(dashboardGreeting({ profile_summary: { display_name: 'An', salutation: 'chị', role: 'MOM' }, pregnancy_summary: { id: 'p', status: 'ACTIVE', gestational_week: 20, gestational_day: 3, trimester: 2, days_until_due: 100 } }), { title: 'Chào mẹ An', subtitle: 'Hiện tại bé đã được 20 tuần 3 ngày.' })
   assert.deepEqual(dashboardGreeting({ profile_summary: { display_name: 'Nguyễn Bé Cò', salutation: 'chị', role: 'USER' } }), { title: 'Chào chị, Nguyễn Bé Cò', subtitle: 'Chúc chị một ngày mới an lành.' })
 })
 

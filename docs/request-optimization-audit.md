@@ -1,5 +1,7 @@
 # Rà soát request, 429 và TypeScript — 19/10/2026
 
+Rà soát USER mới hơn, gồm đăng nhập/refresh, cache chuyên gia/kiến thức và responsive sáng/tối: [báo cáo ngày 24/10/2026](user-workspace-audit-2026-10-24.md). Các kết quả bên dưới được giữ làm lịch sử kiểm chứng của lượt trước.
+
 Nhánh kiểm tra: `feature/nutrition-full-flow-ui`. Thay đổi FE hiện có trong working tree được giữ nguyên; chưa commit/push. Không sửa backend.
 
 Kết quả: lint, TypeScript/production build và 507 test đạt. Đã bổ sung bảo vệ request tại lịch, API client, trợ lý và cache Gia đình. Đây là kiểm tra mã nguồn và trình duyệt với API fixture, không phải kiểm thử tải hay xác nhận môi trường BE đang triển khai.

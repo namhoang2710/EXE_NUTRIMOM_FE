@@ -293,6 +293,50 @@ test('refresh failure clears the session and emits one auth-state event for conc
   assert.ok(results.every((result) => result.status === 'rejected'))
 })
 
+test('refresh 429 preserves the session and its cooldown without replaying protected writes', async () => {
+  resetSession()
+  saveApiSession(authResponse('expired-access', 'valid-refresh'))
+  let refreshCalls = 0, writes = 0
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith('/auth/refresh')) {
+      refreshCalls += 1
+      const response = jsonResponse({ error: { code: 'RATE_LIMITED', message: 'Wait' } }, 429)
+      response.headers.set('Retry-After', '60')
+      return response
+    }
+    if (init?.method === 'POST') writes += 1
+    return unauthorized()
+  }) as typeof fetch
+  const results = await Promise.allSettled([
+    apiClient.request('/qa-protected-write', { method: 'POST' }),
+    apiClient.request('/qa-protected-read'),
+  ])
+  assert.ok(results.every(result => result.status === 'rejected' && result.reason.status === 429))
+  assert.equal(getSession()?.refreshToken, 'valid-refresh')
+  await assert.rejects(apiClient.request('/qa-protected-read'), (reason: unknown) => reason instanceof ApiClientError && reason.status === 429)
+  assert.equal(refreshCalls, 1)
+  assert.equal(writes, 1)
+})
+
+test('temporary refresh server and network failures preserve the session for a later manual retry', async () => {
+  for (const networkFailure of [false, true]) {
+    resetSession()
+    saveApiSession(authResponse('expired-access', 'valid-refresh'))
+    let refreshCalls = 0
+    globalThis.fetch = (async () => {
+      refreshCalls += 1
+      if (networkFailure) throw new TypeError('Synthetic network failure')
+      return jsonResponse({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Unavailable' } }, 503)
+    }) as typeof fetch
+    await assert.rejects(authApi.refresh())
+    assert.equal(getSession()?.refreshToken, 'valid-refresh')
+    assert.equal(refreshCalls, 1)
+    globalThis.fetch = (async () => jsonResponse(authResponse('recovered-access', 'rotated-refresh'))) as typeof fetch
+    await authApi.refresh()
+    assert.equal(getSession()?.accessToken, 'recovered-access')
+  }
+})
+
 test('logout clears local auth before revocation completes and cannot clear a newer login', async () => {
   resetSession()
   saveApiSession(authResponse('access-a', 'refresh-a'))

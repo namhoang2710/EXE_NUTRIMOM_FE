@@ -1,6 +1,6 @@
 import { profileRead, requireCurrentScope } from '../../../core/api/profile-requests.ts'
 import { apiClient, setRefreshHandler } from '../../../core/api/api-client.ts'
-import { ApiClientError } from '../../../core/api/api-error.ts'
+import { ApiClientError, isAuthenticationError } from '../../../core/api/api-error.ts'
 import { ErrorCodes } from '../../../core/api/error-code.ts'
 import { getDeviceId } from '../../../core/auth/device.ts'
 import { clearSession, getSession, getSessionScope, saveApiSession } from '../../../core/auth/token-store.ts'
@@ -59,7 +59,9 @@ async function performRefresh() {
     requireCurrentScope(scope)
     return saveApiSession(response, true)
   } catch (error) {
-    if (getSession() === current) clearSession()
+    const rejectedSession = isAuthenticationError(error)
+      || (error instanceof ApiClientError && (error.status === 403 || error.code === 'INVALID_REFRESH_TOKEN'))
+    if (getSession() === current && rejectedSession) clearSession()
     throw error
   }
 }

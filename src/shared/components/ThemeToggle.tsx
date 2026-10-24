@@ -1,21 +1,9 @@
 import { Moon, Sun } from '@phosphor-icons/react'
-import { useEffect, useState } from 'react'
-
-type Theme = 'light' | 'dark'
-
-function getInitialTheme(): Theme {
-  const saved = localStorage.getItem('nutrimom.theme')
-  if (saved === 'light' || saved === 'dark') return saved
-  return 'light'
-}
+import { useSyncExternalStore } from 'react'
+import { getTheme, setTheme, subscribeTheme, type Theme } from '@/core/theme/theme-store'
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme)
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    localStorage.setItem('nutrimom.theme', theme)
-  }, [theme])
+  const theme = useSyncExternalStore(subscribeTheme, getTheme, () => 'light' as Theme)
 
   const nextTheme = theme === 'light' ? 'dark' : 'light'
 

@@ -11,7 +11,7 @@ const pregnancy: Pregnancy = {
 const emptyPage: CursorPage<MedicalRecord> = { items: [], next_cursor: null, has_more: false }
 const noFilters = { category: '', from: '', to: '' }
 
-test('initial Records data flow loads current Pregnancy and Medical Records once', async () => {
+test('records default to all pregnancies even without a current pregnancy', async () => {
   let pregnancyCalls = 0
   let recordsCalls = 0
   const getCurrentPregnancy = createCurrentPregnancyLoader(async () => { pregnancyCalls += 1; return pregnancy })
@@ -19,9 +19,9 @@ test('initial Records data flow loads current Pregnancy and Medical Records once
   assert.equal(current?.id, pregnancy.id)
   await loadMedicalRecords(async (query) => {
     recordsCalls += 1
-    assert.equal(query, '?limit=12&pregnancy_id=pregnancy-1')
+    assert.equal(query, '?limit=12')
     return emptyPage
-  }, current!.id, noFilters)
+  }, noFilters)
   assert.equal(pregnancyCalls, 1)
   assert.equal(recordsCalls, 1)
 })
@@ -30,12 +30,13 @@ test('filter reload requests Medical Records without reloading current Pregnancy
   let pregnancyCalls = 0
   let recordsCalls = 0
   const current = await loadCurrentPregnancy(async () => { pregnancyCalls += 1; return pregnancy })
-  await loadMedicalRecords(async () => { recordsCalls += 1; return emptyPage }, current!.id, noFilters)
+  assert.equal(current?.id, pregnancy.id)
+  await loadMedicalRecords(async () => { recordsCalls += 1; return emptyPage }, noFilters)
   await loadMedicalRecords(async (query) => {
     recordsCalls += 1
     assert.equal(query, '?limit=12&pregnancy_id=pregnancy-1&category=ULTRASOUND&from=2026-08-01&to=2026-08-31')
     return emptyPage
-  }, current!.id, { category: 'ULTRASOUND', from: '2026-08-01', to: '2026-08-31' })
+  }, { pregnancyId: current!.id, category: 'ULTRASOUND', from: '2026-08-01', to: '2026-08-31' })
   assert.equal(pregnancyCalls, 1)
   assert.equal(recordsCalls, 2)
 })

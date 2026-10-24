@@ -37,17 +37,21 @@ export function useExperts(specialty: ExpertSpecialty | null) {
 
   useEffect(() => {
     function refreshWhenActive() {
-      if (document.visibilityState !== 'visible' || Date.now() - lastRefreshAt.current < 300) return
+      if (document.visibilityState !== 'visible' || Date.now() - lastRefreshAt.current < 30_000) return
+      void loadExperts(false)
+    }
+    function refreshChangedExperts() {
+      expertsApi.invalidate()
       void loadExperts(false)
     }
 
     window.addEventListener('focus', refreshWhenActive)
     document.addEventListener('visibilitychange', refreshWhenActive)
-    window.addEventListener('nutrimom:experts-changed', refreshWhenActive)
+    window.addEventListener('nutrimom:experts-changed', refreshChangedExperts)
     return () => {
       window.removeEventListener('focus', refreshWhenActive)
       document.removeEventListener('visibilitychange', refreshWhenActive)
-      window.removeEventListener('nutrimom:experts-changed', refreshWhenActive)
+      window.removeEventListener('nutrimom:experts-changed', refreshChangedExperts)
     }
   }, [loadExperts])
 

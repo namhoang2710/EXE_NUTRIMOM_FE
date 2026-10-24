@@ -10,6 +10,7 @@ interface Props {
   error?: string
   min?: string
   max?: string
+  today?: string
   allowClear?: boolean
   yearsBack?: number
 }
@@ -17,13 +18,13 @@ interface Props {
 const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 const iso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
-export function CalendarDatePicker({ label, value, onChange, error, min, max = todayDate(), allowClear = false, yearsBack = 5 }: Props) {
+export function CalendarDatePicker({ label, value, onChange, error, min, today = todayDate(), max = today, allowClear = false, yearsBack = 5 }: Props) {
   const id = useId()
   const root = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const reduceMotion = useReducedMotion()
   const [month, setMonth] = useState(() => {
-    const date = value ? new Date(`${value}T12:00:00`) : new Date()
+    const date = new Date(`${value || today}T12:00:00`)
     return new Date(date.getFullYear(), date.getMonth(), 1)
   })
 
@@ -47,7 +48,6 @@ export function CalendarDatePicker({ label, value, onChange, error, min, max = t
   const years = Array.from({ length: Math.max(1, maxMonth.getFullYear() - firstYear + 1) }, (_, index) => firstYear + index)
   const previousDisabled = Boolean(minMonth && month.getFullYear() === minMonth.getFullYear() && month.getMonth() <= minMonth.getMonth())
   const nextDisabled = month.getFullYear() === maxMonth.getFullYear() && month.getMonth() >= maxMonth.getMonth()
-  const today = todayDate()
   const todayAllowed = (!min || today >= min) && today <= max
 
   return <div className="field-group calendar-field" ref={root}>

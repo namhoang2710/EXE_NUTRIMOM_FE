@@ -70,12 +70,6 @@ export function AppLayout({ children }: PropsWithChildren) {
   )
 
   useLayoutEffect(() => {
-    const theme = localStorage.getItem('nutrimom.theme')
-    if (theme === 'light' || theme === 'dark')
-      document.documentElement.dataset.theme = theme
-  }, [])
-
-  useLayoutEffect(() => {
     const previous = previousLocation.current
     const pathnameChanged = previous === null || previous.pathname !== location.pathname
     const hashChanged = previous === null || previous.hash !== location.hash

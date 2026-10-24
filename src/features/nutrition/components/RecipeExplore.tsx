@@ -4,6 +4,7 @@ import { AnimatedSelect } from '@/components/ui/animated-select'
 import { Link, useSearchParams } from 'react-router-dom'
 import { nutritionApi } from '../api/nutrition-api'
 import { useNutritionRead } from '../hooks/useNutritionRead'
+import { useNutritionCooldown } from '../hooks/useNutritionCooldown'
 import { mealLabels, numberText, roleLabels } from '../model/nutrition-helpers'
 import type {
   CatalogFilters,
@@ -23,6 +24,7 @@ export function RecipeExplore({
   date: string
   onLog: (seed: DiarySeed) => void
 }) {
+  const cooldown = useNutritionCooldown('catalog')
   const [query, setQuery] = useSearchParams()
   const meal = query.get('meal') || '',
     role = query.get('role') || '',
@@ -62,7 +64,7 @@ export function RecipeExplore({
     setPageError(null)
   }
   async function more() {
-    if (pagingRef.current || !last?.next_cursor) return
+    if (pagingRef.current || cooldown.blocked || !last?.next_cursor) return
     pagingRef.current = true
     setPaging(true)
     setPageError(null)
@@ -191,13 +193,15 @@ export function RecipeExplore({
       )}
       <NutritionError error={pageError} retry={() => void more()} />
       {last?.has_more && last.next_cursor && (
-        <NutritionButton
-          className="nutrition-button"
-          disabled={paging}
-          onClick={() => void more()}
-        >
-          {paging ? 'Đang tải…' : 'Xem thêm món'}
-        </NutritionButton>
+        <div className="nutrition-catalog-pagination">
+          <NutritionButton
+            className="nutrition-button"
+            disabled={paging || cooldown.blocked}
+            onClick={() => void more()}
+          >
+            {paging ? 'Đang tải…' : cooldown.blocked ? `Thử lại sau ${cooldown.remaining}s` : 'Xem thêm món'}
+          </NutritionButton>
+        </div>
       )}
     </section>
   )
