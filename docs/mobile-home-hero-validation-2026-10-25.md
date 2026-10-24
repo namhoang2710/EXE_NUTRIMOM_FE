@@ -23,3 +23,10 @@
 - Bàn giao qua nhánh `fix/mobile-home-hero-parallax` để tạo merge request vào `dev`; chưa deploy bản sửa banner này.
 - Website Production vẫn là bản `dev` đã deploy trước đó (`a532b55`).
 - Năm ảnh/SVG untracked đã có trước được giữ nguyên, không đưa vào thay đổi này.
+
+## Sửa CI sau khi mở PR #44
+
+- Lượt push và pull request đầu tiên dừng ở unit test dashboard: `7.7 !== null` tại `admin-dashboard-redesign.test.ts`. Log: https://github.com/namhoang2710/EXE_NUTRIMOM_FE/actions/runs/40117919668.
+- Fixture lấy ngày Việt Nam hiện tại, tạo chuỗi 30 ngày và đặt một điểm thiếu dữ liệu ở vị trí thứ năm. Vào ngày 25, điểm đó trùng ngày cuối tháng trước, bị ghi đè bởi số liệu so sánh bắt buộc; test vẫn giả định vị trí đó luôn null.
+- Giữ hai mẫu riêng biệt: dời điểm thiếu dữ liệu một ngày khi bị trùng, kiểm tra null theo ngày của mẫu thay vì vị trí cố định. Thêm regression test với ngày 24/25/26, chuyển năm và tháng sau tháng Hai nhuận.
+- Bộ unit sau sửa: 573/573 đạt. Không đổi logic dashboard trong ứng dụng hoặc bỏ qua check CI. Trạng thái GitHub Actions cần xác nhận trên commit mới sau khi push.

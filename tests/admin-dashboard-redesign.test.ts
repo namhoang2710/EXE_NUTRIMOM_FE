@@ -16,9 +16,26 @@ test('Vietnam greeting boundaries are independent of the machine timezone',()=>{
   assert.equal(formatAdminGreeting(new Date('2026-12-31T17:00:00Z')),'Good evening, Sếp | Hôm nay 01/01/27 | 00:00')
 })
 test('overview uses complete real monthly data and a single customer snapshot',()=>{
-  const p=mapDashboardRedesign(payload());assert.equal(p.overview!.lifetime_real_collected_amount,123456789);assert.equal(p.customer_snapshot!.total_customers,100)
+  const raw=payload(),p=mapDashboardRedesign(raw);assert.equal(p.overview!.lifetime_real_collected_amount,123456789);assert.equal(p.customer_snapshot!.total_customers,100)
   assert.equal(p.customer_snapshot!.free_users+p.customer_snapshot!.plan_99k_users+p.customer_snapshot!.plan_399k_users,100)
-  assert.equal(p.plan_399k_adoption!.daily_series[4].ratio_percent,null);assert.equal(Object.keys(p.unavailable).length,0)
+  const missingDay=raw.plan_399k_adoption.daily_series.find((row:PlanAdoption['daily_series'][number])=>row.as_of===null)
+  assert.ok(missingDay)
+  assert.equal(p.plan_399k_adoption!.daily_series.find(row=>row.date===missingDay.date)?.ratio_percent,null);assert.equal(Object.keys(p.unavailable).length,0)
+})
+
+test('adoption fixture preserves missing days and month-end comparisons across calendar boundaries',()=>{
+  const legacy=fixtureResponse('/admin/dashboard',new URLSearchParams())
+  for(const date of ['2026-10-24','2026-10-25','2026-10-26','2027-01-25','2028-03-25']) {
+    const data=enrichDashboard({...legacy,snapshot_at:`${date}T10:00:00+07:00`})
+    const adoption=data.plan_399k_adoption
+    const gaps=adoption.daily_series.filter((row:PlanAdoption['daily_series'][number])=>row.as_of===null)
+    assert.equal(gaps.length,1,`${date}: preserve one missing-day sample`)
+    assert.equal(gaps[0].ratio_percent,null)
+    const comparison=adoption.daily_series.find((row:PlanAdoption['daily_series'][number])=>row.as_of===adoption.previous_as_of)
+    assert.ok(comparison,`${date}: preserve month-end comparison`)
+    assert.equal(comparison.ratio_percent,adoption.previous_ratio_percent)
+    assert.notEqual(gaps[0].date,comparison.date)
+  }
 })
 test('up/down/flat/insufficient history and zero customers preserve legitimate semantics',()=>{
   for(const [mode,expected] of [['up','up'],['down','down'],['flat','flat'],['insufficient','unknown'],['zero','unknown']]){const p=mapDashboardRedesign(payload(mode));assert.ok(p.plan_399k_adoption);assert.equal(adoptionTrend(p.plan_399k_adoption),expected)}
