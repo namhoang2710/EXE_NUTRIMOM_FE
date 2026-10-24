@@ -53,23 +53,55 @@ try {
     } finally { await f.context.close() }
   })
 
-  await check('mobile and desktop motion change over time; native strip swipes; reduced motion stays still', async () => {
+  await check('mobile and desktop motion follow vertical scroll; rows counter-move; reduced motion stays still', async () => {
     const samples = []
     for (const reducedMotion of ['no-preference','reduce']) {
       const f = await session('guest', false, { reducedMotion })
       try {
-        for (const width of [390,1440]) {
-          await f.page.setViewportSize({ width, height:844 }); await goto(f,'/')
-          await f.page.waitForTimeout(250)
+        const settleRows = () => f.page.evaluate(() => new Promise(resolve => {
+          let previous, stable=0, started=performance.now()
+          function frame(now) {
+            const row=document.querySelector('.hero-parallax__row')
+            const x=new DOMMatrixReadOnly(getComputedStyle(row).transform).m41
+            stable=previous!==undefined && Math.abs(x-previous)<0.05 ? stable+1 : 0
+            previous=x
+            if(stable>=10 || now-started>5000) resolve()
+            else requestAnimationFrame(frame)
+          }
+          requestAnimationFrame(frame)
+        }))
+        for (const [width, height] of [[320,568], [320,844], [375,812], [390,780], [390,844], [430,932], [568,320], [767,844], [768,844], [1440,844]]) {
+          await f.page.setViewportSize({ width, height }); await goto(f,'/')
+          await f.page.evaluate(()=>window.scrollTo(0,0))
+          await settleRows()
           const read = () => f.page.locator('.hero-parallax__gallery').evaluate(e=>getComputedStyle(e).transform)
-          const before=await read(); await f.page.evaluate(()=>window.scrollTo(0,250)); await f.page.waitForTimeout(650); const after=await read()
+          const readRows = () => f.page.locator('.hero-parallax__row').evaluateAll(rows=>rows.map(e=>new DOMMatrixReadOnly(getComputedStyle(e).transform).m41))
+          const rowsBefore=await readRows()
+          const before=await read(); await f.page.evaluate(()=>window.scrollTo(0,250)); await settleRows(); const after=await read()
           if (reducedMotion==='no-preference') assert.notEqual(before,after,`${width}: missing motion`)
           else assert.equal(after,'none')
-          if (width===390) {
-            const swipe=await f.page.locator('.hero-parallax__gallery').evaluate(e=>{ e.scrollLeft=200; return { x:e.scrollLeft, translate:getComputedStyle(e).translate } })
-            assert(swipe.x>0); assert.equal(swipe.translate,'none')
+          const rowsAfter=await readRows()
+          assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false, `${width}x${height}: page overflow`)
+          if (width<768) {
+            const gallery=await f.page.locator('.hero-parallax__gallery').evaluate(e=>({ overflow:getComputedStyle(e).overflowX, x:e.scrollLeft }))
+            assert.notEqual(gallery.overflow,'auto'); assert.equal(gallery.x,0)
+            if (reducedMotion==='no-preference') {
+              assert(rowsAfter[0]<rowsBefore[0]-1, `${width}x${height}: first row must move left on downward scroll: ${JSON.stringify({rowsBefore,rowsAfter})}`)
+              assert(rowsAfter[1]>rowsBefore[1]+1, `${width}: middle row must move right on downward scroll`)
+              assert(rowsAfter[2]<rowsBefore[2]-1, `${width}: last row must move left on downward scroll`)
+              if (height>800) {
+                const geometry=await f.page.evaluate(()=>{
+                  const rect=s=>document.querySelector(s).getBoundingClientRect()
+                  const copy=rect('.hero-parallax__copy'), gallery=rect('.hero-parallax__gallery'), sticky=rect('.hero-parallax__sticky')
+                  return { copyBottom:copy.bottom, galleryTop:gallery.top, galleryBottom:gallery.bottom, stickyTop:sticky.top, viewport:innerHeight }
+                })
+                assert(Math.abs(geometry.stickyTop)<1, `${width}: hero should stay pinned`)
+                assert(geometry.copyBottom<=geometry.galleryTop, `${width}: copy overlaps gallery`)
+                assert(geometry.galleryBottom<=height+1, `${width}: gallery cut off below viewport: ${JSON.stringify(geometry)}`)
+              }
+            } else assert.deepEqual(rowsAfter,[0,0,0])
           }
-          const frames = reducedMotion === 'no-preference' ? await f.page.evaluate(() => new Promise(resolve => {
+          const frames = reducedMotion === 'no-preference' && [390,1440].includes(width) ? await f.page.evaluate(() => new Promise(resolve => {
             const gaps=[];let start=0,last=0
             function step(now) {
               if(!start)start=now
@@ -80,11 +112,52 @@ try {
             }
             requestAnimationFrame(step)
           })) : undefined
-          samples.push({ width, reducedMotion, before, after, frames })
+          if ([320,390,1440].includes(width)) await f.page.screenshot({path:`${output}/hero-${width}x${height}-${reducedMotion}.png`})
+          samples.push({ width, height, reducedMotion, before, after, rowsBefore, rowsAfter, frames })
         }
       } finally { await f.context.close() }
     }
     return samples
+  })
+
+  await check('mobile hero motion allows touch scrolling, orientation changes and both themes', async () => {
+    const f=await session('guest',true,{reducedMotion:'no-preference'})
+    const samples=[]
+    try {
+      await f.page.setViewportSize({width:390,height:844}); await goto(f,'/')
+      await f.page.evaluate(()=>window.scrollTo(0,0)); await f.page.waitForTimeout(1000)
+      if(browser.browserType().name()==='chromium') {
+        const before=await f.page.evaluate(()=>scrollY)
+        const cdp=await f.context.newCDPSession(f.page)
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:195,y:650,id:0}]})
+        for(let y=630;y>=410;y-=20) {
+          await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:195,y,id:0}]})
+          await f.page.waitForTimeout(20)
+        }
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]})
+        await f.page.waitForTimeout(200)
+        const after=await f.page.evaluate(()=>scrollY)
+        assert(after>before+40, `Touch over cards did not scroll the page: ${before} -> ${after}`)
+        assert.equal(new URL(f.page.url()).pathname,'/')
+        samples.push({touchScrollBefore:before,touchScrollAfter:after})
+        await cdp.detach()
+      }
+      for(const [width,height] of [[390,844],[844,390],[320,568],[390,844]]) for(const theme of ['light','dark']) {
+        await f.page.setViewportSize({width,height})
+        await f.page.evaluate(theme=>{document.documentElement.dataset.theme=theme;window.scrollTo(0,0)},theme)
+        await f.page.waitForTimeout(700)
+        const layout=await f.page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,cardWidth:document.querySelector('.hero-parallax__card').offsetWidth,rows:document.querySelectorAll('.hero-parallax__row').length}))
+        assert.equal(layout.rows,3)
+        assert(layout.scrollWidth<=width+1, `Orientation overflow: ${JSON.stringify(layout)}`)
+        if(width<768) assert(layout.cardWidth<=201, `Mobile card did not resize: ${JSON.stringify(layout)}`)
+        await f.page.screenshot({path:`${output}/hero-touch-${width}x${height}-${theme}.png`})
+        samples.push({width,height,theme,...layout})
+      }
+      await f.page.locator('.hero-parallax .landing-secondary-button').tap()
+      await f.page.waitForURL('**/services')
+      samples.push({ctaTap:'/services'})
+      return samples
+    } finally {await f.context.close()}
   })
 
   await check('409 profile refresh preserves fields and saves latest version; double click sends once', async () => {
