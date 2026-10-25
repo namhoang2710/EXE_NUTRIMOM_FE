@@ -4,6 +4,7 @@ import { useComments } from '../hooks/useComments'
 import { initial, relativeTime } from '../model/community-time'
 import { communityLimits } from '../model/community-topics'
 import { RetryButton } from './FeedStatus'
+import { brandDisplayName } from '@/shared/model/display-copy'
 
 interface Props {
   postId: string
@@ -29,9 +30,9 @@ export function CommentsSection({ postId, onCountChange, moderator = false, onDe
     {comments.items.length === 0 && !comments.loading && !comments.error && <p className="nm-community-muted">Chưa có bình luận. Hãy là người đầu tiên!</p>}
     <ul>
       {comments.items.map((comment) => <li key={comment.id} className="nm-community-comment">
-        <span className="nm-community-avatar is-small" aria-hidden="true">{initial(comment.author.display_name)}</span>
+        <span className="nm-community-avatar is-small" aria-hidden="true">{initial(brandDisplayName(comment.author.display_name))}</span>
         <div>
-          <p className="nm-community-comment__meta"><strong>{comment.author.display_name}</strong> · <time dateTime={comment.created_at}>{relativeTime(comment.created_at)}</time></p>
+          <p className="nm-community-comment__meta"><strong>{brandDisplayName(comment.author.display_name)}</strong> · <time dateTime={comment.created_at}>{relativeTime(comment.created_at)}</time></p>
           <p className="nm-community-text">{comment.content}</p>
         </div>
         {(comment.can_delete || moderator) && <button type="button" className="nm-community-icon-button" aria-label="Xoá bình luận" onClick={() => void comments.remove(comment.id)}><Trash size={16} /></button>}

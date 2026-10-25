@@ -44,10 +44,10 @@ try {
         await f.page.evaluate(() => window.scrollTo(0,0))
         if (width <= 1120) {
           await f.page.locator('.landing-menu-toggle').click()
-          assert.equal(await f.page.locator('.landing-header-nav .is-tiktok').isVisible(),true)
+          assert.equal(await f.page.locator('.landing-header-nav .social-link').count(),0)
           await f.page.keyboard.press('Escape')
           assert.equal(await f.page.locator('.landing-menu-toggle').evaluate(e=>e===document.activeElement),true)
-        } else assert.equal(await f.page.locator('.landing-header-actions .is-tiktok').isVisible(),true)
+        } else assert.equal(await f.page.locator('.landing-header-actions .social-link').count(),0)
       }
       return samples
     } finally { await f.context.close() }

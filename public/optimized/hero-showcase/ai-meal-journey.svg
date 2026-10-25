@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="716" viewBox="0 0 1600 716" role="img" aria-labelledby="title desc">
+<title id="title">AI tối ưu và gợi ý thực đơn theo hành trình</title><desc id="desc">Minh họa thực đơn dựa trên giai đoạn và nhu cầu dinh dưỡng cá nhân.</desc>
+<rect width="1600" height="716" fill="#f2edf2"/>
+<g font-family="Arial, sans-serif" fill="#302837">
+<text x="68" y="86" font-size="19" font-weight="700" fill="#765a8c" letter-spacing="2">NUTRIMOM · ĐỒNG HÀNH CÙNG MẸ</text>
+<text x="68" y="181" font-size="58" font-weight="700">Thực đơn theo</text><text x="68" y="253" font-size="58" font-weight="700">từng chặng của mẹ.</text>
+<text x="68" y="318" font-size="24" fill="#706575">AI tối ưu và gợi ý thực đơn xuyên suốt</text><text x="68" y="355" font-size="24" fill="#706575">hành trình, theo nhu cầu cá nhân.</text>
+<g font-size="22"><text x="68" y="440" fill="#765a8c">01</text><text x="116" y="440">Hiểu hồ sơ và giai đoạn của mẹ</text><text x="68" y="512" fill="#765a8c">02</text><text x="116" y="512">Gợi ý bữa ăn cân đối, phù hợp</text><text x="68" y="584" fill="#765a8c">03</text><text x="116" y="584">Điều chỉnh cùng hành trình của mẹ</text></g>
+<rect x="735" y="72" width="797" height="572" rx="28" fill="#fffdfd" stroke="#ddd3e3"/>
+<text x="777" y="127" font-size="25" font-weight="700" fill="#765a8c">NutriMom AI</text><text x="1489" y="125" text-anchor="end" font-size="17" fill="#85738e">MINH HỌA THỰC ĐƠN</text>
+<path d="M777 155H1490" stroke="#e6dfe9"/>
+<text x="777" y="206" font-size="21" fill="#85738e">LỰA CHỌN CHO MỘT NGÀY</text>
+<g font-size="21"><rect x="777" y="232" width="713" height="91" rx="16" fill="#f2edf7"/><text x="800" y="269" fill="#765a8c">Bữa sáng</text><text x="800" y="302" font-weight="700">Yến mạch · Sữa chua · Trái cây</text>
+<rect x="777" y="339" width="713" height="91" rx="16" fill="#edf3ee"/><text x="800" y="376" fill="#537060">Bữa trưa</text><text x="800" y="409" font-weight="700">Cơm gạo lứt · Cá hồi · Rau xanh</text>
+<rect x="777" y="446" width="713" height="91" rx="16" fill="#faf0e9"/><text x="800" y="483" fill="#8c6958">Bữa tối</text><text x="800" y="516" font-weight="700">Rau củ · Đậu lăng · Ngũ cốc</text></g>
+<text x="777" y="591" font-size="18" fill="#706575">Gợi ý thay đổi theo hồ sơ, sở thích và từng giai đoạn.</text>
+</g></svg>

@@ -16,9 +16,9 @@ const heroShowcaseItems: HeroParallaxItem[] = [
     priority: true,
   },
   {
-    title: 'AI dinh dưỡng hiểu mẹ cần gì',
-    link: '/services/food-scan-ai',
-    thumbnail: '/optimized/hero-showcase/AI.webp',
+    title: 'AI gợi ý thực đơn theo hành trình',
+    link: '/services/personalized-guidance',
+    thumbnail: '/optimized/hero-showcase/ai-meal-journey.svg',
     alt: 'Giao diện AI dinh dưỡng hỗ trợ mẹ lựa chọn bữa ăn phù hợp.',
     position: 'center',
   },

@@ -42,7 +42,7 @@ server.middlewares.use('/__qa/admin-realtime', (request, response) => {
 const sseLayer = server.middlewares.stack.pop()
 server.middlewares.stack.unshift(sseLayer)
 const engine = process.env.NUTRIMOM_QA_BROWSER || 'chromium'
-const browser = await engines[engine].launch({ ...(engine === 'chromium' ? { channel: 'chrome' } : {}), headless: true })
+const browser = await engines[engine].launch({ ...(engine === 'chromium' ? { channel: 'chrome', ...(process.env.NUTRIMOM_QA_FAKE_MEDIA === '1' ? { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] } : {}) } : {}), headless: true })
 const passed = [],
   unexpected = [],
   pageErrors = [],

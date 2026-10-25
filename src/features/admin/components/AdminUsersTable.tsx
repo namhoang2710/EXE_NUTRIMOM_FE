@@ -24,7 +24,18 @@ export function AdminUsersTable({ users, sortBy, sortDirection, onSort, onView }
   onView: (user: AdminUserListItem) => void
 }) {
   return (
-    <div className="admin-table-scroll">
+    <div className="admin-users-results">
+      <div className="admin-users-mobile">
+        <div className="admin-users-mobile-sort" aria-label="Sắp xếp người dùng">
+          {(['displayName', 'status', 'createdAt'] as const).map((field, index) => <SortButton key={field} label={['Tên', 'Trạng thái', 'Ngày đăng ký'][index]} field={field} activeField={sortBy} direction={sortDirection} onSort={onSort} />)}
+        </div>
+        {users.map(user => <article key={user.id} className="admin-user-mobile-card">
+          <header><span className="admin-avatar small">{getInitials(user.displayName || '')}</span><strong>{user.displayName?.trim() || 'Chưa có tên'}</strong><StatusBadge value={user.status} /></header>
+          <dl><div><dt>Email</dt><dd>{user.email || '—'}</dd></div><div><dt>Điện thoại</dt><dd>{user.phone || '—'}</dd></div><div><dt>Vai trò</dt><dd>{user.roles.map(formatAdminUserEnum).join(', ') || '—'}</dd></div><div><dt>Ngày đăng ký</dt><dd>{formatAdminDate(user.createdAt)}</dd></div></dl>
+          <button className="admin-row-action" type="button" onClick={() => onView(user)}><Eye size={18} /> Xem chi tiết {user.displayName?.trim() || 'người dùng'}</button>
+        </article>)}
+      </div>
+      <div className="admin-table-scroll admin-users-desktop">
       <table className="admin-table admin-users-table">
         <thead><tr>
           <th><SortButton label="Người dùng" field="displayName" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
@@ -45,6 +56,7 @@ export function AdminUsersTable({ users, sortBy, sortDirection, onSort, onView }
           </tr>
         })}</tbody>
       </table>
+      </div>
     </div>
   )
 }

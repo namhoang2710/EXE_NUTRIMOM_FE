@@ -1,11 +1,12 @@
 import type { OtpChallengeDto, UserDto } from './auth-dto'
 import type { OtpChallenge, User } from './auth-types'
+import { brandDisplayName } from '../../../shared/model/display-copy.ts'
 
 export function normalizeUser(user: UserDto): User {
   return {
     id: user.id,
     phone: user.phone,
-    displayName: user.display_name,
+    displayName: user.display_name ? brandDisplayName(user.display_name) : user.display_name,
     role: user.role ?? user.roles?.[0] ?? 'USER',
     roles: user.roles ?? (user.role ? [user.role] : []),
     onboardingStatus: user.onboarding_status,

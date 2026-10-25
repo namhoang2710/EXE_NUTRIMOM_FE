@@ -1,6 +1,6 @@
 import { CheckCircle, WarningCircle, X } from '@phosphor-icons/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { CALENDAR_TOAST_DURATION, scheduleCalendarToastDismiss } from '../model/calendar-action-feedback'
 
@@ -19,6 +19,23 @@ export { CALENDAR_TOAST_DURATION }
 
 export function GlobalActionToast({ toast, onClose }: Props) {
   const reduceMotion = useReducedMotion()
+  const visible = Boolean(toast)
+  useLayoutEffect(() => {
+    if (!visible) return
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const headers = [...document.querySelectorAll('.nm-app-header, .admin-topbar, .expert-topbar, .landing-header')]
+      const bottom = Math.max(0, ...headers.map(header => { const rect = header.getBoundingClientRect(); return rect.width && rect.top < 100 ? rect.bottom : 0 }))
+      document.documentElement.style.setProperty('--nm-toast-top', `${Math.max(12, bottom + 12)}px`)
+    }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
+    const observer = new ResizeObserver(schedule)
+    document.querySelectorAll('.nm-app-header, .admin-topbar, .expert-topbar, .landing-header').forEach(header => observer.observe(header))
+    window.addEventListener('resize', schedule); window.addEventListener('scroll', schedule, { passive: true })
+    update()
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('resize', schedule); window.removeEventListener('scroll', schedule); document.documentElement.style.removeProperty('--nm-toast-top') }
+  }, [visible])
 
   useEffect(() => {
     if (!toast) return

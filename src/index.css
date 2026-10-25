@@ -9,6 +9,7 @@
 @import "./features/calendar/styles/calendar.css";
 @import "./features/notifications/styles/notifications.css";
 @import "./shared/styles/auth.css";
+@import "./shared/styles/mobile-ux.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 

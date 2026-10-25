@@ -95,6 +95,8 @@ export function LoginPage() {
       showHomeLink
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
+        {location.state?.passwordUpdated && <StatusMessage tone="success">Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.</StatusMessage>}
+        <Link className="auth-forgot-password" to="/forgot-password">Quên mật khẩu?</Link>
         {error && (
           <div style={{ marginBottom: 12 }}>
             <StatusMessage tone="error">{error}</StatusMessage>
