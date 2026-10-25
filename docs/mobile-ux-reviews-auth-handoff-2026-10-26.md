@@ -66,7 +66,7 @@ Ngày: 26/10/2026. Nhánh: `feature/mobile-ux-reviews-auth`, tạo từ `origin/
 - `npm ci` từ bản sao sạch: 142 packages, 0 vulnerabilities. `npm audit`: 0 lỗ hổng.
 - Lint, TypeScript app/node/tests và production build qua. 585 unit/runtime tests qua. `git diff --check` qua.
 - 608 lượt rà soát route/role ở 320,375,390,430,768,1024,1440,1920; thêm 80 lượt production 414px và 32 lượt production cho bốn route mới ở tám độ rộng trên: tổng 720. Không overflow/escaped/blank/page error/missing fixture.
-- 33 tình huống bố cục/animation production; 20 lần đổi kích thước production, không thêm API read khi resize. Auth/OTP: 17 kiểm tra qua.
+- 33 tình huống bố cục/animation production; 20 lần đổi kích thước production, không thêm API read khi resize; 92 kiểm tra tương tác production qua. Auth/OTP: 17 kiểm tra qua.
 - Chrome và WebKit: create/edit, giữ draft 409, cursor/filter/dedupe, dừng nhóm polling 429 và manual retry; forgot/reset/422/expired; Admin trả lời. Kiểm tra production dùng file build sạch.
 - Hồi quy: profile, preferences, task, reminder, diary, CMS và bài cộng đồng giữ text/tệp/version sau 409; chờ 429 không tự gửi lại write. Tim đỏ/light-dark/chống trùng/rollback 429 qua.
 - Thư mục báo cáo/ảnh địa phương: `D:/KI8/.tmp/mobile-ux-*`; test có thể chạy lại từ `tests/mobile-ux-*.browser.mjs`, `tests/responsive.browser.mjs`, `tests/auth-ui.browser.mjs`, `tests/hardening*.browser.mjs`.
@@ -74,12 +74,17 @@ Ngày: 26/10/2026. Nhánh: `feature/mobile-ux-reviews-auth`, tạo từ `origin/
 
 ## Preview và phối hợp BE
 
-Đang chốt URL preview và CI cho commit bàn giao; cập nhật sau khi có kết quả thực tế.
+- Code đã commit và push: `755fd63b0fc81716a40b90d2fedcecf4678afba4`.
+- CI code đã **success**: https://github.com/namhoang2710/EXE_NUTRIMOM_FE/actions/runs/40218183148 . Bản cập nhật tài liệu sau đó không thay mã ứng dụng.
+- Preview **READY**, HTML kiểm tra qua Vercel CLI trả 200: https://nutrimom-ma7u06laj-giamingnguyen-5840s-projects.vercel.app . Đây là Preview, không đổi https://nutrimom-fe.vercel.app .
+- Preview bật Vercel Authentication theo cấu hình sẵn có. Trên điện thoại, nếu được yêu cầu, đăng nhập tài khoản Vercel sở hữu project trước; sau đó mới đăng nhập NutriMom.
+- Backend đang **chặn Origin preview**: GET `/api/v1/reviews/summary` trả 403, body `Invalid CORS request`. Cùng endpoint với Origin production trả 200 và `Access-Control-Allow-Origin: https://nutrimom-fe.vercel.app`.
+- BE cần thêm chính xác `https://nutrimom-ma7u06laj-giamingnguyen-5840s-projects.vercel.app` vào `APP_CORS_ALLOWED_ORIGINS` và áp dụng lại cấu hình, giữ nguyên domain production. Khi chưa thêm, preview dùng để xem UI; các luồng đăng nhập, reviews và call gọi BE sẽ bị trình duyệt chặn.
 
 - FE dùng `VITE_API_BASE_URL=https://exe-nutrimom-be.onrender.com/api/v1`; đây là URL public, không phải secret. Không đưa SMTP/Gmail password, JWT secret hoặc LiveKit secret vào biến VITE.
 - BE cần deploy main mới, DB migration của reviews/password và email provider hoạt động; `APP_CORS_ALLOWED_ORIGINS` chứa domain production và domain preview chính xác khi kiểm thử. Không đổi BE trong tác vụ FE này.
 - Email link reset được tạo bởi `APP_FRONTEND_BASE_URL` + `APP_FRONTEND_RESET_PASSWORD_PATH`. Giữ cấu hình production cho người dùng thật. Nếu thử riêng FE preview, mở link email trên thiết bị của mình rồi chỉ thay phần domain sang preview; không gửi token vào chat.
-- Kiểm tra GET public Render từ máy làm việc đã gặp timeout; chưa dùng kết quả đó để khẳng định API production đã sẵn sàng. Test tự động ở trên sử dụng fixture, không viết dữ liệu production.
+- Kiểm tra ban đầu bằng PowerShell gặp timeout. Kiểm tra lại bằng curl xác nhận summary production 200 và preview bị CORS như trên. Các luồng ghi dữ liệu tự động dùng fixture, không viết dữ liệu production, không gửi email thật.
 
 ## Kiểm tra điện thoại thật — người dùng nhận thực hiện
 
