@@ -102,7 +102,7 @@ export async function fetchTrafficSummary(from?: string, to?: string): Promise<T
     total_revenue: Number(res?.total_revenue) || 0,
     overall_conversion_rate: Number(res?.overall_conversion_rate) || 0,
     metrics,
-    ga4_property_id: res?.ga4_property_id || 'G-NUTRIMOM2026',
+    ga4_property_id: res?.ga4_property_id || 'G-4KC1688D38',
     ga4_console_url: res?.ga4_console_url || 'https://analytics.google.com/',
   }
 }

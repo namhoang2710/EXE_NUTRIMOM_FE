@@ -341,7 +341,7 @@ export function AdminTrafficAnalytics() {
               className="admin-traffic-btn-ga4"
               title="Xem số liệu chi tiết trên Google Analytics 4 Console"
             >
-              GA4 Console ({summary?.ga4_property_id || 'G-NUTRIMOM2026'})
+              GA4 Console ({summary?.ga4_property_id || 'G-4KC1688D38'})
               <ArrowSquareOut size={15} weight="bold" />
             </a>
           </div>
