@@ -116,7 +116,7 @@
 /* KPI Ribbon */
 .admin-traffic-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -155,10 +155,538 @@
   margin-top: 0.25rem;
 }
 
+/* Platform Filter Tabs */
+.admin-traffic-platform-tabs-wrap {
+  margin-bottom: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+}
+
+.admin-traffic-tabs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+}
+
+.admin-traffic-tabs-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.admin-traffic-btn-reset-filter {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7264ad;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.admin-traffic-channel-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-channel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-channel-tab:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.admin-channel-tab.active {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  border-width: 2px;
+  border-color: #7264ad;
+  box-shadow: 0 2px 4px rgba(114, 100, 173, 0.15);
+}
+
+.tab-pill-badge {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* Dedicated Platform Cards Grid */
+.admin-platform-cards-title {
+  margin-top: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.admin-platform-cards-title h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-platform-cards-title p {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0.2rem 0 0 0;
+}
+
+.admin-platform-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-platform-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 1.125rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.admin-platform-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.platform-card-tiktok {
+  border-color: #a5f3fc;
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdfa 100%);
+}
+
+.platform-card-tiktok:hover {
+  border-color: #06b6d4;
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.15);
+}
+
+.admin-platform-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.admin-platform-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.admin-platform-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-platform-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.admin-platform-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  margin-top: 0.2rem;
+}
+
+.badge-pill-tiktok { background: #cffafe; color: #0891b2; }
+.badge-pill-facebook { background: #dbeafe; color: #1d4ed8; }
+.badge-pill-instagram { background: #fce7f3; color: #be185d; }
+.badge-pill-google { background: #fee2e2; color: #b91c1c; }
+.badge-pill-direct { background: #ede9fe; color: #6d28d9; }
+.badge-pill-other { background: #f1f5f9; color: #475569; }
+
+.admin-platform-cr-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
+  white-space: nowrap;
+}
+
+.admin-platform-stat-quad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.admin-quad-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-quad-label {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.admin-quad-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  margin-top: 0.15rem;
+}
+
+.admin-quad-sub {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+
+/* Mini Funnel Bar */
+.admin-platform-mini-funnel {
+  margin-bottom: 0.875rem;
+}
+
+.admin-mini-funnel-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.admin-mini-funnel-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.admin-mini-funnel-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.admin-platform-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+  margin-top: auto;
+}
+
+.admin-platform-view-link {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7264ad;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.admin-platform-btn-utm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-platform-btn-utm:hover {
+  background: #7264ad;
+  color: #ffffff;
+  border-color: #7264ad;
+}
+
+/* Focused Platform Deep Dive */
+.admin-platform-focus-box {
+  margin-bottom: 1.5rem;
+}
+
+.admin-focus-banner {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left-width: 6px;
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.admin-focus-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-focus-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.admin-focus-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.admin-focus-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.admin-channel-pill-tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.admin-focus-sub {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0.25rem 0 0 0;
+}
+
+.admin-focus-btn-utm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  background: #7264ad;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-focus-btn-utm:hover {
+  background: #5b4f8c;
+}
+
+/* 3-Step Funnel Grid */
+.admin-focus-funnel-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .admin-focus-funnel-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-focus-funnel-arrow {
+    transform: rotate(90deg);
+    margin: 0.25rem auto;
+  }
+}
+
+.admin-focus-funnel-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem 1.125rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-visit { border-top: 4px solid #3b82f6; }
+.step-signup { border-top: 4px solid #10b981; }
+.step-purchase { border-top: 4px solid #8b5cf6; }
+
+.admin-funnel-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.375rem;
+}
+
+.step-num {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.step-tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #334155;
+  padding: 0.1rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+.admin-funnel-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.admin-funnel-card-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  margin-top: 0.25rem;
+}
+
+.admin-funnel-card-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.admin-focus-funnel-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #94a3b8;
+  gap: 0.2rem;
+}
+
+.funnel-cr-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #065f46;
+  padding: 0.1rem 0.375rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.admin-focus-chart-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .admin-focus-chart-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-focus-chart-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.125rem;
+}
+
+.admin-focus-metric-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.125rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-focus-metric-summary h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.875rem 0;
+}
+
+.admin-focus-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-focus-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: #475569;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-focus-summary-row:last-child {
+  border-bottom: none;
+}
+
+.admin-focus-summary-row strong {
+  font-size: 0.875rem;
+  color: #0f172a;
+}
+
 /* Visuals Layout */
 .admin-traffic-charts-row {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1.4fr 1fr;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -208,6 +736,11 @@
   align-items: center;
   gap: 0.5rem;
   color: #374151;
+  transition: opacity 0.15s ease;
+}
+
+.admin-traffic-legend-item:hover {
+  opacity: 0.75;
 }
 
 .admin-traffic-dot {
@@ -218,52 +751,31 @@
   flex-shrink: 0;
 }
 
-/* Funnel bars */
-.admin-traffic-funnel-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-  margin-top: 0.5rem;
-}
-
-.admin-traffic-funnel-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.admin-traffic-funnel-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8125rem;
-}
-
-.admin-traffic-funnel-name {
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.admin-traffic-funnel-stat {
-  color: #6b7280;
-}
-
-.admin-traffic-bar-track {
-  width: 100%;
-  height: 8px;
-  background: #f3f4f6;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.admin-traffic-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.4s ease;
-}
-
 /* Detail Table */
+.admin-traffic-table-section {
+  margin-bottom: 1.5rem;
+}
+
+.admin-traffic-table-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+}
+
+.admin-traffic-table-header h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.table-header-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 .admin-traffic-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--admin-border, #e5e7eb);
@@ -294,6 +806,14 @@
   white-space: nowrap;
 }
 
+.admin-traffic-table tr:hover td {
+  background: #f8fafc;
+}
+
+.admin-traffic-table tr.row-selected td {
+  background: #f1f5f9;
+}
+
 .admin-traffic-table tr:last-child td {
   border-bottom: none;
 }
@@ -322,9 +842,27 @@
   color: #065f46;
 }
 
+.admin-traffic-table-btn {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-traffic-table-btn:hover {
+  background: #7264ad;
+  color: #ffffff;
+  border-color: #7264ad;
+}
+
 /* UTM Creator */
 .admin-utm-creator {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   background: linear-gradient(135deg, #faf5ff 0%, #f3f4f6 100%);
   border: 1px solid #e9d5ff;
   border-radius: 0.75rem;
