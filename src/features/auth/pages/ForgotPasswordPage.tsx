@@ -26,11 +26,10 @@ export function ForgotPasswordPage() {
     finally { gate.current = false; setBusy(false) }
   }
   return <AuthLayout title="Quên mật khẩu?" subtitle="Nhập email tài khoản để nhận liên kết đặt lại mật khẩu." panelVariant="login" showHomeLink footer={<p>Đã nhớ mật khẩu? <Link to="/login">Đăng nhập</Link></p>}>
-    <form className="auth-form" onSubmit={event => void submit(event)} noValidate>
+    <form className="auth-form auth-form--forgot-password" onSubmit={event => void submit(event)} noValidate>
       {message && <StatusMessage tone="success">{message}</StatusMessage>}{error && <StatusMessage tone="error">{error}</StatusMessage>}
       <FormField icon={<Envelope size={20} />} name="email" label="Email tài khoản" type="email" autoComplete="email" value={email} maxLength={255} disabled={busy} onChange={event => setEmail(event.target.value)} placeholder="ten@example.com" />
       <button type="submit" className="primary-button" disabled={busy || remaining > 0}>{busy ? 'Đang gửi…' : remaining ? `Gửi lại sau ${remaining} giây` : message ? 'Gửi lại liên kết' : 'Gửi liên kết đặt lại mật khẩu'}</button>
-      <p className="auth-hint">Kiểm tra cả thư mục Spam. Liên kết chỉ dùng một lần; yêu cầu mới sẽ thay thế liên kết trước.</p>
     </form>
   </AuthLayout>
 }

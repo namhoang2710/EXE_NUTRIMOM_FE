@@ -90,13 +90,17 @@ export function LoginPage() {
     <AuthLayout
       title="Đăng nhập NutriMom"
       subtitle="Đăng nhập bằng Email hoặc Số điện thoại của bạn."
-      footer={<p>Chưa có tài khoản? <Link to="/register" state={location.state}>Tạo tài khoản</Link></p>}
+      footer={
+        <div className="auth-login-links">
+          <p>Chưa có tài khoản? <Link to="/register" state={location.state}>Tạo tài khoản</Link></p>
+          <p><Link to="/forgot-password">Quên mật khẩu?</Link></p>
+        </div>
+      }
       panelVariant="login"
       showHomeLink
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {location.state?.passwordUpdated && <StatusMessage tone="success">Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.</StatusMessage>}
-        <Link className="auth-forgot-password" to="/forgot-password">Quên mật khẩu?</Link>
         {error && (
           <div style={{ marginBottom: 12 }}>
             <StatusMessage tone="error">{error}</StatusMessage>
