@@ -19,6 +19,12 @@
   overflow: hidden;
 }
 .auth-page .brand-panel { display: block; padding: 0; }
+/* Keep auth actions reachable on short landscape screens and with inline feedback. */
+.auth-page .form-panel:has(.auth-login-links, .auth-form--forgot-password) { overflow-y: auto; overscroll-behavior-y: contain; }
+.auth-page .auth-login-links { display: grid; gap: 8px; text-align: center; }
+.auth-page .auth-login-links p { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 4px; }
+.auth-page .auth-login-links a { display: inline-flex; align-items: center; min-height: 44px; }
+.auth-page .auth-login-links a:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; border-radius: 4px; }
 .auth-page .brand-panel-content {
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr);

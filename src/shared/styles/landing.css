@@ -4486,9 +4486,6 @@ html:has(.testimonial-marquee-section) {
   font-size: 10px;
 }
 
-.landing-footer-bottom span:nth-child(2) { text-align: center; }
-.landing-footer-bottom span:last-child { text-align: right; }
-
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
 
   .landing-footer-inner,
@@ -4539,10 +4536,6 @@ html:has(.testimonial-marquee-section) {
     padding-block: 19px;
   }
 
-  .landing-footer-bottom span:nth-child(2),
-  .landing-footer-bottom span:last-child {
-    text-align: left;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
