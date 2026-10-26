@@ -45,6 +45,7 @@ export interface RegisterRequestDto {
   device_id: string
   display_name: string
   accepted_terms: boolean
+  acquisition_source?: string
 }
 
 export interface RequestOtpRequestDto {

@@ -58,6 +58,18 @@ const quickActions = [
     className: 'is-instagram',
     external: true,
   },
+  {
+    icon: () => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.47 6.28 6.28 0 0 0 1.86-4.47V8.78a8.18 8.18 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-.86-.21z" />
+      </svg>
+    ),
+    label: 'TikTok',
+    note: '@nutrimom202',
+    href: nutrimomSocials.tiktok.href,
+    className: 'is-tiktok',
+    external: true,
+  },
 ] as const
 
 const contactTopics = [
@@ -244,6 +256,16 @@ export function ContactPage() {
           <div className="contactSocials">
             <span>Theo dõi và trò chuyện cùng chúng tôi</span>
             <div>
+              <a
+                href={nutrimomSocials.tiktok.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={nutrimomSocials.tiktok.ariaLabel}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.47 6.28 6.28 0 0 0 1.86-4.47V8.78a8.18 8.18 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-.86-.21z" />
+                </svg> TikTok
+              </a>
               <a
                 href={nutrimomSocials.instagram.href}
                 target="_blank"

@@ -34,6 +34,7 @@ export interface RegisterInput {
   deviceId: string
   displayName: string
   acceptedTerms: boolean
+  acquisitionSource?: string
 }
 
 export interface RequestOtpInput {

@@ -158,6 +158,7 @@ export function ConsultationsPage() {
       onSuccess: async (created) => {
         showToast('Đặt lịch thành công'); revealRecent(created); setSelectedStartTime(null); setDirectNote('')
         setHistoryVersion((value) => value + 1); await loadAvailability()
+        window.dispatchEvent(new CustomEvent('nutrimom:notifications-refresh'))
       },
       onSlotConflict: async () => { setSelectedStartTime(null); setDirectError(SLOT_CONFLICT_MESSAGE); await loadAvailability() },
       onError: (error) => setDirectError(consultationErrorMessage(error)),
@@ -175,6 +176,7 @@ export function ConsultationsPage() {
       onSuccess: async (created) => {
         showToast('Đã gửi yêu cầu tư vấn'); revealRecent(created); setSpecialty(null); setRandomNote('')
         setHistoryVersion((value) => value + 1)
+        window.dispatchEvent(new CustomEvent('nutrimom:notifications-refresh'))
       },
       onError: (error) => setRandomError(consultationErrorMessage(error)),
     })
