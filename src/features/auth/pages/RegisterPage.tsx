@@ -11,6 +11,7 @@ import { getDeviceId } from '@/core/auth/device'
 import { mapRegisterFieldErrors, registerFieldError, type RegisterFormValues } from '../model/auth-validation'
 import { activateOnce } from '../model/activation-request'
 import { authenticatedDestination } from '../model/role-routing'
+import { getStoredTrafficSource } from '@/core/analytics/traffic-tracker'
 import { usePasswordCooldown } from '../hooks/usePasswordCooldown'
 
 type RegisterForm = RegisterFormValues
@@ -31,6 +32,9 @@ export function RegisterPage() {
   const touched = useRef(new Set<keyof RegisterForm>())
   const [submitting, setSubmitting] = useState(false)
   const [registeredSuccess, setRegisteredSuccess] = useState(false)
+  const [pendingEmail] = useState(() => {
+    return typeof window !== 'undefined' ? (sessionStorage.getItem('nutrimom:pending_activation_email') || '') : ''
+  })
 
   // Activation OTP state
   const [otpCode, setOtpCode] = useState('')
@@ -139,7 +143,11 @@ export function RegisterPage() {
         password: form.password,
         deviceId: getDeviceId(),
         acceptedTerms: form.accepted,
+        acquisitionSource: getStoredTrafficSource(),
       })
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('nutrimom:pending_activation_email', trimmedEmail)
+      }
       setRegisteredSuccess(true)
       setCountdown(45)
       setOtpCode('')
@@ -275,6 +283,58 @@ export function RegisterPage() {
       showHomeLink
     >
       <form className="auth-form auth-form--register" onSubmit={handleSubmit} noValidate>
+        {pendingEmail && (
+          <div style={{
+            background: 'var(--accent-soft, #f0fdfa)',
+            border: '1px solid var(--accent, #0d9488)',
+            borderRadius: 10,
+            padding: '12px 14px',
+            marginBottom: 16,
+            fontSize: 13,
+            color: '#134e4a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}>
+            <span>Bạn đang có mã kích hoạt gửi tới <strong>{pendingEmail}</strong>?</span>
+            <Link
+              to={`/auth/activate?email=${encodeURIComponent(pendingEmail)}`}
+              style={{ color: '#0d9488', fontWeight: 700, textDecoration: 'underline' }}
+            >
+              Nhập mã kích hoạt ngay →
+            </Link>
+          </div>
+        )}
+
+        {error && (fieldErrors.email || fieldErrors.phone || error.toLowerCase().includes('đã')) && (
+          <div style={{
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
+            borderRadius: 10,
+            padding: '12px 14px',
+            marginBottom: 16,
+            fontSize: 13,
+            color: '#9f1239',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+          }}>
+            <span>Thông tin này đã tồn tại trong hệ thống. Bạn có thể:</span>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <Link to="/login" style={{ color: '#0d9488', fontWeight: 600 }}>👉 Đăng nhập</Link>
+              {form.email.trim() && (
+                <Link
+                  to={`/auth/activate?email=${encodeURIComponent(form.email.trim())}`}
+                  style={{ color: '#0d9488', fontWeight: 600 }}
+                >
+                  👉 Nhập mã kích hoạt email
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         <FormField
           label="Tên hiển thị"

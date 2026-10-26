@@ -19,6 +19,7 @@ import { AdminDashboardNumber } from '../components/AdminDashboardNumber'
 import { AdminStatsCard } from '../components/AdminStatsCard'
 import { AdminChartSlot } from '../components/AdminChartSlot'
 import { AdminExpertPerformance } from '../components/AdminExpertPerformance'
+import { AdminTrafficAnalytics } from '../components/AdminTrafficAnalytics'
 import { preloadDashboardCharts } from '../components/admin-dashboard-chart-module'
 
 const MonthlyChart=lazy(()=>preloadDashboardCharts().then(m=>({default:m.RevenueOverview})))
@@ -96,6 +97,7 @@ export function AdminDashboardPage() {
         </section>
       </div>
       <AdminExpertPerformance {...slotProps}/>
+      <AdminTrafficAnalytics />
       <section className="admin-card admin-live-section admin-period-card"><header><div><h2>Kỳ thống kê</h2><p>Bộ lọc chỉ áp dụng cho tiền thu/ngày và người dùng mới/ngày</p></div><AdminDashboardActions busy={resource.loading} valid={filters.valid} retry={resource.retry}/></header>
         <PeriodFilter from={filters.query.get('fromDate')||''} to={filters.query.get('toDate')||''} presets onChange={(fromDate,toDate)=>filters.commit({fromDate,toDate})}/>
         <QueryErrors errors={filterErrors} onReset={()=>{filters.commit({fromDate:null,toDate:null});resource.retry()}}/>

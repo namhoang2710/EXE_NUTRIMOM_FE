@@ -164,14 +164,17 @@ export function useNotifications(authenticated: boolean, listEnabled: boolean) {
     let lastActive=Date.now()
     const refreshWhenActive=()=>{if(document.visibilityState==='visible'&&navigator.onLine&&Date.now()-lastActive>=15_000){lastActive=Date.now();void refreshUnreadCount()}}
     const timer = window.setInterval(refreshWhenActive, 60_000)
+    const handleCustomRefresh = () => { void refresh() }
     window.addEventListener('focus', refreshWhenActive)
-    document.addEventListener('visibilitychange', refreshWhenActive)
+    window.addEventListener('visibilitychange', refreshWhenActive)
+    window.addEventListener('nutrimom:notifications-refresh', handleCustomRefresh)
     return () => {
       window.clearInterval(timer)
       window.removeEventListener('focus', refreshWhenActive)
-      document.removeEventListener('visibilitychange', refreshWhenActive)
+      window.removeEventListener('visibilitychange', refreshWhenActive)
+      window.removeEventListener('nutrimom:notifications-refresh', handleCustomRefresh)
     }
-  }, [authenticated, refreshUnreadCount])
+  }, [authenticated, refresh, refreshUnreadCount])
 
   return { ...state, unreadCount, loading, loadingMore, error, errorDetail, refresh, refreshUnreadCount, read, readAll, loadMore: () => load(state.nextCursor) }
 }
