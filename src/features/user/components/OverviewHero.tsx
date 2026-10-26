@@ -1,8 +1,8 @@
-import { ArrowDown, ArrowUpRight, Pause, Play } from '@phosphor-icons/react'
-import { useContext, useEffect, useRef, useState } from 'react'
+import { ArrowDown, ArrowUpRight } from '@phosphor-icons/react'
+import { useContext, useEffect, useRef } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { createHeroVideoPlayback, type HeroVideoState } from '../model/hero-video'
+import { createHeroVideoPlayback } from '../model/hero-video'
 import '@/styles/fonts.css'
 import '@/styles/theme.css'
 import '../styles/overview-hero.css'
@@ -25,14 +25,9 @@ export function OverviewHero({
   error?: string
   onRetry?: () => void
 }) {
-  const root = useRef<HTMLElement>(null),
-    video = useRef<HTMLVideoElement>(null)
+  const video = useRef<HTMLVideoElement>(null)
   const entry = useContext(OverviewEntryContext)
   const reducedMotion = useReducedMotion()
-  const [playbackState, setPlaybackState] = useState<HeroVideoState>('idle')
-  const playbackRef = useRef<ReturnType<typeof createHeroVideoPlayback> | null>(null)
-  const userPaused = useRef(false)
-  const userRequested = useRef(false)
   const reveal = entry === 'stable' || entry === 'ready'
   const emphasized = name && title?.endsWith(name) ? name : null
   const lead = emphasized
@@ -40,14 +35,13 @@ export function OverviewHero({
     : title
 
   useEffect(() => {
-    const element = video.current,
-      section = root.current
-    if (!element || !section) return
+    const element = video.current
+    if (!element) return
     let inView = !('IntersectionObserver' in window),
       pageActive = true
     const playback = createHeroVideoPlayback(element, {
       source: movie,
-      onState: setPlaybackState,
+      onState: () => undefined,
       // Give text, navigation and the poster first use of the connection/main thread.
       defer: (task) => {
         if (typeof window.requestIdleCallback === 'function') {
@@ -58,10 +52,9 @@ export function OverviewHero({
         return () => window.clearTimeout(handle)
       },
     })
-    playbackRef.current = playback
     const reconcile = () =>
       playback.setActive(
-        inView && pageActive && !userPaused.current && (!reducedMotion || userRequested.current) && document.visibilityState === 'visible',
+        inView && pageActive && !reducedMotion && document.visibilityState === 'visible',
       )
     const visibility = () => reconcile()
     const pageHide = () => {
@@ -76,13 +69,13 @@ export function OverviewHero({
       'IntersectionObserver' in window
         ? new IntersectionObserver(
             ([entry]) => {
-              inView = entry.isIntersecting
+              inView = entry.isIntersecting && entry.intersectionRatio >= 0.15
               reconcile()
             },
-            { threshold: 0 },
+            { threshold: [0, 0.15] },
           )
         : null
-    observer?.observe(section)
+    observer?.observe(element)
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('pagehide', pageHide)
     window.addEventListener('pageshow', pageShow)
@@ -93,20 +86,11 @@ export function OverviewHero({
       window.removeEventListener('pagehide', pageHide)
       window.removeEventListener('pageshow', pageShow)
       playback.dispose()
-      playbackRef.current = null
     }
   }, [reducedMotion])
 
-  function togglePlayback() {
-    const pause = playbackState === 'playing'
-    userPaused.current = pause
-    userRequested.current = !pause
-    playbackRef.current?.setActive(!pause, true)
-  }
-
   return (
     <section
-      ref={root}
       className={`nm-overview-hero${entry !== 'stable' ? ' is-login-entry' : ''}`}
       aria-label="Tổng quan hôm nay"
     >
@@ -185,11 +169,6 @@ export function OverviewHero({
       <div className="nm-overview-hero__footer">
         <span>Một ngày mới, cùng NutriMom.</span>
       </div>
-      {playbackState !== 'failed' && <button className="nm-overview-hero__playback" type="button"
-        onClick={togglePlayback} aria-label={playbackState === 'playing' ? 'Tạm dừng video nền' : 'Phát video nền'}>
-        {playbackState === 'playing' ? <Pause size={16} aria-hidden /> : <Play size={16} aria-hidden />}
-        {playbackState === 'playing' ? 'Tạm dừng' : 'Phát video'}
-      </button>}
     </section>
   )
 }

@@ -73,6 +73,20 @@ html:has(.testimonial-marquee-section) { scroll-snap-type: none; }
   .landing-header .vercel-tabs-hover { border-radius: 10px; }
   .landing-footer .landing-footer-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+@media (min-width: 1121px) {
+  .landing-footer .landing-footer-inner { grid-template-columns: minmax(0, .95fr) minmax(0, 1.2fr) minmax(0, .85fr); grid-template-areas: "brand contacts socials" "reviews reviews reviews"; align-items: start; gap: 32px 48px; }
+  .landing-footer .landing-footer-brand { grid-area: brand; }
+  .landing-footer .landing-footer-contacts { grid-area: contacts; }
+  .landing-footer .landing-footer-socials { grid-area: socials; }
+  .landing-footer .landing-footer-socials .nutrimom-social-link { width: min(100%, 260px); }
+  .landing-footer .nm-footer-reviews { grid-area: reviews; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px 40px; padding-top: 28px; border-top: 1px solid var(--border); }
+  .landing-footer .nm-footer-reviews > h2 { grid-column: 1 / -1; margin-bottom: 0; }
+  .landing-footer .nm-footer-review-stats { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .landing-footer .nm-footer-review-latest { display: flex; flex-direction: column; min-width: 0; }
+  .landing-footer .nm-footer-reviews .nm-review-summary { grid-template-columns: minmax(120px, .65fr) minmax(0, 1.35fr); align-items: center; gap: 24px; }
+  .landing-footer .nm-footer-reviews .nm-review-summary > [data-slot="separator"] { display: none; }
+  .landing-footer .nm-footer-reviews .nm-review-score > strong > span { font-size: inherit; line-height: inherit; }
+}
 @media (max-width: 767px) {
   .landing-header .landing-account-button, .landing-header .landing-menu-toggle { width: 44px; height: 44px; }
   .landing-footer .landing-footer-inner { grid-template-columns: minmax(0, 1fr); gap: 30px; }

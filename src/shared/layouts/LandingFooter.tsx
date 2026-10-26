@@ -23,7 +23,7 @@ export function LandingFooter() {
 
         <FooterReviews />
 
-        <div className="landing-footer-column">
+        <div className="landing-footer-column landing-footer-contacts">
           <h2>Kết nối</h2>
           <a className="landing-footer-contact" href={nutrimomContact.phone.href}>
             <Phone size={17} weight="duotone" aria-hidden="true" />

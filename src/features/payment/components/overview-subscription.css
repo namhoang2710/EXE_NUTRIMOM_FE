@@ -119,10 +119,28 @@
 @media (max-width: 600px) {
   .nm-overview-membership__inner {
     width: calc(100% - 40px);
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+  .nm-overview-membership__copy {
+    width: 100%;
   }
   .nm-overview-membership__details {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    width: 100%;
+    gap: 14px;
+  }
+  .nm-overview-membership__action,
+  .nm-overview-membership__unavailable a {
+    width: min(100%, 280px);
+  }
+  .nm-overview-membership__unavailable {
+    width: 100%;
+  }
+  .nm-overview-membership__skeleton {
+    justify-items: center;
   }
   .nm-overview-membership__expiry {
     font-size: 14px;
