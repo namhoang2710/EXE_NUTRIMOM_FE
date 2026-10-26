@@ -99,8 +99,11 @@
 .admin-profile-menu > div { display: grid; gap: 4px; border-bottom: 1px solid var(--admin-border); padding: 14px; }
 .admin-profile-menu strong { font-size: 12px; }
 .admin-profile-menu span { color: var(--admin-muted); font-size: 11px; }
-.admin-profile-menu button { display: flex; width: 100%; align-items: center; gap: 9px; border: 0; padding: 12px 14px; color: #bd523f; background: transparent; font-size: 12px; font-weight: 700; cursor: pointer; }
-.admin-profile-menu button:hover { background: color-mix(in srgb,#bd523f 8%,transparent); }
+.admin-profile-menu button { display: flex; width: 100%; align-items: center; gap: 9px; border: 0; padding: 12px 14px; background: transparent; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 150ms ease, color 150ms ease; }
+.admin-profile-menu .admin-profile-item-btn { color: var(--admin-ink, #1f2937); border-bottom: 1px solid var(--admin-border); }
+.admin-profile-menu .admin-profile-item-btn:hover { background: color-mix(in srgb,var(--admin-accent) 10%,transparent); color: var(--admin-accent); }
+.admin-profile-menu .admin-profile-logout-btn { color: #bd523f; }
+.admin-profile-menu .admin-profile-logout-btn:hover { background: color-mix(in srgb,#bd523f 8%,transparent); }
 
 .admin-content { min-width: 0; padding: clamp(24px,3vw,38px) clamp(20px,3vw,40px) 64px; }
 .admin-page { display: grid; max-width: 1480px; gap: 24px; margin: 0 auto; }
