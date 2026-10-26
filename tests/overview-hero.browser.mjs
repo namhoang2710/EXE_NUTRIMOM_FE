@@ -134,6 +134,8 @@ async function fixture(options = {}) {
     const request = route.request(),
       url = new URL(request.url()),
       path = url.pathname.replace('/api/v1', '')
+    // Existing page analytics is independent of video/subscription business requests.
+    if (path === '/analytics/traffic/visit') return route.fulfill({ json: { data: { recorded: true, source: 'DIRECT' } } })
     state.api.push(`${request.method()} ${path}`)
     if (!['GET', 'OPTIONS'].includes(request.method())) state.writes.push(path)
     const ok = (data) =>
@@ -342,7 +344,7 @@ async function check(name, run) {
   }
 }
 async function ready(page) {
-  await page.getByRole('heading', { name: 'Chào mẹ Nguyễn Minh Anh' }).waitFor()
+  await page.locator('.nm-overview-hero #overview-greeting').waitFor()
   await page.evaluate(() => document.fonts.ready)
 }
 async function submitLogin(page) {
@@ -526,7 +528,7 @@ try {
     },
   )
   await check(
-    'background autoplays without controls under both preferences',
+    'reduced motion keeps the poster; save-data does not add playback controls',
     async () => {
       for (const options of [
         { motion: 'reduce' },
@@ -535,6 +537,13 @@ try {
         const f = await fixture(options)
         await f.goto('/app')
         await ready(f.page)
+        assert.equal(await f.page.locator('.nm-overview-hero__playback').count(), 0)
+        if (options.motion === 'reduce') {
+          assert.equal(await f.page.locator('video').evaluate(video => video.paused && !video.getAttribute('src')), true)
+          assert.equal(f.state.media.length, 0)
+          await f.context.close()
+          continue
+        }
         await f.page.waitForFunction(
           () =>
             !document.querySelector('video').paused &&
