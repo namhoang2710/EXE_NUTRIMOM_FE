@@ -12,11 +12,6 @@ export const nutrimomContact = {
 } as const
 
 export const nutrimomSocials = {
-  tiktok: {
-    label: 'TikTok',
-    href: 'https://www.tiktok.com/@nutrimom202?_r=1&_t=ZS-9Ai6jFeJh4S',
-    ariaLabel: 'Theo dõi NutriMom trên TikTok',
-  },
   instagram: {
     label: 'Instagram',
     href: 'https://www.instagram.com/nutrimomvn?stkn=ZnBtcThscGZ1YTRn&utm_source=qr',
