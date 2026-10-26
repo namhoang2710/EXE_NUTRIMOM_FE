@@ -1,3 +1,5 @@
+import { defaultPreferredDate, consultationServerNow } from '../model/consultation-timing'
+import { isDateInConsultationHorizon } from '../model/slot-grid'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowLeft } from '@phosphor-icons/react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -19,7 +21,7 @@ import '../styles/consultation.css'
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'
 
 function isAbortError(error: unknown) {
-  return error instanceof ApiClientError && error.code === 'REQUEST_ABORTED'
+  return error instanceof Error && error.name === 'AbortError' || error instanceof ApiClientError && error.code === 'REQUEST_ABORTED'
 }
 
 export function ConsultationsPage() {
@@ -40,6 +42,7 @@ export function ConsultationsPage() {
   const [directError, setDirectError] = useState<string | null>(null)
   const [directBusy, setDirectBusy] = useState(false)
   const [specialty, setSpecialty] = useState<ConsultationSpecialty | null>(null)
+  const [preferredDate,setPreferredDate]=useState(()=>defaultPreferredDate())
   const [randomNote, setRandomNote] = useState('')
   const [randomError, setRandomError] = useState<string | null>(null)
   const [randomBusy, setRandomBusy] = useState(false)
@@ -77,7 +80,7 @@ export function ConsultationsPage() {
 
   const loadAvailability = useCallback(async (signal?: AbortSignal) => {
     availabilityRequest.current?.abort()
-    if (!expertId) { setAvailability(null); setAvailabilityState('idle'); return }
+    if (!expertId || tab!=='direct') { setAvailability(null); setAvailabilityState('idle'); return }
     const controller = new AbortController()
     availabilityRequest.current = controller
     const abortFromCaller = () => controller.abort()
@@ -103,7 +106,7 @@ export function ConsultationsPage() {
       signal?.removeEventListener('abort', abortFromCaller)
       if (availabilityRequest.current === controller) availabilityRequest.current = null
     }
-  }, [date, expertId])
+  }, [date, expertId,tab])
 
   useEffect(() => { const controller = new AbortController(); void loadExpert(controller.signal); return () => controller.abort() }, [loadExpert])
   useEffect(() => { setSelectedStartTime(null); setDirectError(null) }, [date, expertId])
@@ -155,6 +158,7 @@ export function ConsultationsPage() {
       onSuccess: async (created) => {
         showToast('Đặt lịch thành công'); revealRecent(created); setSelectedStartTime(null); setDirectNote('')
         setHistoryVersion((value) => value + 1); await loadAvailability()
+        window.dispatchEvent(new CustomEvent('nutrimom:notifications-refresh'))
       },
       onSlotConflict: async () => { setSelectedStartTime(null); setDirectError(SLOT_CONFLICT_MESSAGE); await loadAvailability() },
       onError: (error) => setDirectError(consultationErrorMessage(error)),
@@ -165,12 +169,14 @@ export function ConsultationsPage() {
 
   async function submitRandom() {
     if (!specialty || randomSubmitting.current) return false
+    if(!isDateInConsultationHorizon(preferredDate,new Date(consultationServerNow()??Date.now()))){setRandomError('Chọn ngày mong muốn từ hôm nay đến 30 ngày tới.');return false}
     randomSubmitting.current = true; setRandomBusy(true); setRandomError(null)
     const succeeded = await runConsultationSubmission({
-      submit: () => consultationApi.createRandom({ specialty, note: randomNote }),
+      submit: () => consultationApi.createRandom({ specialty, preferredDate, note: randomNote }),
       onSuccess: async (created) => {
         showToast('Đã gửi yêu cầu tư vấn'); revealRecent(created); setSpecialty(null); setRandomNote('')
         setHistoryVersion((value) => value + 1)
+        window.dispatchEvent(new CustomEvent('nutrimom:notifications-refresh'))
       },
       onError: (error) => setRandomError(consultationErrorMessage(error)),
     })
@@ -194,7 +200,7 @@ export function ConsultationsPage() {
         tab={tab} onTabChange={setTab} expertId={expertId} expert={expert} expertLoading={expertState === 'loading'} expertError={expertError} onRetryExpert={() => void loadExpert()}
         date={date} onDateChange={(value) => { setDate(value); setDirectError(null) }} availability={availability} availabilityLoading={availabilityState === 'loading'} availabilityError={availabilityError} onRetryAvailability={() => void loadAvailability()}
         selectedStartTime={selectedStartTime} onSelectTime={(startTime) => { setSelectedStartTime((current) => current === startTime ? null : startTime); setDirectError(null) }} onClearSelection={() => { setSelectedStartTime(null); setDirectError(null) }} directNote={directNote} onDirectNoteChange={setDirectNote} directError={directError} directBusy={directBusy} onDirectSubmit={submitDirect}
-        specialty={specialty} onSpecialtyChange={(value) => { setSpecialty(value); setRandomError(null) }} randomNote={randomNote} onRandomNoteChange={setRandomNote} randomError={randomError} randomBusy={randomBusy} onRandomSubmit={submitRandom}
+        preferredDate={preferredDate} onPreferredDateChange={value=>{setPreferredDate(value);setRandomError(null)}} specialty={specialty} onSpecialtyChange={(value) => { setSpecialty(value); setRandomError(null) }} randomNote={randomNote} onRandomNoteChange={setRandomNote} randomError={randomError} randomBusy={randomBusy} onRandomSubmit={submitRandom}
       />
     </div>
     {recent && <div ref={recentRef} tabIndex={-1} className="consultation-recent-focus"><RecentConsultation item={recent} highlighted={highlightRecent} /></div>}

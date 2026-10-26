@@ -1,0 +1,127 @@
+{
+  "branch": "fix/mobile-home-hero-parallax",
+  "date": "2026-10-25",
+  "mode": "production build, local Playwright",
+  "results": [
+    {
+      "browser": "chromium",
+      "checks": [
+        {
+          "name": "mobile and desktop motion follow vertical scroll; rows counter-move; reduced motion stays still",
+          "passed": true,
+          "cases": 20
+        },
+        {
+          "name": "mobile hero motion allows touch scrolling, orientation changes and both themes",
+          "passed": true,
+          "cases": 10
+        },
+        {
+          "name": "lifecycle: offscreen motion pauses and reduced-motion video waits for user control",
+          "passed": true,
+          "cases": 0
+        }
+      ],
+      "motionCases": 20,
+      "frameSamples": [
+        {
+          "width": 390,
+          "height": 780,
+          "frames": {
+            "count": 96,
+            "medianMs": 8.300000000000182,
+            "p95Ms": 8.600000000000364,
+            "over50Ms": 0
+          }
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "frames": {
+            "count": 97,
+            "medianMs": 8.300000000000182,
+            "p95Ms": 8.600000000000364,
+            "over50Ms": 0
+          }
+        },
+        {
+          "width": 1440,
+          "height": 844,
+          "frames": {
+            "count": 97,
+            "medianMs": 8.300000000000182,
+            "p95Ms": 8.600000000000136,
+            "over50Ms": 0
+          }
+        }
+      ],
+      "touchSample": [
+        {
+          "touchScrollBefore": 0,
+          "touchScrollAfter": 225
+        }
+      ],
+      "pageErrors": [],
+      "unexpected": [],
+      "missing": []
+    },
+    {
+      "browser": "webkit",
+      "checks": [
+        {
+          "name": "mobile and desktop motion follow vertical scroll; rows counter-move; reduced motion stays still",
+          "passed": true,
+          "cases": 20
+        },
+        {
+          "name": "mobile hero motion allows touch scrolling, orientation changes and both themes",
+          "passed": true,
+          "cases": 9
+        },
+        {
+          "name": "lifecycle: offscreen motion pauses and reduced-motion video waits for user control",
+          "passed": true,
+          "cases": 0
+        }
+      ],
+      "motionCases": 20,
+      "frameSamples": [
+        {
+          "width": 390,
+          "height": 780,
+          "frames": {
+            "count": 21,
+            "medianMs": 38,
+            "p95Ms": 51,
+            "over50Ms": 2
+          }
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "frames": {
+            "count": 20,
+            "medianMs": 39,
+            "p95Ms": 46,
+            "over50Ms": 1
+          }
+        },
+        {
+          "width": 1440,
+          "height": 844,
+          "frames": {
+            "count": 11,
+            "medianMs": 73,
+            "p95Ms": 87,
+            "over50Ms": 11
+          }
+        }
+      ],
+      "touchSample": [],
+      "pageErrors": [],
+      "unexpected": [],
+      "missing": []
+    }
+  ],
+  "limitation": "Desktop headless WebKit is used for behavior and layout checks. Its frame timings do not establish frame rates on physical iOS devices."
+}

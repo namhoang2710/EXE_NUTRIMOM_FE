@@ -1,0 +1,173 @@
+/* Keep the original full-width split layout; only animate its two existing panels. */
+.auth-scene, .auth-login-transition { height: 100dvh; overflow: hidden; }
+.auth-workspace-entry { animation: auth-content-reveal 280ms ease-out backwards; }
+.auth-page.auth-page {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.auth-page .brand-panel,
+.auth-page .form-panel {
+  position: relative;
+  top: auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  align-self: stretch;
+  overflow: hidden;
+}
+.auth-page .brand-panel { display: block; padding: 0; }
+/* Keep auth actions reachable on short landscape screens and with inline feedback. */
+.auth-page .form-panel:has(.auth-login-links, .auth-form--forgot-password) { overflow-y: auto; overscroll-behavior-y: contain; }
+.auth-page .auth-login-links { display: grid; gap: 8px; text-align: center; }
+.auth-page .auth-login-links p { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 4px; }
+.auth-page .auth-login-links a { display: inline-flex; align-items: center; min-height: 44px; }
+.auth-page .auth-login-links a:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; border-radius: 4px; }
+.auth-page .brand-panel-content {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  height: 100%;
+  padding: 34px clamp(34px, 4vw, 72px) 28px;
+}
+
+/* Entry animations release their transform/opacity when finished. The resting page
+   is ordinary visible content, with no retained transformed or clipped layers. */
+.auth-page .brand-panel { animation: auth-panel-open-left 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.auth-page .form-panel { animation: auth-panel-open-right 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.auth-page .brand-panel-content,
+.auth-page .form-panel-toolbar,
+.auth-page .form-frame { animation: auth-content-reveal 280ms 500ms ease-out backwards; }
+:is(.auth-scene, .auth-login-transition)[data-state="closing"] .brand-panel { animation: auth-panel-close-left 320ms 80ms ease-in forwards; }
+:is(.auth-scene, .auth-login-transition)[data-state="closing"] .form-panel { animation: auth-panel-close-right 320ms 80ms ease-in forwards; }
+:is(.auth-scene, .auth-login-transition)[data-state="closing"] .brand-panel-content,
+:is(.auth-scene, .auth-login-transition)[data-state="closing"] .form-panel-toolbar,
+:is(.auth-scene, .auth-login-transition)[data-state="closing"] .form-frame { animation: auth-content-hide 80ms ease-in forwards; }
+@keyframes auth-panel-open-left { from { transform: translateX(-110%); } to { transform: none; } }
+@keyframes auth-panel-open-right { from { transform: translateX(110%); } to { transform: none; } }
+@keyframes auth-panel-close-left { from { transform: none; } to { transform: translateX(-110%); } }
+@keyframes auth-panel-close-right { from { transform: none; } to { transform: translateX(110%); } }
+@keyframes auth-content-reveal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes auth-content-hide { from { opacity: 1; } to { opacity: 0; } }
+
+/* Registration needs reserved feedback space to keep the submit action in view.
+   The login typography, field sizes and original form position remain unchanged. */
+.auth-page .form-frame:has(input[name="confirmPassword"]) {
+  width: min(100%, 510px);
+  padding: 20px 36px 16px;
+}
+.auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading { margin-bottom: 12px; }
+.auth-page .auth-form.auth-form--register { gap: 8px; }
+.auth-page .auth-form--register .field-group { grid-template-rows: 17px 44px 28px; gap: 3px; min-width: 0; }
+.auth-page .auth-form--register .field-group > label { font-size: 14px; line-height: 17px; }
+/* Override the legacy :has(confirmPassword) min-height/padding rules as well.
+   Otherwise a 48px border overflows the compact row and covers its feedback. */
+.auth-page .auth-form--register .field-group .input-shell { min-height: 0; height: 100%; }
+.auth-page .auth-form--register .field-group .input-shell input { min-height: 0; height: 100%; padding-block: 0; font-size: 15px; }
+.auth-page .auth-form--register .field-group .input-action { height: calc(100% - 4px); max-height: 38px; }
+.auth-page .auth-form--register .field-error,
+.auth-page .auth-form--register .field-hint { font-size: 11px; line-height: 14px; overflow-wrap: anywhere; }
+.auth-page .auth-terms { min-width: 0; }
+.auth-page .auth-terms .check-row { align-items: start; font-size: 12px; line-height: 17px; }
+.auth-page .auth-terms .field-error { min-height: 14px; margin-top: 2px; }
+.auth-page .auth-form--register .primary-button { min-height: 44px; padding-block: 10px; margin: 0; }
+.auth-page .form-frame:has(input[name="confirmPassword"]) .form-footer { margin-top: 12px; font-size: 13px; }
+.auth-page .form-frame:has(input[name="confirmPassword"]) .form-footer p { margin: 0; }
+.auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading p { min-height: 36px; }
+.auth-page .form-heading .auth-heading-error { color: var(--danger); }
+
+.otp-control { width: 100%; align-items: center; color: var(--text); }
+.otp-control .otp-label { color: var(--text); font-size: 13px; }
+.otp-control .otp-group { gap: clamp(5px, 1vw, 10px); height: auto; justify-content: center; width: 100%; }
+.otp-control [data-pin-slot] {
+  width: clamp(32px, 4vw, 50px);
+  height: 54px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 25px;
+  box-shadow: none;
+  outline: none;
+}
+.otp-control [data-pin-slot][data-active] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.otp-control [data-pin-slot][aria-invalid="true"] { border-color: var(--danger); }
+.otp-control [data-pin-slot] > div { background: var(--accent); animation: otp-caret-blink 1s steps(2) infinite; }
+.otp-control .otp-separator { color: var(--muted); font-size: 20px; }
+.otp-control [slot="description"], .otp-control [slot="errorMessage"] { color: var(--muted); font-size: 11px; text-align: center; }
+.otp-control [slot="errorMessage"] { color: var(--danger); }
+@keyframes otp-caret-blink { 50% { opacity: 0; } }
+
+@media (max-width: 1040px) {
+  .auth-page.auth-page { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+  .auth-page .brand-panel-content { padding-inline: 36px; }
+}
+@media (min-width: 821px) and (max-height: 820px) {
+  .auth-page .brand-panel-content { padding-block: 26px 22px; }
+}
+@media (max-height: 850px) {
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .field-group { grid-template-rows: 16px 36px 24px; gap: 2px; }
+  .auth-page .auth-form:has(input[name="confirmPassword"]) { gap: 4px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading h2 { font-size: 30px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading p { font-size: 13px; line-height: 1.4; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .field-hint,
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .field-error { line-height: 12px; }
+}
+@media (max-width: 820px) {
+  .auth-page.auth-page { display: block; }
+  .auth-page .brand-panel { display: none; }
+  .auth-page .brand-panel-content { animation: none; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) { width: min(100%, 570px); padding: 20px 24px 14px; }
+}
+@media (max-height: 720px) {
+  .auth-page .form-panel-toolbar { padding-top: 8px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) { padding-block: 10px 8px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .field-group { grid-template-rows: 15px 32px 24px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading { margin-bottom: 4px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading h2 { font-size: 26px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading p { margin-top: 4px; font-size: 12px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-footer { margin-top: 6px; font-size: 12px; }
+  .auth-page .auth-form--register .primary-button { min-height: 38px; padding-block: 8px; }
+  .auth-page .auth-form--register .input-action { height: 30px; }
+}
+@media (max-height: 650px) and (min-width: 580px) {
+  .auth-page.auth-page { grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) { width: 100%; padding-inline: 24px; }
+  .auth-page .auth-form--register { grid-template-columns: 1fr 1fr; column-gap: 12px; }
+  .auth-page .auth-form--register > .auth-terms,
+  .auth-page .auth-form--register > .primary-button { grid-column: 1 / -1; }
+  .auth-page .auth-form--register .field-group { grid-template-rows: 15px 34px 39px; }
+}
+@media (max-height: 430px) and (min-width: 580px) {
+  .auth-page.auth-page { display: block; }
+  .auth-page .brand-panel { display: none; }
+  .auth-page .brand-panel-content { animation: none; }
+  .auth-page .form-panel-toolbar { position: absolute; top: 0; right: 0; width: auto; padding: 6px 12px; z-index: 1; }
+  .auth-page .mobile-brand { display: none; }
+  .auth-page .home-return-link, .auth-page .theme-toggle { min-height: 30px; height: 30px; padding-block: 3px; }
+  .auth-page .form-frame,
+  .auth-page .form-frame:has(input[name="confirmPassword"]) { width: 100%; padding: 8px 18px; }
+  .auth-page .form-heading { padding-right: 170px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading h2 { font-size: 22px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading p { min-height: 28px; line-height: 14px; }
+  .auth-page .auth-form--register { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .field-group { grid-template-rows: 15px 32px 36px; }
+}
+@media (max-width: 360px) {
+  .auth-page .form-frame:has(input[name="confirmPassword"]) { padding-inline: 14px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .form-heading h2 { font-size: 24px; }
+  .auth-page .form-frame:has(input[name="confirmPassword"]) .field-group { grid-template-rows: 15px 30px 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-page .brand-panel, .auth-page .form-panel,
+  .auth-page .brand-panel-content, .auth-page .form-panel-toolbar, .auth-page .form-frame,
+  :is(.auth-scene, .auth-login-transition)[data-state="closing"] .brand-panel,
+  :is(.auth-scene, .auth-login-transition)[data-state="closing"] .form-panel,
+  :is(.auth-scene, .auth-login-transition)[data-state="closing"] .brand-panel-content,
+  :is(.auth-scene, .auth-login-transition)[data-state="closing"] .form-panel-toolbar,
+  :is(.auth-scene, .auth-login-transition)[data-state="closing"] .form-frame,
+  .auth-workspace-entry,
+  .otp-control [data-pin-slot] > div { animation: none; }
+}

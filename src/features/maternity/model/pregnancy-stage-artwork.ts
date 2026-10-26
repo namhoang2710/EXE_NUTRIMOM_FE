@@ -2,8 +2,8 @@ export function getPregnancyStageImageUrl(week: number): string | null {
   if (!Number.isFinite(week)) return null
 
   const wholeWeek = Math.floor(week)
-  if (wholeWeek <= 3) return '/pregnancy-weeks/T1-3.png'
-  if (wholeWeek >= 41) return '/pregnancy-weeks/T41.png'
+  if (wholeWeek <= 3) return '/optimized/pregnancy-weeks/T1-3.webp'
+  if (wholeWeek >= 41) return '/optimized/pregnancy-weeks/T41.webp'
   return `/pregnancy-weeks/T${wholeWeek}.png`
 }
 

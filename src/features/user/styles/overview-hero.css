@@ -1,0 +1,260 @@
+.nm-app-shell.has-overview-hero .nm-floating-nav {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+.nm-overview-hero__playback {
+  position: absolute; right: 16px; bottom: 16px; z-index: 3; display: inline-flex;
+  min-height: 44px; align-items: center; justify-content: center; gap: 7px;
+  border: 1px solid rgb(255 255 255 / .4); border-radius: 12px; padding: 8px 12px;
+  color: #fff; background: rgb(34 24 51 / .8); font: inherit; font-size: 12px; cursor: pointer;
+}
+.nm-overview-hero__playback:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.nm-overview-hero__footer { padding-right: 145px; }
+.nm-overview-hero {
+  --hero-background: #fff;
+  --hero-text: #000;
+  --hero-muted: #44434a;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-items: start;
+  width: 100%;
+  min-height: max(700px, 100svh);
+  overflow: hidden;
+  background: var(--hero-background);
+  color: var(--hero-text);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+.nm-overview-hero__landscape,
+.nm-overview-hero__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.nm-overview-hero__landscape {
+  overflow: hidden;
+}
+.nm-overview-hero__poster,
+.nm-overview-hero__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.nm-overview-hero__poster {
+  display: block;
+}
+.nm-overview-hero__video {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.nm-overview-hero__veil {
+  background: linear-gradient(
+    180deg,
+    #ffffff66 0%,
+    #ffffff99 20%,
+    #ffffff66 42%,
+    #ffffff00 72%,
+    #ffffff00 100%
+  );
+}
+.nm-overview-hero__content {
+  position: relative;
+  width: min(100% - 48px, 1280px);
+  margin: 0 auto;
+  padding: clamp(164px, 19svh, 224px) 0 190px;
+  text-align: center;
+}
+.nm-overview-hero__eyebrow {
+  display: block;
+  color: var(--hero-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.nm-overview-hero h1 {
+  margin: 26px auto 0;
+  max-width: 1120px;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(3.6rem, 7.2vw, 7.75rem);
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+  font-weight: 400;
+  text-wrap: balance;
+}
+.nm-overview-hero h1 em {
+  display: block;
+  color: var(--hero-muted);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.nm-overview-hero__description {
+  max-width: 640px;
+  margin: 28px auto 0;
+  color: var(--hero-muted);
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+.nm-overview-hero__actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-top: 36px;
+}
+.nm-overview-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 56px;
+  padding: 17px 32px;
+  border: 1px solid var(--hero-text);
+  border-radius: 999px;
+  background: var(--hero-text);
+  color: var(--hero-background);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.nm-overview-hero__cta:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 24px #0002;
+}
+.nm-overview-hero__cta:active {
+  transform: scale(0.98);
+}
+.nm-overview-hero__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--hero-text);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+.nm-overview-hero__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.nm-overview-hero__footer {
+  position: absolute;
+  inset-inline: clamp(20px, 4vw, 64px);
+  bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #fff;
+  text-shadow: 0 1px 5px #162219;
+  font-size: 0.75rem;
+}
+.nm-overview-hero :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+}
+:root[data-theme='dark'] .nm-overview-hero {
+  --hero-background: #141219;
+  --hero-text: #f2eef6;
+  --hero-muted: #c3bccb;
+}
+:root[data-theme='dark'] .nm-overview-hero__veil {
+  background: linear-gradient(
+    180deg,
+    #14121980 0%,
+    #141219bb 22%,
+    #14121999 44%,
+    #14121900 75%
+  );
+}
+@media (max-width: 700px) {
+  .nm-overview-hero {
+    min-height: max(700px, 100svh);
+  }
+  .nm-overview-hero__content {
+    width: calc(100% - 40px);
+    padding: 154px 0 180px;
+  }
+  .nm-overview-hero h1 {
+    margin-top: 24px;
+    font-size: clamp(3.5rem, 11vw, 5.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+  }
+  .nm-overview-hero__actions {
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 30px;
+  }
+  .nm-overview-hero__cta {
+    width: min(100%, 300px);
+    padding-inline: 24px;
+  }
+  .nm-overview-hero__footer {
+    bottom: 22px;
+    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .nm-overview-hero__footer > span {
+    font-size: 0.6875rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-overview-hero__cta {
+    transition: none;
+  }
+  .nm-overview-hero__cta:hover,
+  .nm-overview-hero__cta:active {
+    transform: none;
+  }
+}
+
+.nm-overview-hero__reserved,
+.nm-overview-hero__skeleton {
+  min-height: 350px;
+}
+.nm-overview-hero__skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding-top: 30px;
+}
+.nm-overview-hero__skeleton span {
+  display: block;
+  width: min(70%, 540px);
+  height: 62px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--hero-muted) 12%, transparent);
+  animation: nm-overview-skeleton 1.6s ease-in-out infinite alternate;
+}
+.nm-overview-hero__skeleton span:nth-child(2) {
+  width: min(85%, 680px);
+}
+.nm-overview-hero__skeleton span:last-child {
+  width: min(60%, 360px);
+  height: 20px;
+}
+.nm-overview-hero__error {
+  min-height: 350px;
+  padding-top: 60px;
+}
+@keyframes nm-overview-skeleton {
+  to {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-overview-hero__skeleton span {
+    animation: none;
+  }
+}

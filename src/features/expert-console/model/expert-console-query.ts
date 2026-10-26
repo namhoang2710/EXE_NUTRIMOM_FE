@@ -12,7 +12,7 @@ export function toQueryString(values: Record<string, QueryValue>) {
 }
 
 export function buildConsultationQuery(query: ConsultationQuery) {
-  return toQueryString({ type: query.type, status: query.status, from: query.from, to: query.to, q: query.query?.trim(), page: query.page, pageSize: query.pageSize })
+  return toQueryString({ type: query.type, status: query.status, from: query.from, to: query.to, q: query.query?.trim(), page: query.page, pageSize: query.pageSize, includeNext:query.includeNext })
 }
 
 export function buildReviewQuery(query: ReviewQuery) {

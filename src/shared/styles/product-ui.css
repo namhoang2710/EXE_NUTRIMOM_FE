@@ -51,6 +51,12 @@ body { overflow-x: hidden; }
 .nm-action-dialog-state > p { max-width: 38ch; margin: 0; color: var(--muted); line-height: 1.6; }
 .nm-action-dialog-success { color: var(--success); }
 .nm-action-dialog-success > p { color: var(--text); font-weight: 650; }
+.nm-action-dialog-compact { width: min(520px, calc(100vw - 32px)); }
+.nm-action-dialog-compact .nm-dialog-body { padding: 24px; }
+.nm-action-dialog-compact .nm-action-dialog-state:not(.nm-action-dialog-success) { grid-template-columns: auto minmax(0, 1fr); align-items: start; justify-items: start; gap: 14px; color: var(--danger); text-align: left; }
+.nm-action-dialog-compact .nm-action-dialog-state:not(.nm-action-dialog-success) > p { max-width: none; margin-top: 2px; color: var(--text); }
+.nm-action-dialog-compact .nm-action-dialog-state .nm-dialog-error { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; color: var(--danger); }
+.nm-action-dialog-compact .nm-dialog-footer { padding-block: 14px; }
 
 .nm-stateful-button {
   display: inline-flex;
@@ -115,7 +121,6 @@ body { overflow-x: hidden; }
 .pregnancy-chart-empty span { max-width: 30ch; color: var(--muted); font-size: .9rem; }
 .pregnancy-chart-skeleton { min-height: 340px; border-radius: 22px; background: linear-gradient(90deg, var(--surface-muted), var(--surface-strong), var(--surface-muted)); background-size: 200% 100%; animation: skeleton-pulse 1.4s infinite; }
 .pregnancy-journey-hero { scroll-margin-top: 24px; }
-.pregnancy-content-card small { display: block; margin-top: 7px; color: var(--subtle); }
 
 .pregnancy-save-dialog { width: min(100%, 580px); }
 .pregnancy-confirm-summary { display: grid; gap: 12px; }
@@ -132,6 +137,9 @@ body { overflow-x: hidden; }
 
 .medical-record-editor { width: min(100%, 720px); max-height: min(94dvh, 880px); }
 .medical-record-form { padding-bottom: 4px; }
+.medical-record-reminder-fields { display: grid; gap: 17px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.medical-record-reminder-fields > label { display: grid; gap: 7px; color: var(--text); font-size: .88rem; font-weight: 680; }
+.medical-record-reminder-fields label > small { color: var(--muted); font-size: .78rem; font-weight: 500; line-height: 1.5; }
 .medical-record-form .custom-select, .medical-record-form .calendar-field { z-index: auto; }
 .nm-upload-success { margin: 0; color: var(--success); font-size: .9rem; font-weight: 650; }
 .record-image-dialog { width: min(100%, 1100px); }

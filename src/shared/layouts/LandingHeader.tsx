@@ -3,7 +3,6 @@ import {
   Footprints,
   Heart,
   List,
-  MagnifyingGlass,
   Moon,
   Sparkle,
   Star,
@@ -11,33 +10,44 @@ import {
   UserCircle,
   X,
 } from '@phosphor-icons/react'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { ThemeToggle } from '../components/ThemeToggle'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { Tabs } from '@/components/ui/vercel-tabs'
 import { landingNavigation } from './landing-navigation'
+import { useMotionActivity } from '../hooks/useMotionActivity'
 
-const searchSuggestions = [
-  'Tìm dịch vụ chăm sóc thai kỳ...',
-  'Tìm chuyên gia đồng hành...',
-  'Tìm kiến thức dinh dưỡng cho mẹ...',
-  'Tìm hồ sơ và cột mốc sức khỏe...',
-]
+const navigationTabs = landingNavigation.map(item => ({ id: item.to, label: item.label, to: item.to }))
 
 export function LandingHeader() {
-  const [query, setQuery] = useState('')
+  const motionRef = useMotionActivity<HTMLElement>()
+  const { pathname } = useLocation()
+  const activeTab = landingNavigation.find(item => item.to === '/'
+    ? pathname === '/'
+    : pathname === item.to || pathname.startsWith(`${item.to}/`))?.to
   const [menuOpen, setMenuOpen] = useState(false)
-  const [searchFocused, setSearchFocused] = useState(false)
-  const [suggestionIndex, setSuggestionIndex] = useState(0)
   const [headerHidden, setHeaderHidden] = useState(false)
   const lastScrollY = useRef(0)
-  const navigate = useNavigate()
+  const menuToggle = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setSuggestionIndex((current) => (current + 1) % searchSuggestions.length)
-    }, 2800)
-    return () => window.clearInterval(timer)
+    const viewport = window.matchMedia('(max-width: 1120px)')
+    function closeDesktopMenu() {
+      if (!viewport.matches) setMenuOpen(false)
+    }
+    viewport.addEventListener('change', closeDesktopMenu)
+    return () => viewport.removeEventListener('change', closeDesktopMenu)
   }, [])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setMenuOpen(false)
+      menuToggle.current?.focus()
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [menuOpen])
 
   useEffect(() => {
     let animationFrame = 0
@@ -71,15 +81,8 @@ export function LandingHeader() {
     }
   }, [menuOpen])
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const value = query.trim()
-    navigate(value ? `/services?search=${encodeURIComponent(value)}` : '/services')
-    setMenuOpen(false)
-  }
-
   return (
-    <header className={`landing-header${headerHidden ? ' is-hidden' : ''}`}>
+    <header ref={motionRef} className={`landing-header${headerHidden ? ' is-hidden' : ''}`} onFocusCapture={() => setHeaderHidden(false)}>
       <div className="nutrimom-floating-decorations" aria-hidden="true">
         <span className="nutrimom-floating-decoration is-star-four">
           <StarFour size={18} weight="fill" />
@@ -110,38 +113,20 @@ export function LandingHeader() {
           <span>NutriMom</span>
         </Link>
 
-        <div className="landing-header-center">
-          <form className="landing-search" role="search" onSubmit={handleSearch}>
-            <label className="sr-only" htmlFor="site-search">Tìm kiếm dịch vụ NutriMom</label>
-            <MagnifyingGlass size={19} aria-hidden="true" />
-            <div className="landing-search-field">
-              <input
-                id="site-search"
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                aria-label="Tìm kiếm dịch vụ NutriMom"
-              />
-              {!query && !searchFocused && (
-                <span className="landing-search-hint" key={suggestionIndex} aria-hidden="true">
-                  {searchSuggestions[suggestionIndex]}
-                </span>
-              )}
-            </div>
-            <button type="submit" aria-label="Tìm kiếm">
-              <MagnifyingGlass size={18} weight="bold" />
-            </button>
-          </form>
-        </div>
+        <nav
+          className={`landing-header-nav${menuOpen ? ' is-open' : ''}`}
+          id="landing-navigation"
+          aria-label="Điều hướng chính"
+        >
+          <Tabs tabs={navigationTabs} activeTab={activeTab} onTabChange={() => setMenuOpen(false)} />
+        </nav>
 
         <div className="landing-header-actions">
           <Link className="landing-account-button" to="/login" aria-label="Đăng nhập" title="Đăng nhập">
             <UserCircle weight="fill" aria-hidden="true" />
           </Link>
-          <ThemeToggle />
           <button
+            ref={menuToggle}
             className="landing-menu-toggle"
             type="button"
             aria-expanded={menuOpen}
@@ -153,24 +138,6 @@ export function LandingHeader() {
           </button>
         </div>
       </div>
-
-      <nav
-        className={`landing-subnav nutrimom-header-content-layer${menuOpen ? ' is-open' : ''}`}
-        id="landing-navigation"
-        aria-label="Điều hướng chính"
-      >
-        {landingNavigation.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            onClick={() => setMenuOpen(false)}
-            className={({ isActive }) => isActive ? 'is-active' : undefined}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
     </header>
   )
 }

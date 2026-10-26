@@ -4,7 +4,9 @@ import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import { ApiClientError } from '@/core/api/api-error'
 import { adminExpertsApi } from '../api/admin-api'
 import type { AdminExpert, ExpertFormErrors, ExpertSpecialty, ExpertSpecialtyOption, ExpertStatus } from '../model/admin-experts'
-import { formatExpertSpecialty, isExpertSpecialty, validateExpertAvatar, validateExpertProfile } from '../model/admin-experts'
+import { formatExpertSpecialty, isExpertSpecialty, validateExpertAvatar, validateExpertProfile, mapExpertFieldErrors } from '../model/admin-experts'
+import { focusTargetForTab, getFocusableElements, restoreDialogFocus } from '@/shared/model/dialog-focus'
+import { adminReads } from '../api/admin-read'
 import { formatAdminDate } from '../model/admin-formatters'
 import { AdminExpertAvatar } from './AdminExpertAvatar'
 import { AdminFilterSelect } from './AdminFilterSelect'
@@ -54,6 +56,10 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
   const closeTimer = useRef<number | null>(null)
   const requestDismissRef = useRef<() => void>(() => undefined)
   const closeButton = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLElement>(null)
+  const mutationLock = useRef(false)
+  const editingRef = useRef(editing)
+  editingRef.current = editing
   const previewUrl = useMemo(() => avatar ? URL.createObjectURL(avatar) : '', [avatar])
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
@@ -73,12 +79,11 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
     setAvatar(null)
     setAvatarError('')
     setErrors({})
-    setSaveError('')
-    setVersionConflict(false)
+    if (!versionConflict) setSaveError('')
     setSpecialtyOpen(false)
     setStatusOpen(false)
     setDiscardConfirm(false)
-  }, [detail])
+  }, [detail, versionConflict])
 
   const requestDismiss = useCallback(() => {
     if (busy) return
@@ -96,18 +101,22 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
     adminExpertsApi.detail(expert.userId, controller.signal).then((result) => {
       if (controller.signal.aborted) return
       setDetail(result); setStatus('success'); onChanged(result)
-      if (reload === 0) setForm(toEditState(result))
+      if (!editingRef.current) setForm(toEditState(result))
+      else setSuccessMessage('Đã tải hồ sơ mới. Bản nháp và tệp ảnh bạn chọn vẫn được giữ; kiểm tra trước khi lưu.')
+      setVersionConflict(false); setSaveError(''); setErrors({})
     }).catch((reason: unknown) => {
       if (controller.signal.aborted) return
-      setError(reason instanceof Error ? reason.message : 'Unable to load expert details.'); setStatus('error')
+      setError(reason instanceof Error ? reason.message : 'Chưa thể tải chi tiết chuyên gia.'); setStatus('error')
     })
     return () => controller.abort()
   }, [expert.userId, onChanged, reload])
 
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null
     document.body.classList.add('admin-dialog-open')
     const frame = window.requestAnimationFrame(() => { setVisible(true); closeButton.current?.focus() })
     const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Tab' && panel.current) { const activePanel = panel.current.querySelector<HTMLElement>('[role="alertdialog"]') || panel.current; const target = focusTargetForTab(getFocusableElements(activePanel),document.activeElement,event.shiftKey); if (target) { event.preventDefault(); target.focus() } }
       if (event.key !== 'Escape') return
       if (discardConfirmRef.current) setDiscardConfirm(false)
       else if (confirmingRef.current) setConfirming(false)
@@ -119,40 +128,43 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
       if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
       document.body.classList.remove('admin-dialog-open')
       window.removeEventListener('keydown', escape)
+      restoreDialogFocus(opener)
     }
   }, [])
+  useEffect(() => { if (Object.keys(errors).length) panel.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus() },[errors])
 
   function update<Key extends keyof EditState>(key: Key, value: EditState[Key]) {
     setEditTouched(true)
     setForm((current) => ({ ...current, [key]: value }))
     setErrors((current) => ({ ...current, [key]: undefined }))
-    setSaveError(''); setVersionConflict(false)
+    if (!versionConflict) setSaveError('')
   }
 
   function beginEdit() {
     if (!detail) return
-    setForm(toEditState(detail)); setErrors({}); setSaveError(''); setVersionConflict(false); setEditTouched(false); setAvatarTouched(false); setAvatar(null); setAvatarError(''); setEditing(true)
+    setForm(toEditState(detail)); setErrors({}); if (!versionConflict) setSaveError(''); setEditTouched(false); setAvatarTouched(false); setAvatar(null); setAvatarError(''); setEditing(true)
   }
 
   async function save(event: FormEvent) {
     event.preventDefault()
-    if (!detail) return
-    const nextErrors = validateExpertProfile(form, false)
+    if (!detail || mutationLock.current || versionConflict) return
+    const nextErrors = validateExpertProfile(form)
     setErrors(nextErrors); setSaveError(''); setSuccessMessage(''); setVersionConflict(false)
     if (Object.keys(nextErrors).length > 0 || !isExpertSpecialty(form.specialty)) return
-    setBusy(true)
+    mutationLock.current = true; setBusy(true)
     try {
       const updated = await adminExpertsApi.update(detail.userId, {
         fullName: form.fullName, specialty: form.specialty as ExpertSpecialty, title: form.title,
         workplace: form.workplace, yearsOfExperience: Number(form.yearsOfExperience), bio: form.bio,
         status: form.status, version: detail.version,
       })
-      setDetail(updated); onChanged(updated); setEditing(false); setEditTouched(false); setAvatarTouched(false); setForm(toEditState(updated)); setSuccessMessage('Expert profile updated successfully.')
+      setDetail(updated); onChanged(updated); setEditing(false); setEditTouched(false); setAvatarTouched(false); setForm(toEditState(updated)); setSuccessMessage('Đã cập nhật hồ sơ chuyên gia.')
     } catch (reason) {
       if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') {
-        setVersionConflict(true); setSaveError('This profile changed elsewhere. Reload the latest version before saving again.')
-      } else setSaveError(reason instanceof Error ? reason.message : 'Unable to save this profile.')
-    } finally { setBusy(false) }
+        adminReads.invalidate('GET:/admin/experts/' + detail.userId)
+        setVersionConflict(true); setSaveError('Hồ sơ đã thay đổi. Hãy tải phiên bản mới nhất trước khi lưu.')
+      } else { if (reason instanceof ApiClientError) setErrors(mapExpertFieldErrors(reason.fields)); setSaveError(reason instanceof Error ? reason.message : 'Chưa thể lưu hồ sơ.') }
+    } finally { mutationLock.current = false; setBusy(false) }
   }
 
   function chooseAvatar(event: ChangeEvent<HTMLInputElement>) {
@@ -165,57 +177,59 @@ export function AdminExpertDetailDrawer({ expert, specialties, onClose, onChange
   }
 
   async function uploadAvatar() {
-    if (!detail || !avatar) return
+    if (!detail || !avatar || mutationLock.current) return
+    mutationLock.current = true
     setBusy(true); setAvatarError('')
     try {
       const updated = await adminExpertsApi.uploadAvatar(detail.userId, avatar)
-      setDetail(updated); setAvatar(null); setAvatarTouched(false); onChanged(updated); setSuccessMessage('Expert avatar updated successfully.')
-    } catch (reason) { setAvatarError(reason instanceof Error ? reason.message : 'Unable to upload the avatar.') }
-    finally { setBusy(false) }
+      setDetail(updated); setAvatar(null); setAvatarTouched(false); onChanged(updated); setSuccessMessage('Đã cập nhật ảnh đại diện.')
+    } catch (reason) { setAvatarError(reason instanceof Error ? reason.message : 'Chưa thể tải ảnh đại diện.') }
+    finally { mutationLock.current = false; setBusy(false) }
   }
 
   async function deactivate() {
-    if (!detail) return
+    if (!detail || mutationLock.current) return
+    mutationLock.current = true
     setBusy(true); setDeactivateError('')
     try {
       await adminExpertsApi.deactivate(detail.userId)
       const updated = { ...detail, status: 'INACTIVE' as const }
-      setDetail(updated); setForm(toEditState(updated)); onChanged(updated); setConfirming(false); setSuccessMessage('Expert deactivated successfully.')
-    } catch (reason) { setDeactivateError(reason instanceof Error ? reason.message : 'Unable to deactivate this expert.') }
-    finally { setBusy(false) }
+      setDetail(updated); setForm(toEditState(updated)); onChanged(updated); setConfirming(false); setSuccessMessage('Đã ngừng hoạt động chuyên gia.')
+    } catch (reason) { setDeactivateError(reason instanceof Error ? reason.message : 'Chưa thể ngừng hoạt động chuyên gia.') }
+    finally { mutationLock.current = false; setBusy(false) }
   }
 
   const shown = detail ?? expert
   return <div className="admin-user-drawer-backdrop" data-open={visible} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) requestDismiss() }}>
-    <aside className="admin-user-drawer admin-expert-drawer" role="dialog" aria-modal="true" aria-labelledby="admin-expert-detail-title">
-      <header className="admin-user-drawer-header"><div className="admin-user-detail-person"><AdminExpertAvatar name={shown.fullName} url={shown.avatarUrl} size="large" /><div><span>Expert details</span><h2 id="admin-expert-detail-title">{shown.fullName}</h2><p>{shown.phone} · <StatusBadge value={shown.status} /></p></div></div><button ref={closeButton} className="admin-editor-close" type="button" aria-label={editing ? 'Return to expert details' : 'Close expert details'} disabled={busy} onClick={requestDismiss}><X size={19} /></button></header>
-      {status === 'loading' && !detail && <div className="admin-detail-loading" aria-label="Loading expert details"><span /><span /><span /><span /></div>}
-      {status === 'error' && !detail && <div className="admin-state admin-detail-state" role="alert"><span className="admin-state-icon error"><ArrowClockwise size={24} /></span><h3>Could not load expert details</h3><p>{error}</p><button className="admin-button secondary" type="button" onClick={() => setReload((current) => current + 1)}><ArrowClockwise size={17} />Try again</button></div>}
+    <aside ref={panel} className="admin-user-drawer admin-expert-drawer" role="dialog" aria-modal="true" aria-labelledby="admin-expert-detail-title">
+      <header className="admin-user-drawer-header"><div className="admin-user-detail-person"><AdminExpertAvatar name={shown.fullName} url={shown.avatarUrl} size="large" /><div><span>Chi tiết chuyên gia</span><h2 id="admin-expert-detail-title">{shown.fullName}</h2><p>{shown.phone} · <StatusBadge value={shown.status} /></p></div></div><button ref={closeButton} className="admin-editor-close" type="button" aria-label={editing ? 'Quay lại chi tiết chuyên gia' : 'Đóng chi tiết chuyên gia'} disabled={busy} onClick={requestDismiss}><X size={19} /></button></header>
+      {status === 'loading' && !detail && <div className="admin-detail-loading" aria-label="Đang tải chi tiết chuyên gia"><span /><span /><span /><span /></div>}
+      {status === 'error' && !detail && <div className="admin-state admin-detail-state" role="alert"><span className="admin-state-icon error"><ArrowClockwise size={24} /></span><h3>Chưa thể tải chi tiết chuyên gia</h3><p>{error}</p><button className="admin-button secondary" type="button" onClick={() => { adminReads.invalidate('GET:/admin/experts/' + expert.userId); setReload((current) => current + 1) }}><ArrowClockwise size={17} />Thử lại</button></div>}
       {successMessage && <div className="admin-success-notice" role="status">{successMessage}</div>}
       {detail && !editing && <div className="admin-user-detail-content">
-        <div className="admin-expert-detail-actions"><button className="admin-button primary" type="button" onClick={beginEdit}><PencilSimple size={17} />Edit profile</button>{detail.status !== 'INACTIVE' && <button className="admin-button danger-outline" type="button" onClick={() => { setConfirming(true); setDeactivateError('') }}><Trash size={17} />Deactivate expert</button>}</div>
-        <section><h3><Briefcase size={18} />Professional profile</h3><dl><DetailRow label="Specialty">{formatExpertSpecialty(detail.specialty, specialties)}</DetailRow><DetailRow label="Title">{display(detail.title)}</DetailRow><DetailRow label="Workplace">{display(detail.workplace)}</DetailRow><DetailRow label="Experience">{detail.yearsOfExperience} {detail.yearsOfExperience === 1 ? 'year' : 'years'}</DetailRow><DetailRow label="Bio">{display(detail.bio)}</DetailRow></dl></section>
-        <section><h3><ChartBar size={18} />Performance</h3><dl><DetailRow label="Average rating">{Number.isFinite(detail.averageRating) ? detail.averageRating.toFixed(1) : '0.0'}</DetailRow><DetailRow label="Rating count">{detail.ratingCount || 0}</DetailRow></dl></section>
-        <section><h3><IdentificationCard size={18} />Account and access</h3><dl><DetailRow label="Phone">{detail.phone}</DetailRow><DetailRow label="Status"><StatusBadge value={detail.status} /></DetailRow></dl></section>
-        <section><h3><CalendarBlank size={18} />System information</h3><dl><DetailRow label="User ID" mono>{detail.userId}</DetailRow><DetailRow label="Version">{detail.version}</DetailRow><DetailRow label="Created">{formatAdminDate(detail.createdAt, true)}</DetailRow><DetailRow label="Updated">{formatAdminDate(detail.updatedAt, true)}</DetailRow></dl></section>
+        <div className="admin-expert-detail-actions"><button className="admin-button primary" type="button" onClick={beginEdit}><PencilSimple size={17} />Sửa hồ sơ</button>{detail.status !== 'INACTIVE' && <button className="admin-button danger-outline" type="button" onClick={() => { setConfirming(true); setDeactivateError('') }}><Trash size={17} />Ngừng hoạt động chuyên gia</button>}</div>
+        <section><h3><Briefcase size={18} />Hồ sơ nghề nghiệp</h3><dl><DetailRow label="Chuyên khoa">{formatExpertSpecialty(detail.specialty, specialties)}</DetailRow><DetailRow label="Chức danh">{display(detail.title)}</DetailRow><DetailRow label="Nơi làm việc">{display(detail.workplace)}</DetailRow><DetailRow label="Kinh nghiệm">{detail.yearsOfExperience} {detail.yearsOfExperience === 1 ? 'năm' : 'năm'}</DetailRow><DetailRow label="Giới thiệu">{display(detail.bio)}</DetailRow></dl></section>
+        <section><h3><ChartBar size={18} />Đánh giá</h3><dl><DetailRow label="Điểm trung bình">{Number.isFinite(detail.averageRating) ? detail.averageRating.toFixed(1) : '0.0'}</DetailRow><DetailRow label="Số lượt đánh giá">{detail.ratingCount || 0}</DetailRow></dl></section>
+        <section><h3><IdentificationCard size={18} />Tài khoản và quyền</h3><dl><DetailRow label="Số điện thoại">{detail.phone}</DetailRow><DetailRow label="Trạng thái"><StatusBadge value={detail.status} /></DetailRow></dl></section>
+        <section><h3><CalendarBlank size={18} />Thông tin hệ thống</h3><dl><DetailRow label="Mã người dùng" mono>{detail.userId}</DetailRow><DetailRow label="Phiên bản">{detail.version}</DetailRow><DetailRow label="Ngày tạo">{formatAdminDate(detail.createdAt, true)}</DetailRow><DetailRow label="Cập nhật">{formatAdminDate(detail.updatedAt, true)}</DetailRow></dl></section>
       </div>}
       {detail && editing && <form className="admin-expert-drawer-form" noValidate onSubmit={(event) => { void save(event) }}>
-        {saveError && <div className="admin-form-alert" role="alert">{saveError}{versionConflict && <button type="button" onClick={() => setReload((current) => current + 1)}><ArrowClockwise size={15} />Reload latest version</button>}</div>}
-        <section><h3><Briefcase size={18} />Professional profile</h3><div className="admin-expert-form-grid">
-          <label><span>Phone</span><input value={detail.phone} readOnly /></label>
-          <label><span>Full name *</span><input maxLength={100} value={form.fullName} onChange={(event) => update('fullName', event.target.value)} />{errors.fullName && <small className="admin-field-error">{errors.fullName}</small>}</label>
-          <div className="admin-expert-select-field"><AdminFilterSelect label="Specialty *" placeholder="Select specialty" options={specialties.map((item) => ({ value: item.code, label: item.displayName }))} value={form.specialty} open={specialtyOpen} onOpenChange={setSpecialtyOpen} onChange={(value) => update('specialty', value)} />{errors.specialty && <small className="admin-field-error">{errors.specialty}</small>}</div>
-          <div className="admin-expert-select-field"><AdminFilterSelect label="Status" placeholder="Select status" options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} value={form.status} open={statusOpen} onOpenChange={setStatusOpen} onChange={(value) => update('status', value as ExpertStatus)} /></div>
-          <label><span>Professional title</span><input maxLength={100} value={form.title} onChange={(event) => update('title', event.target.value)} />{errors.title && <small className="admin-field-error">{errors.title}</small>}</label>
-          <label><span>Workplace</span><input maxLength={255} value={form.workplace} onChange={(event) => update('workplace', event.target.value)} />{errors.workplace && <small className="admin-field-error">{errors.workplace}</small>}</label>
-          <label><span>Years of experience</span><input type="number" min={0} max={80} value={form.yearsOfExperience} onChange={(event) => update('yearsOfExperience', event.target.value)} />{errors.yearsOfExperience && <small className="admin-field-error">{errors.yearsOfExperience}</small>}</label>
-          <label className="admin-field-wide"><span>Bio</span><textarea rows={6} maxLength={4000} value={form.bio} onChange={(event) => update('bio', event.target.value)} /><small className="admin-character-count">{form.bio.length}/4000</small>{errors.bio && <small className="admin-field-error">{errors.bio}</small>}</label>
+        {saveError && <div className="admin-form-alert" role="alert">{saveError}{versionConflict && <button type="button" onClick={() => { adminReads.invalidate('GET:/admin/experts/' + expert.userId); setReload((current) => current + 1) }}><ArrowClockwise size={15} />Tải lại phiên bản mới</button>}</div>}
+        <section><h3><Briefcase size={18} />Hồ sơ nghề nghiệp</h3><div className="admin-expert-form-grid">
+          <label><span>Số điện thoại</span><input value={detail.phone} readOnly /></label>
+          <label><span>Họ tên *</span><input maxLength={100} name="fullName" value={form.fullName} aria-invalid={Boolean(errors.fullName)} aria-describedby={errors.fullName ? "expert-edit-fullName-error" : undefined} onChange={(event) => update('fullName', event.target.value)} />{errors.fullName && <small id="expert-edit-fullName-error" className="admin-field-error">{errors.fullName}</small>}</label>
+          <div className="admin-expert-select-field"><AdminFilterSelect label="Specialty *" placeholder="Chọn chuyên khoa" options={specialties.map((item) => ({ value: item.code, label: item.displayName }))} value={form.specialty} open={specialtyOpen} onOpenChange={setSpecialtyOpen} onChange={(value) => update('specialty', value)} />{errors.specialty && <small id="expert-edit-specialty-error" className="admin-field-error">{errors.specialty}</small>}</div>
+          <div className="admin-expert-select-field"><AdminFilterSelect label="Trạng thái" placeholder="Chọn trạng thái" options={[{ value: 'ACTIVE', label: 'Hoạt động' }, { value: 'INACTIVE', label: 'Ngừng hoạt động' }]} value={form.status} open={statusOpen} onOpenChange={setStatusOpen} onChange={(value) => update('status', value as ExpertStatus)} /></div>
+          <label><span>Chức danh</span><input maxLength={100} name="title" value={form.title} aria-invalid={Boolean(errors.title)} aria-describedby={errors.title ? "expert-edit-title-error" : undefined} onChange={(event) => update('title', event.target.value)} />{errors.title && <small id="expert-edit-title-error" className="admin-field-error">{errors.title}</small>}</label>
+          <label><span>Nơi làm việc</span><input maxLength={255} name="workplace" value={form.workplace} aria-invalid={Boolean(errors.workplace)} aria-describedby={errors.workplace ? "expert-edit-workplace-error" : undefined} onChange={(event) => update('workplace', event.target.value)} />{errors.workplace && <small id="expert-edit-workplace-error" className="admin-field-error">{errors.workplace}</small>}</label>
+          <label><span>Số năm kinh nghiệm</span><input type="number" min={0} max={80} name="yearsOfExperience" value={form.yearsOfExperience} aria-invalid={Boolean(errors.yearsOfExperience)} aria-describedby={errors.yearsOfExperience ? "expert-edit-yearsOfExperience-error" : undefined} onChange={(event) => update('yearsOfExperience', event.target.value)} />{errors.yearsOfExperience && <small id="expert-edit-yearsOfExperience-error" className="admin-field-error">{errors.yearsOfExperience}</small>}</label>
+          <label className="admin-field-wide"><span>Giới thiệu</span><textarea rows={6} maxLength={4000} name="bio" value={form.bio} aria-invalid={Boolean(errors.bio)} aria-describedby={errors.bio ? "expert-edit-bio-error" : undefined} onChange={(event) => update('bio', event.target.value)} /><small className="admin-character-count">{form.bio.length}/4000</small>{errors.bio && <small id="expert-edit-bio-error" className="admin-field-error">{errors.bio}</small>}</label>
         </div></section>
-        <section><h3><Camera size={18} />Avatar</h3><div className="admin-expert-avatar-picker compact"><div className="admin-avatar-preview">{previewUrl ? <img src={previewUrl} alt="New avatar preview" /> : <AdminExpertAvatar name={detail.fullName} url={detail.avatarUrl} size="large" />}</div><div><label className="admin-button secondary admin-upload-button"><Camera size={16} />Choose image<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={chooseAvatar} /></label>{avatar && <button className="admin-button primary compact" type="button" disabled={busy} onClick={() => { void uploadAvatar() }}>{busy ? <SpinnerGap className="admin-spin" size={16} /> : <FloppyDisk size={16} />}Upload avatar</button>}{avatarError && <small className="admin-field-error">{avatarError}</small>}</div></div></section>
-        <footer className="admin-editor-actions"><span>Version {detail.version} will be used for conflict protection.</span><div><button className="admin-button secondary" type="button" disabled={busy} onClick={requestDismiss}>Cancel</button><button className="admin-button primary" type="submit" disabled={busy}>{busy ? <SpinnerGap className="admin-spin" size={17} /> : <FloppyDisk size={17} />}{busy ? 'Saving…' : 'Save changes'}</button></div></footer>
+        <section><h3><Camera size={18} />Ảnh đại diện</h3><div className="admin-expert-avatar-picker compact"><div className="admin-avatar-preview">{previewUrl ? <img src={previewUrl} alt="Xem trước ảnh mới" /> : <AdminExpertAvatar name={detail.fullName} url={detail.avatarUrl} size="large" />}</div><div><label className="admin-button secondary admin-upload-button"><Camera size={16} />Chọn ảnh<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={chooseAvatar} /></label>{avatar && <button className="admin-button primary compact" type="button" disabled={busy} onClick={() => { void uploadAvatar() }}>{busy ? <SpinnerGap className="admin-spin" size={16} /> : <FloppyDisk size={16} />}Tải ảnh đại diện</button>}{avatarError && <small className="admin-field-error">{avatarError}</small>}</div></div></section>
+        <footer className="admin-editor-actions"><span>Phiên bản {detail.version} được dùng để kiểm tra thay đổi.</span><div><button className="admin-button secondary" type="button" disabled={busy} onClick={requestDismiss}>Hủy</button><button className="admin-button primary" type="submit" disabled={busy || versionConflict}>{busy ? <SpinnerGap className="admin-spin" size={17} /> : <FloppyDisk size={17} />}{busy ? 'Đang lưu…' : 'Lưu thay đổi'}</button></div></footer>
       </form>}
-      {discardConfirm && <div className="admin-expert-drawer-confirm-backdrop" role="presentation"><section className="admin-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="discard-expert-changes-title"><span className="admin-confirm-icon"><WarningCircle size={28} /></span><h2 id="discard-expert-changes-title">Discard unsaved changes?</h2><p>You edited this expert profile. Discarding will restore the last saved information and return to the detail view.</p><div><button className="admin-button secondary" type="button" onClick={() => setDiscardConfirm(false)}>Keep editing</button><button className="admin-button danger" type="button" onClick={returnToDetail}>Discard changes</button></div></section></div>}
-      {confirming && <div className="admin-expert-confirm-backdrop" role="presentation"><section className="admin-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="deactivate-expert-title"><span className="admin-confirm-icon"><WarningCircle size={28} /></span><h2 id="deactivate-expert-title">Deactivate expert?</h2><p><strong>{detail?.fullName}</strong> will become inactive and will no longer be available for new appointments. This is a soft delete; the account and history are retained.</p>{deactivateError && <div className="admin-field-error" role="alert">{deactivateError}</div>}<div><button className="admin-button secondary" type="button" disabled={busy} onClick={() => setConfirming(false)}>Cancel</button><button className="admin-button danger" type="button" disabled={busy} onClick={() => { void deactivate() }}>{busy ? <SpinnerGap className="admin-spin" size={17} /> : <ShieldCheck size={17} />}{busy ? 'Deactivating…' : 'Deactivate expert'}</button></div></section></div>}
+      {discardConfirm && <div className="admin-expert-drawer-confirm-backdrop" role="presentation"><section className="admin-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="discard-expert-changes-title"><span className="admin-confirm-icon"><WarningCircle size={28} /></span><h2 id="discard-expert-changes-title">Bỏ thay đổi chưa lưu?</h2><p>Các thay đổi chưa được lưu. Bạn có thể tiếp tục sửa hoặc trở về hồ sơ đã lưu.</p><div><button className="admin-button secondary" type="button" onClick={() => setDiscardConfirm(false)}>Tiếp tục sửa</button><button className="admin-button danger" type="button" onClick={returnToDetail}>Bỏ thay đổi</button></div></section></div>}
+      {confirming && <div className="admin-expert-confirm-backdrop" role="presentation"><section className="admin-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="deactivate-expert-title"><span className="admin-confirm-icon"><WarningCircle size={28} /></span><h2 id="deactivate-expert-title">Ngừng hoạt động chuyên gia?</h2><p><strong>{detail?.fullName}</strong> sẽ ngừng hoạt động và không nhận lịch mới. Tài khoản và lịch sử vẫn được giữ.</p>{deactivateError && <div className="admin-field-error" role="alert">{deactivateError}</div>}<div><button className="admin-button secondary" type="button" disabled={busy} onClick={() => setConfirming(false)}>Hủy</button><button className="admin-button danger" type="button" disabled={busy} onClick={() => { void deactivate() }}>{busy ? <SpinnerGap className="admin-spin" size={17} /> : <ShieldCheck size={17} />}{busy ? 'Đang ngừng hoạt động…' : 'Ngừng hoạt động chuyên gia'}</button></div></section></div>}
     </aside>
   </div>
 }

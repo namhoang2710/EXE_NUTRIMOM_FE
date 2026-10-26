@@ -24,27 +24,39 @@ export function AdminUsersTable({ users, sortBy, sortDirection, onSort, onView }
   onView: (user: AdminUserListItem) => void
 }) {
   return (
-    <div className="admin-table-scroll">
+    <div className="admin-users-results">
+      <div className="admin-users-mobile">
+        <div className="admin-users-mobile-sort" aria-label="Sắp xếp người dùng">
+          {(['displayName', 'status', 'createdAt'] as const).map((field, index) => <SortButton key={field} label={['Tên', 'Trạng thái', 'Ngày đăng ký'][index]} field={field} activeField={sortBy} direction={sortDirection} onSort={onSort} />)}
+        </div>
+        {users.map(user => <article key={user.id} className="admin-user-mobile-card">
+          <header><span className="admin-avatar small">{getInitials(user.displayName || '')}</span><strong>{user.displayName?.trim() || 'Chưa có tên'}</strong><StatusBadge value={user.status} /></header>
+          <dl><div><dt>Email</dt><dd>{user.email || '—'}</dd></div><div><dt>Điện thoại</dt><dd>{user.phone || '—'}</dd></div><div><dt>Vai trò</dt><dd>{user.roles.map(formatAdminUserEnum).join(', ') || '—'}</dd></div><div><dt>Ngày đăng ký</dt><dd>{formatAdminDate(user.createdAt)}</dd></div></dl>
+          <button className="admin-row-action" type="button" onClick={() => onView(user)}><Eye size={18} /> Xem chi tiết {user.displayName?.trim() || 'người dùng'}</button>
+        </article>)}
+      </div>
+      <div className="admin-table-scroll admin-users-desktop">
       <table className="admin-table admin-users-table">
         <thead><tr>
-          <th><SortButton label="User" field="displayName" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
-          <th>Phone</th><th>Roles</th>
-          <th><SortButton label="Status" field="status" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
-          <th><SortButton label="Joined" field="createdAt" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
-          <th><span className="sr-only">Actions</span></th>
+          <th><SortButton label="Người dùng" field="displayName" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
+          <th>Số điện thoại</th><th>Vai trò</th>
+          <th><SortButton label="Trạng thái" field="status" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
+          <th><SortButton label="Ngày đăng ký" field="createdAt" activeField={sortBy} direction={sortDirection} onSort={onSort} /></th>
+          <th><span className="sr-only">Thao tác</span></th>
         </tr></thead>
         <tbody>{users.map((user) => {
-          const displayName = user.displayName?.trim() || 'Unnamed user'
+          const displayName = user.displayName?.trim() || 'Chưa có tên'
           return <tr key={user.id}>
             <td><div className="admin-user-cell"><span className="admin-avatar small">{getInitials(displayName)}</span><div><strong>{displayName}</strong>{user.email && <span>{user.email}</span>}</div></div></td>
-            <td><span className="admin-table-primary">{user.phone}</span></td>
+            <td><span className="admin-table-primary">{user.phone || '—'}</span></td>
             <td><div className="admin-user-badges">{user.roles.map((role) => <span className="admin-role-badge" key={role}>{formatAdminUserEnum(role)}</span>)}</div></td>
-            <td><StatusBadge value={formatAdminUserEnum(user.status)} /></td>
+            <td><StatusBadge value={user.status} /></td>
             <td>{formatAdminDate(user.createdAt)}</td>
-            <td><button className="admin-row-action" type="button" aria-label={`View details for ${displayName}`} title="View details" onClick={() => onView(user)}><Eye size={18} /></button></td>
+            <td><button className="admin-row-action" type="button" aria-label={`Xem chi tiết ${displayName}`} title="Xem chi tiết" onClick={() => onView(user)}><Eye size={18} /></button></td>
           </tr>
         })}</tbody>
       </table>
+      </div>
     </div>
   )
 }

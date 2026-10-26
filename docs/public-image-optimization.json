@@ -1,0 +1,298 @@
+[
+  {
+    "source": "/bannerQC.png",
+    "target": "/optimized/bannerQC.webp",
+    "before": 1639693,
+    "after": 127068,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/bannerHub.png",
+    "target": "/optimized/bannerHub.webp",
+    "before": 1877249,
+    "after": 88316,
+    "width": 1600,
+    "height": 538
+  },
+  {
+    "source": "/banner2.png",
+    "target": "/optimized/banner2.webp",
+    "before": 1466325,
+    "after": 35670,
+    "width": 1600,
+    "height": 674
+  },
+  {
+    "source": "/benner_blog1.png",
+    "target": "/optimized/benner_blog1.webp",
+    "before": 1577945,
+    "after": 65968,
+    "width": 1600,
+    "height": 542
+  },
+  {
+    "source": "/banner5.png",
+    "target": "/optimized/banner5.webp",
+    "before": 1599412,
+    "after": 57856,
+    "width": 1600,
+    "height": 684
+  },
+  {
+    "source": "/banner1.png",
+    "target": "/optimized/banner1.webp",
+    "before": 1551186,
+    "after": 46062,
+    "width": 1600,
+    "height": 686
+  },
+  {
+    "source": "/hero-showcase/AI.jpg",
+    "target": "/optimized/hero-showcase/AI.webp",
+    "before": 201819,
+    "after": 54074,
+    "width": 1600,
+    "height": 716
+  },
+  {
+    "source": "/hero-showcase/assistant-prenatal-ai.png",
+    "target": "/optimized/hero-showcase/assistant-prenatal-ai.webp",
+    "before": 419935,
+    "after": 39054,
+    "width": 982,
+    "height": 588
+  },
+  {
+    "source": "/hero-showcase/growing-with-baby.png",
+    "target": "/optimized/hero-showcase/growing-with-baby.webp",
+    "before": 1115376,
+    "after": 101260,
+    "width": 976,
+    "height": 964
+  },
+  {
+    "source": "/hero-showcase/GT1.jpg",
+    "target": "/optimized/hero-showcase/GT1.webp",
+    "before": 192166,
+    "after": 49194,
+    "width": 1600,
+    "height": 654
+  },
+  {
+    "source": "/hero-showcase/blog.jpg",
+    "target": "/optimized/hero-showcase/blog.webp",
+    "before": 186696,
+    "after": 81344,
+    "width": 1600,
+    "height": 587
+  },
+  {
+    "source": "/hero-showcase/sleep-nutrition.png",
+    "target": "/optimized/hero-showcase/sleep-nutrition.webp",
+    "before": 722909,
+    "after": 60760,
+    "width": 1096,
+    "height": 572
+  },
+  {
+    "source": "/hero-showcase/bannerQC.png",
+    "target": "/optimized/hero-showcase/bannerQC.webp",
+    "before": 1639693,
+    "after": 127068,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/hero-showcase/ND.jpg",
+    "target": "/optimized/hero-showcase/ND.webp",
+    "before": 257272,
+    "after": 74068,
+    "width": 1600,
+    "height": 902
+  },
+  {
+    "source": "/hero-showcase/care-plans-overview.png",
+    "target": "/optimized/hero-showcase/care-plans-overview.webp",
+    "before": 849964,
+    "after": 46200,
+    "width": 1600,
+    "height": 611
+  },
+  {
+    "source": "/banner4.png",
+    "target": "/optimized/banner4.webp",
+    "before": 1562765,
+    "after": 52922,
+    "width": 1600,
+    "height": 674
+  },
+  {
+    "source": "/hero-showcase/GT.jpg",
+    "target": "/optimized/hero-showcase/GT.webp",
+    "before": 156362,
+    "after": 59242,
+    "width": 1600,
+    "height": 828
+  },
+  {
+    "source": "/hero-showcase/pregnancy-stage-week-26.png",
+    "target": "/optimized/hero-showcase/pregnancy-stage-week-26.webp",
+    "before": 817945,
+    "after": 22270,
+    "width": 1600,
+    "height": 493
+  },
+  {
+    "source": "/hero-showcase/knowledge-library.png",
+    "target": "/optimized/hero-showcase/knowledge-library.webp",
+    "before": 1324513,
+    "after": 74250,
+    "width": 1600,
+    "height": 592
+  },
+  {
+    "source": "/hero-showcase/family-hubs.png",
+    "target": "/optimized/hero-showcase/family-hubs.webp",
+    "before": 530269,
+    "after": 25158,
+    "width": 1302,
+    "height": 598
+  },
+  {
+    "source": "/rate1.png",
+    "target": "/optimized/rate1.webp",
+    "before": 1354395,
+    "after": 96098,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate2.png",
+    "target": "/optimized/rate2.webp",
+    "before": 1444250,
+    "after": 103842,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate3.png",
+    "target": "/optimized/rate3.webp",
+    "before": 1455569,
+    "after": 101992,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate4.png",
+    "target": "/optimized/rate4.webp",
+    "before": 1442787,
+    "after": 108304,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate5.png",
+    "target": "/optimized/rate5.webp",
+    "before": 1438848,
+    "after": 110532,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate6.png",
+    "target": "/optimized/rate6.webp",
+    "before": 1353900,
+    "after": 97808,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate7.png",
+    "target": "/optimized/rate7.webp",
+    "before": 1310699,
+    "after": 105480,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate8.png",
+    "target": "/optimized/rate8.webp",
+    "before": 1373887,
+    "after": 111434,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/rate9.png",
+    "target": "/optimized/rate9.webp",
+    "before": 1105348,
+    "after": 58884,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "source": "/register-panel.jpg",
+    "target": "/optimized/register-panel.webp",
+    "before": 186250,
+    "after": 99174,
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "source": "/bsi_PHAT.jpg",
+    "target": "/optimized/bsi_PHAT.webp",
+    "before": 505357,
+    "after": 247410,
+    "width": 1600,
+    "height": 2129
+  },
+  {
+    "source": "/bsi_PHU.jpg",
+    "target": "/optimized/bsi_PHU.webp",
+    "before": 325317,
+    "after": 238442,
+    "width": 960,
+    "height": 1280
+  },
+  {
+    "source": "/bsi_THANH.jpg",
+    "target": "/optimized/bsi_THANH.webp",
+    "before": 1625344,
+    "after": 116864,
+    "width": 1600,
+    "height": 1553
+  },
+  {
+    "source": "/bsi_HAI.jpg",
+    "target": "/optimized/bsi_HAI.webp",
+    "before": 208645,
+    "after": 140724,
+    "width": 1600,
+    "height": 1807
+  },
+  {
+    "source": "/pregnancy-weeks/T1-3.png",
+    "target": "/optimized/pregnancy-weeks/T1-3.webp",
+    "before": 267783,
+    "after": 24694,
+    "width": 800,
+    "height": 800
+  },
+  {
+    "source": "/pregnancy-weeks/T41.png",
+    "target": "/optimized/pregnancy-weeks/T41.webp",
+    "before": 238068,
+    "after": 45854,
+    "width": 512,
+    "height": 593
+  },
+  {
+    "source": "/nutrimom-baby.png",
+    "target": "/optimized/nutrimom-baby.webp",
+    "before": 1484368,
+    "after": 357148,
+    "width": 1024,
+    "height": 924
+  }
+]

@@ -1,6 +1,7 @@
 import { ArrowRight, User } from '@phosphor-icons/react'
-import { useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useRef, useState, type FormEvent } from 'react'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
+import { Link, useLocation } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
@@ -8,10 +9,15 @@ import { StatusMessage } from '@/shared/components/StatusMessage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiClientError } from '@/core/api/api-error'
 import { getDeviceId } from '@/core/auth/device'
-import { isValidEmail, isValidPhone } from '../model/auth-validation'
-import { authenticatedDestination, isAdminUser, isExpertUser } from '../model/role-routing'
+import { loginIdentifierError, loginPasswordError } from '../model/auth-validation'
 
 export function LoginPage() {
+  const loginCooldown = usePaymentCooldown('auth-login')
+  const resendCooldown = usePaymentCooldown('auth-resend-activation')
+  const submittingRef = useRef(false)
+  const resendingRef = useRef(false)
+  // Giữ đường dẫn đích (state.from) khi chuyển sang trang Đăng ký.
+  const location = useLocation()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,67 +28,52 @@ export function LoginPage() {
   const [resendStatus, setResendStatus] = useState<string | null>(null)
 
   const { login, resendActivation } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
 
   async function handleResendActivation() {
-    if (!identifier.includes('@') || resending) return
+    if (!identifier.includes('@') || resendingRef.current || resendCooldown.blocked) return
+    resendingRef.current = true
     setResending(true)
     try {
       const res = await resendActivation(identifier.trim())
       setResendStatus(res.message || 'Đã gửi lại mã kích hoạt vào email thành công!')
-    } catch {
-      setResendStatus('Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
+    } catch (err) {
+      resendCooldown.handleRateLimit(err)
+      setResendStatus(err instanceof ApiClientError ? err.serverMessage || err.message : 'Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
     } finally {
+      resendingRef.current = false
       setResending(false)
     }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submittingRef.current || loginCooldown.blocked) return
     setError('')
     setShowResend(false)
     setResendStatus(null)
     const trimmed = identifier.trim()
 
-    let identifierError: string | undefined
-    if (!trimmed) {
-      identifierError = 'Vui lòng nhập email hoặc số điện thoại.'
-    } else if (trimmed.includes('@')) {
-      if (!isValidEmail(trimmed)) identifierError = 'Địa chỉ email chưa đúng định dạng.'
-    } else {
-      if (!isValidPhone(trimmed)) identifierError = 'Số điện thoại Việt Nam chưa hợp lệ.'
-    }
-
     const nextErrors = {
-      identifier: identifierError,
-      password: password && password.length <= 72 ? undefined : 'Vui lòng nhập mật khẩu.',
+      identifier: loginIdentifierError(identifier),
+      password: loginPasswordError(password),
     }
     setFieldErrors(nextErrors)
     if (nextErrors.identifier || nextErrors.password) return
 
+    submittingRef.current = true
     setSubmitting(true)
     try {
-      const authenticatedUser = await login({ phone: trimmed, password, deviceId: getDeviceId() })
-      const requestedPath = (location.state as { from?: string } | null)?.from
-      if (isAdminUser(authenticatedUser) || isExpertUser(authenticatedUser)) {
-        navigate(authenticatedDestination(authenticatedUser), { replace: true })
-      } else if (requestedPath?.startsWith('/admin') || requestedPath?.startsWith('/expert')) {
-        navigate('/app', {
-          replace: true,
-          state: { authorizationError: 'Bạn không có quyền truy cập khu vực này.' },
-        })
-      } else {
-        navigate(authenticatedDestination(authenticatedUser, undefined, requestedPath), { replace: true })
-      }
+      // GuestOnly retains this form until its panels finish closing, then routes by role.
+      await login({ phone: trimmed, password, deviceId: getDeviceId() })
     } catch (requestError) {
+      loginCooldown.handleRateLimit(requestError)
       const isActivationPending = requestError instanceof ApiClientError && (
         requestError.code === 'ACCOUNT_PENDING_ACTIVATION' || requestError.message.includes('kích hoạt')
       )
       if (isActivationPending && trimmed.includes('@')) {
         setShowResend(true)
       }
-      setError(requestError instanceof ApiClientError ? requestError.message : 'Tài khoản hoặc mật khẩu không chính xác.')
+      setError(requestError instanceof ApiClientError ? requestError.serverMessage || requestError.message : 'Tài khoản hoặc mật khẩu không chính xác.')
       if (requestError instanceof ApiClientError && requestError.fields) {
         setFieldErrors({
           identifier: requestError.fields.phone || requestError.fields.email,
@@ -90,6 +81,7 @@ export function LoginPage() {
         })
       }
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }
@@ -98,11 +90,17 @@ export function LoginPage() {
     <AuthLayout
       title="Đăng nhập NutriMom"
       subtitle="Đăng nhập bằng Email hoặc Số điện thoại của bạn."
-      footer={<p>Chưa có tài khoản? <Link to="/register">Tạo tài khoản</Link></p>}
+      footer={
+        <div className="auth-login-links">
+          <p>Chưa có tài khoản? <Link to="/register" state={location.state}>Tạo tài khoản</Link></p>
+          <p><Link to="/forgot-password">Quên mật khẩu?</Link></p>
+        </div>
+      }
       panelVariant="login"
       showHomeLink
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
+        {location.state?.passwordUpdated && <StatusMessage tone="success">Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.</StatusMessage>}
         {error && (
           <div style={{ marginBottom: 12 }}>
             <StatusMessage tone="error">{error}</StatusMessage>
@@ -121,10 +119,10 @@ export function LoginPage() {
                     type="button"
                     className="text-button"
                     onClick={handleResendActivation}
-                    disabled={resending}
+                    disabled={resending || resendCooldown.blocked}
                     style={{ fontSize: 12, color: '#64748b' }}
                   >
-                    {resending ? 'Đang gửi lại...' : 'Chưa nhận được mã? Gửi lại mã vào email'}
+                    {resending ? 'Đang gửi lại...' : resendCooldown.blocked ? `Gửi lại sau ${resendCooldown.remaining}s` : 'Chưa nhận được mã? Gửi lại mã vào email'}
                   </button>
                 )}
               </div>
@@ -142,12 +140,14 @@ export function LoginPage() {
           onChange={(e) => {
             setIdentifier(e.target.value)
             setError('')
-            setFieldErrors((prev) => ({ ...prev, identifier: undefined }))
+            setShowResend(false)
+            setResendStatus(null)
+            setFieldErrors((prev) => ({ ...prev, identifier: prev.identifier ? loginIdentifierError(e.target.value) : undefined }))
           }}
+          onBlur={() => setFieldErrors((prev) => ({ ...prev, identifier: loginIdentifierError(identifier) }))}
           error={fieldErrors.identifier}
           icon={<User size={20} />}
           disabled={submitting}
-          autoFocus
         />
 
         <PasswordField
@@ -159,14 +159,15 @@ export function LoginPage() {
           onChange={(e) => {
             setPassword(e.target.value)
             setError('')
-            setFieldErrors((prev) => ({ ...prev, password: undefined }))
+            setFieldErrors((prev) => ({ ...prev, password: prev.password ? loginPasswordError(e.target.value) : undefined }))
           }}
+          onBlur={() => setFieldErrors((prev) => ({ ...prev, password: loginPasswordError(password) }))}
           error={fieldErrors.password}
           disabled={submitting}
         />
 
-        <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting}>
-          <span>{submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}</span>
+        <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting || loginCooldown.blocked}>
+          <span>{submitting ? 'Đang đăng nhập...' : loginCooldown.blocked ? `Đăng nhập lại sau ${loginCooldown.remaining}s` : 'Đăng nhập'}</span>
           {!submitting && <ArrowRight size={20} weight="bold" aria-hidden="true" />}
         </button>
       </form>

@@ -2,12 +2,10 @@ import {
   ArrowRight,
   CalendarCheck,
   CaretDown,
-  ChatCircleDots,
   Check,
   CheckCircle,
   Clock,
   EnvelopeSimple,
-  FacebookLogo,
   Heart,
   MapPin,
   PaperPlaneTilt,
@@ -16,46 +14,30 @@ import {
 } from '@phosphor-icons/react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { nutrimomContact, nutrimomSocials } from '../../../shared/config/contact'
+import { SocialLinks } from '../../../shared/components/SocialLinks'
 import './contact-premium.css'
 
 const contactChannels = [
   {
     icon: Phone,
     label: 'Hotline tư vấn',
-    value: '1900 1234',
+    value: nutrimomContact.phone.label,
     description: 'Trao đổi trực tiếp cùng đội ngũ NutriMom',
-    href: 'tel:19001234',
+    href: nutrimomContact.phone.href,
   },
   {
     icon: EnvelopeSimple,
     label: 'Email',
-    value: 'hello@nutrimom.vn',
+    value: nutrimomContact.email.label,
     description: 'Phù hợp với câu hỏi cần chia sẻ chi tiết',
-    href: 'mailto:hello@nutrimom.vn',
+    href: nutrimomContact.email.href,
   },
   {
     icon: MapPin,
     label: 'Văn phòng NutriMom',
-    value: 'Thành phố Hồ Chí Minh',
+    value: nutrimomContact.office,
     description: 'Hỗ trợ trực tuyến cho gia đình trên toàn quốc',
-  },
-] as const
-
-const quickActions = [
-  {
-    icon: Phone,
-    label: 'Gọi ngay',
-    note: '1900 1234',
-    href: 'tel:19001234',
-    className: 'is-phone',
-  },
-  {
-    icon: ChatCircleDots,
-    label: 'Chat Zalo',
-    note: 'Phản hồi nhanh',
-    href: 'https://zalo.me/19001234',
-    className: 'is-zalo',
-    external: true,
   },
 ] as const
 
@@ -145,17 +127,18 @@ export function ContactPage() {
             </p>
 
             <div className="contactHero__actions">
-              <a className="landing-primary-button" href="tel:19001234">
+              <a className="landing-primary-button" href={nutrimomContact.phone.href}>
                 <Phone size={18} weight="bold" aria-hidden="true" />
-                Gọi 1900 1234
+                Gọi {nutrimomContact.phone.label}
               </a>
               <a
                 className="landing-secondary-button"
-                href="https://zalo.me/19001234"
+                href={nutrimomSocials.instagram.href}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
+                aria-label="Theo dõi NutriMom trên Instagram (mở trong tab mới)"
               >
-                Chat cùng NutriMom
+                Instagram NutriMom
                 <ArrowRight size={18} weight="bold" aria-hidden="true" />
               </a>
             </div>
@@ -197,10 +180,10 @@ export function ContactPage() {
             <div className="contactHero__careDivider" />
             <div className="contactHero__carePromise">
               <div className="contactHero__avatars" aria-hidden="true">
-                <img src="/bsi_PHAT.jpg" width="36" height="36" alt="" />
-                <img src="/bsi_PHU.jpg" width="36" height="36" alt="" />
-                <img src="/bsi_THANH.jpg" width="36" height="36" alt="" />
-                <img src="/bsi_HAI.jpg" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_PHAT.webp" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_PHU.webp" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_THANH.webp" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_HAI.webp" width="36" height="36" alt="" />
                 <span className="contactHero__avatarMore">10+</span>
               </div>
               <p><strong>Đội ngũ chăm sóc</strong><br />sẵn sàng đồng hành cùng mẹ.</p>
@@ -209,7 +192,7 @@ export function ContactPage() {
         </div>
       </section>
 
-      <section className="contactWorkspace landing-section" aria-labelledby="contact-form-title">
+      <section className="contactWorkspace landing-section" id="contact-channels" aria-labelledby="contact-form-title">
         <div className="contactWorkspace__details">
           <header className="contactSectionHeading">
             <span className="contactEyebrow">KẾT NỐI VỚI NUTRIMOM</span>
@@ -242,12 +225,7 @@ export function ContactPage() {
           <div className="contactSocials">
             <span>Theo dõi và trò chuyện cùng chúng tôi</span>
             <div>
-              <a href="https://zalo.me/19001234" target="_blank" rel="noreferrer">
-                <ChatCircleDots size={18} weight="fill" /> Zalo
-              </a>
-              <a href="https://www.facebook.com" target="_blank" rel="noreferrer">
-                <FacebookLogo size={18} weight="fill" /> Facebook
-              </a>
+              <SocialLinks />
             </div>
           </div>
         </div>
@@ -369,18 +347,7 @@ export function ContactPage() {
       </section>
 
       <nav className="contactQuickActions" aria-label="Liên hệ nhanh">
-        {quickActions.map(({ icon: Icon, label, note, href, className, ...action }) => (
-          <a
-            className={`contactQuickAction ${className}`}
-            href={href}
-            key={label}
-            target={'external' in action ? '_blank' : undefined}
-            rel={'external' in action ? 'noreferrer' : undefined}
-          >
-            <Icon size={19} weight="fill" aria-hidden="true" />
-            <span><strong>{label}</strong><small>{note}</small></span>
-          </a>
-        ))}
+        <SocialLinks linkClassName="contactQuickAction" />
       </nav>
     </main>
   )

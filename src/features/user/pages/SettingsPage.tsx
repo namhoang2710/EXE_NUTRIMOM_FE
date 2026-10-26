@@ -1,5 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { expireProfileResource } from '@/core/api/profile-requests'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiClientError } from '@/core/api/api-error'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
 import { userApi } from '../api/user-api'
 import type { UserPreferences } from '../model/user-types'
 import { buildPreferencesPatch } from '../model/preferences-patch'
@@ -14,6 +16,10 @@ function validLocale(value: string) {
 }
 
 export function SettingsPage() {
+  const mounted = useRef(false)
+  const requestSequence = useRef(0)
+  const saving = useRef(false)
+  const dirty = useRef(false)
   const [saved, setSaved] = useState<UserPreferences | null>(null)
   const [draft, setDraft] = useState<UserPreferences | null>(null)
   const [loading, setLoading] = useState(true)
@@ -21,29 +27,40 @@ export function SettingsPage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [conflict, setConflict] = useState(false)
+  const cooldown = usePaymentCooldown('preferences-editor')
 
-  async function load() {
+  async function load(force = false) {
+    if (cooldown.blocked) return
+    const sequence = ++requestSequence.current
+    if (force) expireProfileResource('user:preferences')
     setLoading(true)
     try {
       const value = await userApi.preferences()
+      if (!mounted.current || sequence !== requestSequence.current) return
       setSaved(value)
-      setDraft(value)
+      if (!dirty.current) setDraft(value)
+      else if (force) setMessage('Đã tải bản mới. Các lựa chọn của bạn vẫn được giữ; kiểm tra trước khi lưu.')
       setError('')
       setConflict(false)
     } catch (reason) {
+      if (!mounted.current || sequence !== requestSequence.current) return
+      cooldown.handleRateLimit(reason)
       setError(reason instanceof Error ? reason.message : 'Không thể tải cài đặt.')
-    } finally { setLoading(false) }
+    } finally { if (mounted.current && sequence === requestSequence.current) setLoading(false) }
   }
 
-  useEffect(() => { void load() }, [])
+  const loadRef = useRef(load)
+  loadRef.current = load
+  useEffect(() => { mounted.current = true; void loadRef.current(); return () => { mounted.current = false; requestSequence.current += 1 } }, [])
 
   function change<K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) {
+    dirty.current = true
     setDraft((current) => current ? { ...current, [key]: value } : current)
   }
 
   async function save(event: FormEvent) {
     event.preventDefault()
-    if (!draft || !saved) return
+    if (!draft || !saved || saving.current || conflict || cooldown.blocked) return
     setError('')
     setMessage('')
     if (!/^[A-Za-z]{2,3}(?:[-_][A-Za-z]{2,4})?$/.test(draft.language)) { setError('Mã ngôn ngữ chưa hợp lệ.'); return }
@@ -53,18 +70,23 @@ export function SettingsPage() {
     if (time && !/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(time)) { setError('Giờ nhắc cần có dạng HH:mm:ss.'); return }
     const patch = buildPreferencesPatch(saved, draft)
     if (Object.keys(patch).length === 1) { setMessage('Không có thay đổi cần lưu.'); return }
+    saving.current = true
+    requestSequence.current += 1
     setBusy(true)
     try {
       const latest = await userApi.updatePreferences(patch)
+      if (!mounted.current) return
+      dirty.current = false
       setSaved(latest)
       setDraft(latest)
       setMessage('Cài đặt đã được lưu.')
     } catch (reason) {
-      if (reason instanceof ApiClientError && reason.status === 409) {
+      cooldown.handleRateLimit(reason)
+      if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT') {
         setConflict(true)
         setError('Cài đặt đã thay đổi ở nơi khác. Vui lòng tải lại dữ liệu mới nhất.')
       } else setError(reason instanceof Error ? reason.message : 'Chưa thể lưu cài đặt.')
-    } finally { setBusy(false) }
+    } finally { saving.current = false; if (mounted.current) setBusy(false) }
   }
 
   return <main className="nm-account-page">
@@ -87,7 +109,7 @@ export function SettingsPage() {
       <section><h2>Giờ nhắc ưu tiên</h2><label>Thời gian<input type="time" step="1" value={draft.preferred_reminder_time ?? ''} onChange={(event) => change('preferred_reminder_time', event.target.value ? `${event.target.value.slice(0, 5)}:00` : saved?.preferred_reminder_time ?? null)} disabled={busy} /></label><p className="nm-form-note">Backend hiện chưa hỗ trợ xóa giờ nhắc đã lưu.</p></section>
       {error && <p className="nm-form-error" role="alert">{error}</p>}
       {message && <p className="nm-form-success" role="status">{message}</p>}
-      <div className="nm-form-actions">{conflict && <button type="button" className="nm-secondary-action" onClick={() => void load()}>Tải lại</button>}<button type="submit" className="nm-primary-action" disabled={busy}>{busy ? 'Đang lưu...' : 'Lưu cài đặt'}</button></div>
+      <div role="status">{cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining} giây.` : null}</div><div className="nm-form-actions">{conflict && <button type="button" className="nm-secondary-action" disabled={loading || cooldown.remaining > 0} onClick={() => void load(true)}>Tải lại</button>}<button type="submit" className="nm-primary-action" disabled={busy || conflict || cooldown.remaining > 0}>{busy ? 'Đang lưu...' : 'Lưu cài đặt'}</button></div>
     </form> : <div className="nm-account-form"><p className="nm-form-error" role="alert">{error}</p><button type="button" className="nm-secondary-action" onClick={() => void load()}>Thử lại</button></div>}
   </main>
 }

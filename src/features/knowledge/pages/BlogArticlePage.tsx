@@ -97,7 +97,7 @@ export function BlogArticlePage() {
 
         <aside className="nm-article-aside">
           {post.sections.length > 0 && <nav className="nm-source-card nm-article-toc" aria-labelledby="article-toc-heading"><h2 id="article-toc-heading">Trong bài viết này</h2><ol>{post.sections.map((section, index) => <li key={section.id}><a href={`#muc-${index + 1}`}>{section.heading}</a></li>)}</ol></nav>}
-          <div className="nm-source-card nm-review-card"><h2>Thông tin biên tập</h2><p>{post.editorial.author}</p><p>Trạng thái: Đã xuất bản</p><p>Quy trình reviewer lâm sàng chưa thuộc phạm vi CMS hiện tại.</p></div>
+          <div className="nm-source-card nm-review-card"><h2>Thông tin biên tập</h2><p>{post.editorial.author}</p><p>Trạng thái: Đã xuất bản</p></div>
           {post.source && <div className="nm-source-card"><span className="nm-source-icon"><BookOpenText size={25} weight="duotone" /></span><small>Nguồn tham khảo</small><h2>Đọc thêm từ nguồn của bài viết.</h2><a href={post.source.href} target="_blank" rel="noreferrer">{post.source.label} <ArrowRight size={16} weight="bold" /></a></div>}
           <div className="nm-kindness-card"><Heart size={21} weight="fill" /><p>Mẹ không cần ghi nhớ tất cả. Hãy lưu lại điều hữu ích và hỏi chuyên gia khi còn băn khoăn.</p></div>
         </aside>

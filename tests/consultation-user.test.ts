@@ -136,7 +136,7 @@ test('direct and random booking use the shared stateful button without false suc
   assert.match(styles, /\.nm-stateful-button[^}]*border-radius: 999px/)
   assert.match(styles, /\.nm-stateful-button[^}]*color: #fff[^}]*background: #22c55e/)
   assert.match(styles, /\.nm-stateful-button-content, \.nm-stateful-button-content > span \{ color: inherit; font-size: inherit; \}/)
-  assert.match(consultationStyles, /\.consultation-booking-bar > div > span/)
+  assert.match(consultationStyles, /\.consultation-booking-bar__field > span/)
   assert.doesNotMatch(consultationStyles, /\.consultation-booking-bar span \{/)
 })
 
@@ -208,8 +208,8 @@ test('navbar keeps consultations inside the expert booking flow', async () => {
   assert.doesNotMatch(navbar, /<NavLink to="\/app\/consultations"/)
   assert.match(navbar, /location\.pathname\.startsWith\('\/app\/consultations'\)/)
   assert.match(navbar, /Hướng dẫn khách hàng/)
-  assert.match(navbar, /to="\/app\/experts"[^>]*>Tìm bác sĩ<\/Link>/)
-  assert.match(navbar, /to="\/app\/consultations\/history"[^>]*>Lịch sử tư vấn<\/Link>/)
+  assert.match(navbar, /to="\/app\/experts"[^>]*>\s*Tìm bác sĩ\s*<\/Link>/)
+  assert.match(navbar, /to="\/app\/consultations\/history"[^>]*>\s*Lịch sử tư vấn\s*<\/Link>/)
 })
 
 test('app navigation opens a new page at the top while preserving intentional hash targets', async () => {
@@ -307,7 +307,7 @@ test('dialogs and toasts expose accessible semantics', async () => {
   assert.match(dialog, /aria-modal="true"/)
   assert.match(cancel, /<AccessibleDialog/)
   assert.match(review, /<Rating rating=\{rating\}[^>]*editable/)
-  assert.match(ratingSource, /role=\{editable \? 'radiogroup' : undefined\}/)
+  assert.match(ratingSource, /role=\{editable \? 'radiogroup' : 'img'\}/)
   assert.match(ratingSource, /aria-label=\{`\$\{i\} sao`\}/)
   assert.match(toast, /aria-live="polite"/)
   assert.match(toast, /role=\{toast\.tone === 'error' \? 'alert' : 'status'\}/)
@@ -354,12 +354,19 @@ test('expert cards separate detail and booking actions for anonymous and authent
 })
 
 test('selected time can be toggled off and cleared from the booking bar', async () => {
-  const [page, booking] = await Promise.all([
+  const [page, booking, styles] = await Promise.all([
     readFile(new URL('../src/features/consultation/pages/ConsultationsPage.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/consultation/components/BookingPanel.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/consultation/styles/consultation.css', import.meta.url), 'utf8'),
   ])
   assert.match(page, /setSelectedStartTime\(\(current\) => current === startTime \? null : startTime\)/)
-  assert.match(booking, /className="consultation-clear-selection"[^>]*onClick=\{props\.onClearSelection\}>Bỏ chọn<\/button>/)
+  assert.match(page, /if \(!expertId \|\| !expert \|\| directSubmitting\.current\) return false/)
+  assert.match(booking, /className="consultation-clear-selection-slot"/)
+  assert.match(booking, /className="consultation-clear-selection"[^>]*onClick=\{props\.onClearSelection\}[^>]*>Bỏ chọn<\/motion\.button>/)
+  assert.match(booking, /function AnimatedBookingTime[^]*<AnimatePresence[^]*key=\{value\}/)
+  assert.match(styles, /grid-template-columns: minmax\(110px, \.7fr\) minmax\(220px, 1fr\) minmax\(184px, auto\)/)
+  assert.match(styles, /\.consultation-booking-bar\s*\{[^}]*min-height: 78px/s)
+  assert.match(styles, /\.consultation-booking-bar__time\s*\{[^}]*grid-template-columns:[^;}]*86px/s)
   assert.match(page, /onClearSelection=\{\(\) => \{ setSelectedStartTime\(null\)/)
 })
 
@@ -375,8 +382,19 @@ test('history has a protected route and shared controller links in header and ac
   assert.match(navbar, /to="\/app\/consultations\/history"/)
   assert.match(account, /to: '\/app\/consultations\/history'[^]*label: 'Lịch sử tư vấn'/)
   assert.match(bookingPage, /<ConsultationHistorySection/)
-  assert.match(historyPage, /<ConsultationHistorySection \/>/)
+  assert.match(historyPage, /<ConsultationHistorySection showHeading=\{false\} \/>/)
+  assert.match(historyPage, /className="consultation-history-shell"/)
   assert.doesNotMatch(historyPage, /<BookingPanel/)
+})
+
+test('account sidebar nests profile under account settings and omits the pricing entry', async () => {
+  const account = await readFile(new URL('../src/features/user/layouts/AccountWorkspace.tsx', import.meta.url), 'utf8')
+  const settings = account.indexOf('Thiết lập tài khoản')
+  const profile = account.indexOf('Hồ sơ cá nhân', settings)
+  const password = account.indexOf('Mật khẩu', profile)
+  const disable = account.indexOf('Vô hiệu hóa tài khoản', password)
+  assert.ok(settings >= 0 && settings < profile && profile < password && password < disable)
+  assert.doesNotMatch(account, /Gói dịch vụ & Bảng giá/)
 })
 
 test('ReUI rating is normalized to integer 1 through 5 and reviewed badge is gold', async () => {

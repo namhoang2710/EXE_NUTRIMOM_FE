@@ -1,46 +1,14 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { AppointmentQuestionsPage } from '@/features/appointment-questions/pages/AppointmentQuestionsPage'
-import { ActivateAccountPage } from '@/features/auth/pages/ActivateAccountPage'
-import { LoginPage } from '@/features/auth/pages/LoginPage'
-import { MagicLinkVerifyPage } from '@/features/auth/pages/MagicLinkVerifyPage'
-import { OtpPage } from '@/features/auth/pages/OtpPage'
-import { RegisterPage } from '@/features/auth/pages/RegisterPage'
-import { CalendarPage } from '@/features/calendar/pages/CalendarPage'
-import { ChatPage } from '@/features/chat/pages/ChatPage'
-import { ConsultationsPage } from '@/features/consultation/pages/ConsultationsPage'
-import { ConsultationHistoryPage } from '@/features/consultation/pages/ConsultationHistoryPage'
-import { ExpertsPage } from '@/features/experts/pages/ExpertsPage'
-import { BlogArticlePage } from '@/features/knowledge/pages/BlogArticlePage'
-import { BlogPage } from '@/features/knowledge/pages/BlogPage'
-import { KnowledgePage } from '@/features/knowledge/pages/KnowledgePage'
-import { CommunityPage } from '@/features/knowledge/pages/CommunityPage'
-import { AboutPage } from '@/features/landing/pages/AboutPage'
-import { ContactPage } from '@/features/landing/pages/ContactPage'
-import { HomePage } from '@/features/landing/pages/HomePage'
-import { ServiceDetailPage } from '@/features/landing/pages/ServiceDetailPage'
-import { ServicesPage } from '@/features/landing/pages/ServicesPage'
-import { PaymentSuccessPage } from '@/features/payment/pages/PaymentSuccessPage'
-import { PaymentCancelPage } from '@/features/payment/pages/PaymentCancelPage'
-import { PricingPage } from '@/features/payment/pages/PricingPage'
-import { NutritionPage } from '@/features/nutrition/pages/NutritionPage'
-import { AppHomePage } from '@/features/user/pages/AppHomePage'
-import { ProfilePage } from '@/features/user/pages/ProfilePage'
-import { SettingsPage } from '@/features/user/pages/SettingsPage'
-import { AccountWorkspace } from '@/features/user/layouts/AccountWorkspace'
-import { AccountCarePage } from '@/features/user/pages/AccountCarePage'
-import { AccountPasswordPage } from '@/features/user/pages/AccountPasswordPage'
-import { AccountDisablePage } from '@/features/user/pages/AccountDisablePage'
-import { SavedArticlesPage } from '@/features/user/pages/SavedArticlesPage'
-import { DashboardPage } from '@/features/user/pages/DashboardPage'
-import { NotFoundPage } from '@/pages/NotFoundPage'
-import { AppLayout } from '@/shared/layouts/AppLayout'
-import { LandingLayout } from '@/shared/layouts/LandingLayout'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AdminOnly, ExpertOnly, GuestOnly, OnboardingRoute, ProtectedRoute } from './routing/RouteGuards'
+import { AuthScene } from '@/shared/layouts/AuthScene'
 
 const AdminLayout = lazy(() => import('@/features/admin/layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage').then((module) => ({ default: module.AdminDashboardPage })))
 const AdminUsersPage = lazy(() => import('@/features/admin/pages/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })))
+const AdminExpertsPage = lazy(() => import('@/features/admin/pages/AdminExpertsPage').then((module) => ({ default: module.AdminExpertsPage })))
+const AdminRevenuePage = lazy(() => import('@/features/admin/pages/AdminRevenuePage').then((module) => ({ default: module.AdminRevenuePage })))
+const AdminNotificationsPage = lazy(() => import('@/features/admin/pages/AdminNotificationsPage').then((module) => ({ default: module.AdminNotificationsPage })))
 const AdminAppointmentsPage = lazy(() => import('@/features/admin/pages/AdminAppointmentsPage').then((module) => ({ default: module.AdminAppointmentsPage })))
 const AdminConsultationsPage = lazy(() => import('@/features/admin/pages/AdminConsultationsPage').then((module) => ({ default: module.AdminConsultationsPage })))
 const AdminHealthPage = lazy(() => import('@/features/admin/pages/AdminHealthPage').then((module) => ({ default: module.AdminHealthPage })))
@@ -55,8 +23,51 @@ const AccountHealthPage = lazy(() => import('@/features/user/pages/AccountHealth
 const AccountRecordsPage = lazy(() => import('@/features/user/pages/AccountRecordsPage').then((module) => ({ default: module.AccountRecordsPage })))
 const SupportRequestsPage = lazy(() => import('@/features/contact/pages/SupportRequestsPage').then((module) => ({ default: module.SupportRequestsPage })))
 const FamilyPage = lazy(() => import('@/features/family/pages/FamilyPage').then((module) => ({ default: module.FamilyPage })))
+const FamilyInvitePage = lazy(() => import('@/features/family/pages/FamilyInvitePage').then((module) => ({ default: module.FamilyInvitePage })))
+const FamilyInvitationByIdPage = lazy(() => import('@/features/family/pages/FamilyInvitationByIdPage').then((module) => ({ default: module.FamilyInvitationByIdPage })))
 const AssistantPage = lazy(() => import('@/features/assistant/pages/AssistantPage').then((module) => ({ default: module.AssistantPage })))
+const AppointmentQuestionsPage = lazy(() => import('@/features/appointment-questions/pages/AppointmentQuestionsPage').then((module) => ({ default: module.AppointmentQuestionsPage })))
+const ActivateAccountPage = lazy(() => import('@/features/auth/pages/ActivateAccountPage').then((module) => ({ default: module.ActivateAccountPage })))
+const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
+const MagicLinkVerifyPage = lazy(() => import('@/features/auth/pages/MagicLinkVerifyPage').then((module) => ({ default: module.MagicLinkVerifyPage })))
+const OtpPage = lazy(() => import('@/features/auth/pages/OtpPage').then((module) => ({ default: module.OtpPage })))
+const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then(module => ({ default: module.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then(module => ({ default: module.ResetPasswordPage })))
+const UserReviewsPage = lazy(() => import('@/features/reviews/pages/UserReviewsPage').then(module => ({ default: module.UserReviewsPage })))
+const AdminReviewsPage = lazy(() => import('@/features/reviews/pages/AdminReviewsPage').then(module => ({ default: module.AdminReviewsPage })))
+const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage').then((module) => ({ default: module.RegisterPage })))
+const ChatPage = lazy(() => import('@/features/chat/pages/ChatPage').then((module) => ({ default: module.ChatPage })))
 const ConsultationCallPage = lazy(() => import('@/features/consultation-video/pages/ConsultationCallPage').then((module) => ({ default: module.ConsultationCallPage })))
+const ConsultationsPage = lazy(() => import('@/features/consultation/pages/ConsultationsPage').then((module) => ({ default: module.ConsultationsPage })))
+const ConsultationHistoryPage = lazy(() => import('@/features/consultation/pages/ConsultationHistoryPage').then((module) => ({ default: module.ConsultationHistoryPage })))
+const ExpertsPage = lazy(() => import('@/features/experts/pages/ExpertsPage').then((module) => ({ default: module.ExpertsPage })))
+const BlogArticlePage = lazy(() => import('@/features/knowledge/pages/BlogArticlePage').then((module) => ({ default: module.BlogArticlePage })))
+const BlogPage = lazy(() => import('@/features/knowledge/pages/BlogPage').then((module) => ({ default: module.BlogPage })))
+const KnowledgePage = lazy(() => import('@/features/knowledge/pages/KnowledgePage').then((module) => ({ default: module.KnowledgePage })))
+const CommunityPage = lazy(() => import('@/features/community/pages/CommunityPage').then((module) => ({ default: module.CommunityPage })))
+const CommunityGatePage = lazy(() => import('@/features/community/pages/CommunityGatePage').then((module) => ({ default: module.CommunityGatePage })))
+const AdminCommunityPage = lazy(() => import('@/features/community/pages/AdminCommunityPage').then((module) => ({ default: module.AdminCommunityPage })))
+const AboutPage = lazy(() => import('@/features/landing/pages/AboutPage').then((module) => ({ default: module.AboutPage })))
+const ContactPage = lazy(() => import('@/features/landing/pages/ContactPage').then((module) => ({ default: module.ContactPage })))
+const HomePage = lazy(() => import('@/features/landing/pages/HomePage').then((module) => ({ default: module.HomePage })))
+const ServiceDetailPage = lazy(() => import('@/features/landing/pages/ServiceDetailPage').then((module) => ({ default: module.ServiceDetailPage })))
+const ServicesPage = lazy(() => import('@/features/landing/pages/ServicesPage').then((module) => ({ default: module.ServicesPage })))
+const NutritionPage = lazy(() => import('@/features/nutrition/pages/NutritionPage').then((module) => ({ default: module.NutritionPage })))
+const PaymentCancelPage = lazy(() => import('@/features/payment/pages/PaymentCancelPage').then((module) => ({ default: module.PaymentCancelPage })))
+const PaymentSuccessPage = lazy(() => import('@/features/payment/pages/PaymentSuccessPage').then((module) => ({ default: module.PaymentSuccessPage })))
+const PaymentHistoryPage = lazy(() => import('@/features/payment/pages/PaymentHistoryPage').then((module) => ({ default: module.PaymentHistoryPage })))
+const PricingEntry = lazy(() => import('@/features/payment/pages/PricingEntry').then((module) => ({ default: module.PricingEntry })))
+const AppHomePage = lazy(() => import('@/features/user/pages/AppHomePage').then((module) => ({ default: module.AppHomePage })))
+const ProfilePage = lazy(() => import('@/features/user/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
+const SettingsPage = lazy(() => import('@/features/user/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })))
+const AccountCarePage = lazy(() => import('@/features/user/pages/AccountCarePage').then((module) => ({ default: module.AccountCarePage })))
+const AccountPasswordPage = lazy(() => import('@/features/user/pages/AccountPasswordPage').then((module) => ({ default: module.AccountPasswordPage })))
+const AccountDisablePage = lazy(() => import('@/features/user/pages/AccountDisablePage').then((module) => ({ default: module.AccountDisablePage })))
+const SavedArticlesPage = lazy(() => import('@/features/user/pages/SavedArticlesPage').then((module) => ({ default: module.SavedArticlesPage })))
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })))
+const AccountWorkspace = lazy(() => import('@/features/user/layouts/AccountWorkspace').then((module) => ({ default: module.AccountWorkspace })))
+const AppLayout = lazy(() => import('@/shared/layouts/AppLayout').then((module) => ({ default: module.AppLayout })))
+const LandingLayout = lazy(() => import('@/shared/layouts/LandingLayout').then((module) => ({ default: module.LandingLayout })))
 
 function AdminRouteFallback() {
   return <main className="page-skeleton" aria-label="Loading admin workspace"><div className="skeleton-brand" /><div className="skeleton-panel"><div /><div /><div /></div></main>
@@ -67,7 +78,11 @@ function UserRouteFallback() {
 }
 
 export function AppRouter() {
+  const location = useLocation()
+  const enteringWorkspace = !/^\/app(?:\/|$)/.test(location.pathname) && Boolean((location.state as { authEntry?: boolean } | null)?.authEntry)
   return (
+    <Suspense fallback={<UserRouteFallback />}>
+    <div className={enteringWorkspace ? 'auth-workspace-entry' : undefined}>
     <Routes>
       <Route element={<LandingLayout />}>
         <Route index element={<HomePage />} />
@@ -76,18 +91,24 @@ export function AppRouter() {
         <Route path="services/:serviceSlug" element={<ServiceDetailPage />} />
         <Route path="blog" element={<BlogPage />} />
         <Route path="blog/:articleSlug" element={<BlogArticlePage />} />
+        <Route path="community" element={<CommunityGatePage />} />
         <Route path="experts" element={<ExpertsPage />} />
         <Route path="contact" element={<ContactPage />} />
       </Route>
 
-      <Route path="login" element={<GuestOnly><LoginPage /></GuestOnly>} />
-      <Route path="register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
+      <Route element={<GuestOnly animateExit><AuthScene /></GuestOnly>}>
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+      </Route>
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
+      <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route path="auth/activate" element={<ActivateAccountPage />} />
       <Route path="auth/verify" element={<MagicLinkVerifyPage />} />
 
       <Route path="payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
       <Route path="payment/cancel" element={<ProtectedRoute><PaymentCancelPage /></ProtectedRoute>} />
+      <Route path="family/invite" element={<ProtectedRoute><FamilyInvitePage /></ProtectedRoute>} />
       <Route path="app/consultations/:requestId/call" element={<ProtectedRoute><Suspense fallback={<UserRouteFallback />}><ConsultationCallPage /></Suspense></ProtectedRoute>} />
       <Route path="expert/consultations/:requestId/call" element={<ExpertOnly><Suspense fallback={<UserRouteFallback />}><ConsultationCallPage /></Suspense></ExpertOnly>} />
 
@@ -105,24 +126,32 @@ export function AppRouter() {
         <Route path="account/disable" element={<AccountDisablePage />} />
       </Route>
 
+      <Route path="app/reviews" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
+        <Route index element={<UserReviewsPage />} />
+      </Route>
+
       <Route path="app/consultations/history" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ConsultationHistoryPage />} />
       </Route>
 
+      <Route path="app/pricing" element={<PricingEntry />} />
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<AppHomePage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="dashboard" element={<Navigate to="/app" replace />} />
+        <Route path="payment-history" element={<Suspense fallback={<UserRouteFallback />}><PaymentHistoryPage /></Suspense>} />
         <Route path="family" element={<Suspense fallback={<UserRouteFallback />}><FamilyPage /></Suspense>} />
+        <Route path="family/invitations/:invitationId" element={<Suspense fallback={<UserRouteFallback />}><FamilyInvitationByIdPage /></Suspense>} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
         <Route path="health" element={<Navigate to="/app/profile/health" replace />} />
         <Route path="care" element={<Navigate to="/app/profile/care" replace />} />
         <Route path="records" element={<Navigate to="/app/profile/records" replace />} />
-        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="calendar" element={<Navigate to="/app#calendar" replace />} />
         <Route path="nutrition" element={<NutritionPage />} />
+        <Route path="nutrition/recipes/:recipeId" element={<NutritionPage />} />
+        <Route path="nutrition/shopping/:planId" element={<NutritionPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="knowledge/:articleSlug" element={<BlogArticlePage />} />
         <Route path="community" element={<CommunityPage />} />
-        <Route path="pricing" element={<PricingPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="experts" element={<ExpertsPage />} />
@@ -137,6 +166,7 @@ export function AppRouter() {
       <Route path="admin" element={<AdminOnly><Suspense fallback={<AdminRouteFallback />}><AdminLayout /></Suspense></AdminOnly>}>
         <Route index element={<AdminDashboardPage />} />
         <Route path="users" element={<AdminUsersPage />} />
+        <Route path="experts" element={<AdminExpertsPage />} />
         <Route path="appointments" element={<AdminAppointmentsPage />} />
         <Route path="consultations" element={<AdminConsultationsPage />} />
         <Route path="support" element={<AdminContactInboxPage />} />
@@ -144,11 +174,17 @@ export function AppRouter() {
         <Route path="health" element={<AdminHealthPage />} />
         <Route path="nutrition" element={<AdminNutritionPage />} />
         <Route path="knowledge" element={<AdminKnowledgePage />} />
+        <Route path="community" element={<AdminCommunityPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="revenue" element={<AdminRevenuePage />} />
+        <Route path="notifications" element={<AdminNotificationsPage />} />
+        <Route path="reviews" element={<AdminReviewsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </div>
+    </Suspense>
   )
 }

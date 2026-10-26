@@ -36,7 +36,7 @@ const perspectives = [
     icon: Heartbeat,
     className: 'is-sage',
     title: 'Sức khỏe thể chất',
-    text: 'Giúp mẹ theo dõi hành trình sức khỏe, lưu giữ thông tin cần thiết và tiếp cận kiến thức phù hợp theo từng giai đoạn.',
+    text: 'Theo dõi sức khỏe, lưu giữ hồ sơ và để AI tối ưu, gợi ý thực đơn xuyên suốt hành trình của mẹ theo từng giai đoạn.',
   },
   {
     icon: Sparkle,
@@ -160,7 +160,7 @@ export function AboutPage() {
       <section className="aboutEditorialHero landing-section" aria-labelledby="about-editorial-title">
         <figure className="aboutEditorialHero__visual">
           <img
-            src="/register-panel.jpg"
+            src="/optimized/register-panel.webp"
             width="1254"
             height="1254"
             alt="Mẹ dịu dàng ôm em bé giữa những đám mây"
@@ -371,7 +371,7 @@ export function AboutPage() {
         </div>
         <figure className="aboutEditorialCta__visual">
           <img
-            src="/banner2.png"
+            src="/optimized/banner2.webp"
             width="1931"
             height="814"
             loading="lazy"

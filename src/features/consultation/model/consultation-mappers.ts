@@ -1,3 +1,4 @@
+import { mapAcceptanceTiming } from './consultation-timing.ts'
 import type {
   ConsultationExpertDto,
   ConsultationPageDto,
@@ -58,6 +59,7 @@ export function mapDayAvailability(dto: DayAvailabilityDto): DayAvailability {
 
 export function mapConsultationRequest(dto: ConsultationRequestDto): ConsultationRequest {
   return {
+    ...mapAcceptanceTiming(dto),
     id: dto.id,
     userId: dto.user_id,
     userDisplayName: optionalText(dto.user_display_name),
@@ -105,6 +107,7 @@ export function serializeDirectConsultation(input: DirectConsultationInput): Cre
 export function serializeRandomConsultation(input: RandomConsultationInput): CreateRandomConsultationDto {
   return {
     assignment_type: 'RANDOM',
+    ...(input.preferredDate ? {preferred_date:input.preferredDate}:{}),
     specialty: input.specialty,
     ...(optionalPayloadText(input.note) ? { note: optionalPayloadText(input.note) } : {}),
   }

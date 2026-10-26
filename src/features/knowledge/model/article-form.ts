@@ -1,6 +1,7 @@
 import type { ArticleDetailDto, ArticleImageInput, ArticleRequestDto, ArticleStatus } from './knowledge-dto'
 import { categoryValue, stageValue } from './article-types.ts'
 import { parseYoutubeVideoId } from './youtube-video.ts'
+import { vietnamDateTimeInput, vietnamLocalDateTimeToIso } from '../../../core/date-time/vietnam.ts'
 
 export interface ArticleImageDraft {
   id: string
@@ -52,11 +53,7 @@ export function emptyArticleForm(): ArticleFormDraft {
 }
 
 function toLocalDateTime(value?: string) {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-  return shifted.toISOString().slice(0, 16)
+  return value ? vietnamDateTimeInput(value) : ''
 }
 
 export function articleDetailToForm(article: ArticleDetailDto): ArticleFormDraft {
@@ -115,7 +112,7 @@ export function validateArticleForm(form: ArticleFormDraft) {
   if (new Set(topics).size !== topics.length) errors.topics = 'Mỗi chủ đề chỉ được xuất hiện một lần.'
   else if (topics.length > 30) errors.topics = 'Tối đa 30 chủ đề.'
   else if (topics.some((topic) => topic.length > 100)) errors.topics = 'Mỗi chủ đề tối đa 100 ký tự.'
-  if (form.status === 'published' && form.publishedAt && Number.isNaN(new Date(form.publishedAt).getTime())) errors.publishedAt = 'Thời gian xuất bản không hợp lệ.'
+  if (form.status === 'published' && form.publishedAt && !vietnamLocalDateTimeToIso(form.publishedAt)) errors.publishedAt = 'Thời gian xuất bản không hợp lệ.'
   if ((form.sourceLabel.trim() && !form.sourceHref.trim()) || (!form.sourceLabel.trim() && form.sourceHref.trim())) errors.source = 'Nguồn cần có đủ nhãn và đường dẫn.'
   if (form.sourceHref.trim()) {
     try {
@@ -148,7 +145,7 @@ export function articleFormToPayload(form: ArticleFormDraft): ArticleRequestDto 
     stage: form.stage,
     topics: topicValues,
     status: form.status,
-    ...(form.status === 'published' && form.publishedAt ? { publishedAt: new Date(form.publishedAt).toISOString() } : {}),
+    ...(form.status === 'published' && form.publishedAt ? { publishedAt: vietnamLocalDateTimeToIso(form.publishedAt) } : {}),
     ...(imageInput(form.coverImage) ? { coverImage: imageInput(form.coverImage) } : {}),
     ...(form.lead.trim() ? { lead: form.lead.trim() } : {}),
     ...(youtubeVideoId ? { youtubeVideoId } : {}),

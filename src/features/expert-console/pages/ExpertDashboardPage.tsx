@@ -1,7 +1,10 @@
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
+import { adaptExpertDeepLink } from '@/features/notifications/model/notification-helpers'
+import '@/features/notifications/styles/notifications.css'
 import { CalendarBlank, CalendarDots, ChartPieSlice, FirstAidKit, List, SignOut, Star, UsersThree, X } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { expertConsoleApi } from '../api/expert-console-api'
@@ -38,7 +41,6 @@ export function ExpertDashboardPage() {
   const toastId = useRef(0)
   const reduceMotion = useReducedMotion()
   const { logout } = useAuth()
-  const navigate = useNavigate()
   const profile = useExpertResource((signal) => expertConsoleApi.profile(signal), [])
   const overview = useExpertResource((signal) => expertConsoleApi.overview(signal), [])
   const profileReloadRef = useRef(profile.reload)
@@ -54,7 +56,7 @@ export function ExpertDashboardPage() {
 
   useEffect(() => {
     const refreshOnReturn = () => {
-      if (document.visibilityState !== 'visible' || Date.now() - lastFocusRefresh.current < 10_000) return
+      if (document.visibilityState !== 'visible' || !navigator.onLine || Date.now() - lastFocusRefresh.current < 30_000) return
       lastFocusRefresh.current = Date.now()
       setRefreshToken((value) => value + 1)
       void Promise.allSettled([profileReloadRef.current(), overviewReloadRef.current()])
@@ -89,8 +91,7 @@ export function ExpertDashboardPage() {
   const initials = useMemo(() => profile.data?.fullName.split(/\s+/).slice(-2).map((word) => word[0]).join('').toUpperCase() || 'NM', [profile.data])
 
   async function handleLogout() {
-    await logout()
-    navigate('/login', { replace: true })
+    await logout().catch(() => undefined)
   }
 
   function openProfile() {
@@ -107,7 +108,7 @@ export function ExpertDashboardPage() {
       </aside>
       {menuOpen && <button className="expert-sidebar-backdrop" type="button" aria-label="Đóng menu" onClick={() => setMenuOpen(false)} />}
       <div className="expert-workspace">
-        <header className="expert-topbar"><button className="expert-menu-button" type="button" aria-label="Mở menu" onClick={() => setMenuOpen(true)}><List size={22} /></button><div className="expert-topbar-context"><FirstAidKit size={20} weight="duotone" /><span>Không gian làm việc chuyên gia</span></div><div className="expert-topbar-actions"><ThemeToggle /><button className="expert-logout" type="button" onClick={() => void handleLogout()}><SignOut size={18} /><span>Đăng xuất</span></button></div></header>
+        <header className="expert-topbar"><button className="expert-menu-button" type="button" aria-label="Mở menu" onClick={() => setMenuOpen(true)}><List size={22} /></button><div className="expert-topbar-context"><FirstAidKit size={20} weight="duotone" /><span>Không gian làm việc chuyên gia</span></div><div className="expert-topbar-actions"><NotificationBell adaptLink={adaptExpertDeepLink}/><ThemeToggle /><button className="expert-logout" type="button" onClick={() => void handleLogout()}><SignOut size={18} /><span>Đăng xuất</span></button></div></header>
         <main className="expert-content">
           {profile.error && <div className="expert-profile-error" role="alert">Không thể tải hồ sơ chuyên gia. <button type="button" onClick={() => void profile.reload()}>Thử lại</button></div>}
           <motion.div

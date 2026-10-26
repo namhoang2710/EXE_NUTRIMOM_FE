@@ -1,8 +1,9 @@
 import { CaretDown, List, X } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { AnimatedTabs, type AnimatedTab } from '@/components/ui/animated-tabs'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { nextNavbarScrollState, type NavbarScrollState } from './navbar-scroll'
 
 export function AuthenticatedNavbar() {
@@ -10,45 +11,71 @@ export function AuthenticatedNavbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [personalOpen, setPersonalOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
   const [headerVisible, setHeaderVisible] = useState(true)
   const accountRef = useRef<HTMLDivElement>(null)
   const accountButtonRef = useRef<HTMLButtonElement>(null)
+  const personalRef = useRef<HTMLDivElement>(null)
+  const personalButtonRef = useRef<HTMLButtonElement>(null)
   const guideRef = useRef<HTMLDivElement>(null)
   const guideButtonRef = useRef<HTMLButtonElement>(null)
-  const scrollState = useRef<NavbarScrollState>({ lastY: 0, movement: 0, visible: true })
-  const navigate = useNavigate()
+  const scrollState = useRef<NavbarScrollState>({
+    lastY: 0,
+    movement: 0,
+    visible: true,
+  })
   const location = useLocation()
   useEffect(() => {
     function onPointer(event: PointerEvent) {
-      if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false)
+      if (!accountRef.current?.contains(event.target as Node))
+        setAccountOpen(false)
       if (!guideRef.current?.contains(event.target as Node)) setGuideOpen(false)
+      if (!personalRef.current?.contains(event.target as Node))
+        setPersonalOpen(false)
     }
     function onKey(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      if (guideRef.current?.contains(document.activeElement)) guideButtonRef.current?.focus()
-      else if (accountRef.current?.contains(document.activeElement)) accountButtonRef.current?.focus()
-      setAccountOpen(false); setGuideOpen(false); setMenuOpen(false)
+      if (personalRef.current?.contains(document.activeElement))
+        personalButtonRef.current?.focus()
+      else if (guideRef.current?.contains(document.activeElement))
+        guideButtonRef.current?.focus()
+      else if (accountRef.current?.contains(document.activeElement))
+        accountButtonRef.current?.focus()
+      setAccountOpen(false)
+      setGuideOpen(false)
+      setPersonalOpen(false)
+      setMenuOpen(false)
     }
-    document.addEventListener('pointerdown', onPointer); document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('pointerdown', onPointer); document.removeEventListener('keydown', onKey) }
+    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [])
   useEffect(() => {
     setHeaderVisible(true)
     setMenuOpen(false)
     setAccountOpen(false)
     setGuideOpen(false)
+    setPersonalOpen(false)
     scrollState.current = { lastY: window.scrollY, movement: 0, visible: true }
   }, [location.pathname])
   useEffect(() => {
     let frame = 0
     scrollState.current = { lastY: window.scrollY, movement: 0, visible: true }
-    if (menuOpen || accountOpen || guideOpen) setHeaderVisible(true)
+    if (menuOpen || accountOpen || guideOpen || personalOpen)
+      setHeaderVisible(true)
 
     function updateVisibility() {
       frame = 0
-      scrollState.current = nextNavbarScrollState(scrollState.current, window.scrollY, menuOpen || accountOpen || guideOpen)
+      scrollState.current = nextNavbarScrollState(
+        scrollState.current,
+        window.scrollY,
+        menuOpen || accountOpen || guideOpen || personalOpen,
+      )
       setHeaderVisible(scrollState.current.visible)
     }
     function onScroll() {
@@ -59,43 +86,318 @@ export function AuthenticatedNavbar() {
       window.removeEventListener('scroll', onScroll)
       if (frame) window.cancelAnimationFrame(frame)
     }
-  }, [menuOpen, accountOpen, guideOpen])
+  }, [menuOpen, accountOpen, guideOpen, personalOpen])
   async function signOut() {
+    if (busy) return
     setBusy(true)
-    try { await logout() } catch { /* The local session is cleared even if the server is unavailable. */ }
-    finally { setBusy(false); navigate('/', { replace: true }) }
+    try {
+      await logout()
+    } catch {
+      /* The local session is cleared even if the server is unavailable. */
+    } finally {
+      setBusy(false)
+    }
   }
-  const name = profile?.display_name || user?.displayName || 'Thành viên NutriMom'
-  const guideActive = location.pathname === '/app/contact' || location.pathname === '/app/experts' || location.pathname.startsWith('/app/consultations')
-  const activeNavigation = guideActive ? 'guide'
-    : location.pathname === '/app' ? 'home'
-      : location.pathname.startsWith('/app/family') ? 'family'
-        : location.pathname.startsWith('/app/knowledge') ? 'knowledge'
-          : location.pathname.startsWith('/app/community') ? 'community'
-            : location.pathname.startsWith('/app/pricing') ? 'pricing'
-              : undefined
-  const animatedTabs = useMemo<AnimatedTab[]>(() => [
-    { value: 'home', label: 'Trang chủ' },
-    { value: 'family', label: 'Gia đình' },
-    { value: 'knowledge', label: 'Kiến thức' },
-    { value: 'community', label: 'Cộng đồng' },
-    { value: 'pricing', label: 'Bảng giá' },
-    { value: 'guide', label: 'Hướng dẫn khách hàng', suffix: <CaretDown size={15} className={guideOpen ? 'is-rotated' : ''} /> },
-  ], [guideOpen])
-  function closeNavigation() { setMenuOpen(false); setGuideOpen(false) }
-  return <header className={`nm-app-header${headerVisible ? '' : ' is-hidden'}`}><nav className="nm-floating-nav" aria-label="Điều hướng ứng dụng"><Link className="nm-app-brand" to="/app"><img src="/nutrimom-logo.png" alt="" width="39" height="39" /><span>NutriMom</span></Link>
-    <div className={`nm-app-links${menuOpen ? ' is-open' : ''}`} id="nm-app-links-mobile">
-      <AnimatedTabs tabs={animatedTabs} value={guideOpen ? 'guide' : activeNavigation} />
-      <NavLink to="/app" end onClick={closeNavigation}>Trang chủ</NavLink>
-      <NavLink to="/app/family" onClick={closeNavigation}>Gia đình</NavLink>
-      <NavLink to="/app/knowledge" onClick={closeNavigation}>Kiến thức</NavLink>
-      <NavLink to="/app/community" onClick={closeNavigation}>Cộng đồng</NavLink>
-      <NavLink to="/app/pricing#pricing" onClick={closeNavigation}>Bảng giá</NavLink>
-      <div className="nm-guide-menu" ref={guideRef} onMouseEnter={() => { if (window.matchMedia('(min-width: 1101px) and (hover: hover)').matches) setGuideOpen(true) }} onMouseLeave={() => { if (window.matchMedia('(min-width: 1101px) and (hover: hover)').matches) setGuideOpen(false) }} onFocus={(event) => { if ((event.target as HTMLElement).matches(':focus-visible')) setGuideOpen(true) }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setGuideOpen(false) }}>
-        <button ref={guideButtonRef} className={`nm-guide-trigger${guideActive ? ' is-active' : ''}`} type="button" aria-expanded={guideOpen} aria-controls="nm-guide-dropdown" onClick={() => { setGuideOpen((open) => window.matchMedia('(max-width: 1100px)').matches ? !open : true); setAccountOpen(false) }}>Hướng dẫn khách hàng <CaretDown size={15} className={guideOpen ? 'is-rotated' : ''} aria-hidden="true" /></button>
-        <div className={`nm-guide-dropdown${guideOpen ? ' is-open' : ''}`} id="nm-guide-dropdown" aria-hidden={!guideOpen}><Link to="/app/contact" tabIndex={guideOpen ? 0 : -1} onClick={closeNavigation}>Liên hệ với chúng tôi</Link><Link to="/app/experts" tabIndex={guideOpen ? 0 : -1} onClick={closeNavigation}>Tìm bác sĩ</Link><Link to="/app/consultations/history" tabIndex={guideOpen ? 0 : -1} onClick={closeNavigation}>Lịch sử tư vấn</Link></div>
-      </div>
-    </div>
-    <div className="nm-app-actions"><div className="nm-account-menu" ref={accountRef}><button ref={accountButtonRef} type="button" className="nm-avatar-button" aria-expanded={accountOpen} aria-controls="nm-account-dropdown" onClick={() => { setAccountOpen(!accountOpen); setGuideOpen(false) }}><span className="nm-nav-avatar">{profile?.avatar_url && !avatarFailed ? <img src={profile.avatar_url} alt="" onError={() => setAvatarFailed(true)} /> : name.trim().charAt(0).toUpperCase()}</span><span className="nm-avatar-name">{name}</span></button><div className={`nm-account-dropdown${accountOpen ? ' is-open' : ''}`} id="nm-account-dropdown" aria-hidden={!accountOpen}><Link to="/app/profile" onClick={() => setAccountOpen(false)}>Hồ sơ cá nhân</Link><button type="button" disabled={busy} onClick={() => void signOut()}>{busy ? 'Đang đăng xuất...' : 'Đăng xuất'}</button></div></div><button className="nm-app-menu-toggle" type="button" aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={menuOpen} aria-controls="nm-app-links-mobile" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={22} /> : <List size={22} />}</button></div>
-  </nav></header>
+  const name =
+    profile?.display_name || user?.displayName || 'Thành viên NutriMom'
+  const guideActive =
+    location.pathname === '/app/contact' ||
+    location.pathname === '/app/experts' ||
+    location.pathname.startsWith('/app/consultations')
+  const personalActive = ['/app/pricing', '/app/payment-history', '/app/family', '/app/nutrition'].some(
+    (path) => location.pathname.startsWith(path),
+  )
+  const activeNavigation = guideActive
+    ? 'guide'
+    : personalActive
+      ? 'personal'
+      : /^\/app\/?$/.test(location.pathname)
+        ? 'home'
+        : location.pathname.startsWith('/app/knowledge')
+          ? 'knowledge'
+          : location.pathname.startsWith('/app/community')
+            ? 'community'
+            : undefined
+  const animatedTabs = useMemo<AnimatedTab[]>(
+    () => [
+      { value: 'home', label: 'Tổng quan' },
+      { value: 'knowledge', label: 'Kiến thức' },
+      { value: 'community', label: 'Cộng đồng' },
+      {
+        value: 'personal',
+        label: 'Cá nhân',
+        suffix: (
+          <CaretDown size={15} className={personalOpen ? 'is-rotated' : ''} />
+        ),
+      },
+      {
+        value: 'guide',
+        label: 'Hướng dẫn khách hàng',
+        suffix: (
+          <CaretDown size={15} className={guideOpen ? 'is-rotated' : ''} />
+        ),
+      },
+    ],
+    [guideOpen, personalOpen],
+  )
+  function closeNavigation() {
+    setMenuOpen(false)
+    setGuideOpen(false)
+    setPersonalOpen(false)
+  }
+  return (
+    <header className={`nm-app-header${headerVisible ? '' : ' is-hidden'}`}>
+      <nav className="nm-floating-nav" aria-label="Điều hướng ứng dụng">
+        <Link
+          className="nm-app-brand"
+          to="/app"
+          aria-label="NutriMom - Tổng quan"
+        >
+          <img src="/nutrimom-logo.png" alt="" width="44" height="44" />
+        </Link>
+        <div
+          className={`nm-app-links${menuOpen ? ' is-open' : ''}`}
+          id="nm-app-links-mobile"
+        >
+          <AnimatedTabs
+            tabs={animatedTabs}
+            value={
+              guideOpen ? 'guide' : personalOpen ? 'personal' : activeNavigation
+            }
+          />
+          <NavLink to="/app" end onClick={closeNavigation}>
+            Tổng quan
+          </NavLink>
+          <NavLink to="/app/knowledge" onClick={closeNavigation}>
+            Kiến thức
+          </NavLink>
+          <NavLink to="/app/community" onClick={closeNavigation}>
+            Cộng đồng
+          </NavLink>
+          <div
+            className="nm-guide-menu"
+            ref={personalRef}
+            onMouseEnter={() => {
+              if (
+                window.matchMedia('(min-width: 1301px) and (hover: hover)')
+                  .matches
+              ) {
+                setPersonalOpen(true)
+                setGuideOpen(false)
+                setAccountOpen(false)
+              }
+            }}
+            onMouseLeave={() => {
+              if (
+                window.matchMedia('(min-width: 1301px) and (hover: hover)')
+                  .matches
+              )
+                setPersonalOpen(false)
+            }}
+            onFocus={(event) => {
+              if ((event.target as HTMLElement).matches(':focus-visible'))
+                setPersonalOpen(true)
+            }}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node))
+                setPersonalOpen(false)
+            }}
+          >
+            <button
+              ref={personalButtonRef}
+              className={`nm-guide-trigger${personalActive ? ' is-active' : ''}`}
+              type="button"
+              aria-expanded={personalOpen}
+              aria-controls="nm-personal-dropdown"
+              onClick={() => {
+                setPersonalOpen((open) =>
+                  window.matchMedia('(max-width: 1300px)').matches
+                    ? !open
+                    : true,
+                )
+                setAccountOpen(false)
+                setGuideOpen(false)
+              }}
+            >
+              Cá nhân{' '}
+              <CaretDown
+                size={15}
+                className={personalOpen ? 'is-rotated' : ''}
+                aria-hidden="true"
+              />
+            </button>
+            <div
+              className={`nm-guide-dropdown${personalOpen ? ' is-open' : ''}`}
+              id="nm-personal-dropdown"
+              inert={!personalOpen}
+            >
+              <Link
+                to="/app/pricing#pricing"
+                tabIndex={personalOpen ? 0 : -1}
+                onClick={closeNavigation}
+              >
+                Bảng giá
+              </Link>
+              <Link to="/app/payment-history" tabIndex={personalOpen ? 0 : -1} onClick={closeNavigation}>
+                Lịch sử giao dịch
+              </Link>
+              <Link
+                to="/app/family"
+                tabIndex={personalOpen ? 0 : -1}
+                onClick={closeNavigation}
+              >
+                Gia đình
+              </Link>
+              <Link
+                to="/app/nutrition"
+                tabIndex={personalOpen ? 0 : -1}
+                onClick={closeNavigation}
+              >
+                Dinh dưỡng
+              </Link>
+            </div>
+          </div>
+          <div
+            className="nm-guide-menu"
+            ref={guideRef}
+            onMouseEnter={() => {
+              if (
+                window.matchMedia('(min-width: 1301px) and (hover: hover)')
+                  .matches
+              ) {
+                setGuideOpen(true)
+                setPersonalOpen(false)
+                setAccountOpen(false)
+              }
+            }}
+            onMouseLeave={() => {
+              if (
+                window.matchMedia('(min-width: 1301px) and (hover: hover)')
+                  .matches
+              )
+                setGuideOpen(false)
+            }}
+            onFocus={(event) => {
+              if ((event.target as HTMLElement).matches(':focus-visible'))
+                setGuideOpen(true)
+            }}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node))
+                setGuideOpen(false)
+            }}
+          >
+            <button
+              ref={guideButtonRef}
+              className={`nm-guide-trigger${guideActive ? ' is-active' : ''}`}
+              type="button"
+              aria-expanded={guideOpen}
+              aria-controls="nm-guide-dropdown"
+              onClick={() => {
+                setGuideOpen((open) =>
+                  window.matchMedia('(max-width: 1300px)').matches
+                    ? !open
+                    : true,
+                )
+                setAccountOpen(false)
+                setPersonalOpen(false)
+              }}
+            >
+              Hướng dẫn khách hàng{' '}
+              <CaretDown
+                size={15}
+                className={guideOpen ? 'is-rotated' : ''}
+                aria-hidden="true"
+              />
+            </button>
+            <div
+              className={`nm-guide-dropdown${guideOpen ? ' is-open' : ''}`}
+              id="nm-guide-dropdown"
+              inert={!guideOpen}
+            >
+              <Link
+                to="/app/contact"
+                tabIndex={guideOpen ? 0 : -1}
+                onClick={closeNavigation}
+              >
+                Liên hệ với chúng tôi
+              </Link>
+              <Link
+                to="/app/experts"
+                tabIndex={guideOpen ? 0 : -1}
+                onClick={closeNavigation}
+              >
+                Tìm bác sĩ
+              </Link>
+              <Link
+                to="/app/consultations/history"
+                tabIndex={guideOpen ? 0 : -1}
+                onClick={closeNavigation}
+              >
+                Lịch sử tư vấn
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="nm-app-actions">
+          <NotificationBell />
+          <div className="nm-account-menu" ref={accountRef}>
+            <button
+              ref={accountButtonRef}
+              type="button"
+              className="nm-avatar-button"
+              aria-expanded={accountOpen}
+              aria-controls="nm-account-dropdown"
+              onClick={() => {
+                setAccountOpen(!accountOpen)
+                setGuideOpen(false)
+                setPersonalOpen(false)
+              }}
+            >
+              <span className="nm-nav-avatar">
+                {profile?.avatar_url && !avatarFailed ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    onError={() => setAvatarFailed(true)}
+                  />
+                ) : (
+                  name.trim().charAt(0).toUpperCase()
+                )}
+              </span>
+              <span className="nm-avatar-name">{name}</span>
+            </button>
+            <div
+              className={`nm-account-dropdown${accountOpen ? ' is-open' : ''}`}
+              id="nm-account-dropdown"
+              inert={!accountOpen}
+            >
+              <Link
+                to="/app/profile/health"
+                onClick={() => setAccountOpen(false)}
+              >
+                Hồ sơ cá nhân
+              </Link>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void signOut()}
+              >
+                {busy ? 'Đang đăng xuất...' : 'Đăng xuất'}
+              </button>
+            </div>
+          </div>
+          <button
+            className="nm-app-menu-toggle"
+            type="button"
+            aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
+            aria-expanded={menuOpen}
+            aria-controls="nm-app-links-mobile"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <X size={22} /> : <List size={22} />}
+          </button>
+        </div>
+      </nav>
+    </header>
+  )
 }

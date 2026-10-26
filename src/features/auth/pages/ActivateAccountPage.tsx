@@ -1,14 +1,16 @@
 import { ArrowRight, CheckCircle, SpinnerGap, EnvelopeSimple } from '@phosphor-icons/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { StatusMessage } from '@/shared/components/StatusMessage'
 import { OtpInput } from '@/shared/components/OtpInput'
 import { useAuth } from '../hooks/useAuth'
-import { ApiClientError } from '@/core/api/api-error'
+import { activateOnce, activationErrorMessage, isUsedOrInvalidActivation } from '../model/activation-request'
 import { isValidEmail } from '../model/auth-validation'
 import { authenticatedDestination } from '../model/role-routing'
+import { peekReturnPath } from '@/features/community/model/community-return-path'
+import { usePasswordCooldown } from '../hooks/usePasswordCooldown'
 
 export function ActivateAccountPage() {
   const [searchParams] = useSearchParams()
@@ -19,10 +21,14 @@ export function ActivateAccountPage() {
   const [otpCode, setOtpCode] = useState(tokenParam && tokenParam.length === 6 ? tokenParam : '')
   const [loading, setLoading] = useState(Boolean(tokenParam))
   const [error, setError] = useState<string | null>(null)
+  const [suggestLogin, setSuggestLogin] = useState(false)
   const [success, setSuccess] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const [resending, setResending] = useState(false)
   const [resendStatus, setResendStatus] = useState<string | null>(null)
+  const resendGate = useRef(false), activationGate = useRef(false)
+  const emailWait = usePasswordCooldown('email-send'), verifyWait = usePasswordCooldown('code-verify')
+  const resendWait = Math.max(countdown, emailWait)
 
   const { activateAccount, resendActivation } = useAuth()
   const navigate = useNavigate()
@@ -44,17 +50,19 @@ export function ActivateAccountPage() {
     let active = true
     async function doActivate() {
       try {
-        const user = await activateAccount(tokenParam!, emailParam || undefined)
+        const user = await activateOnce(tokenParam!, emailParam || undefined,
+          () => activateAccount(tokenParam!, emailParam || undefined))
         if (!active) return
         setSuccess(true)
         setLoading(false)
         setTimeout(() => {
-          navigate(authenticatedDestination(user), { replace: true })
+          navigate(authenticatedDestination(user, undefined, peekReturnPath()), { replace: true })
         }, 1200)
       } catch (err) {
         if (!active) return
         setLoading(false)
-        setError(err instanceof ApiClientError ? err.message : 'Kích hoạt tài khoản thất bại. Vui lòng kiểm tra lại mã.')
+        setSuggestLogin(isUsedOrInvalidActivation(err))
+        setError(activationErrorMessage(err, 'Kích hoạt tài khoản thất bại. Vui lòng kiểm tra lại mã.'))
       }
     }
 
@@ -63,34 +71,36 @@ export function ActivateAccountPage() {
   }, [tokenParam, emailParam, activateAccount, navigate])
 
   async function handleManualActivate(codeToVerify: string) {
-    if (codeToVerify.length < 6 || loading) return
+    if (!/^\d{6}$/.test(codeToVerify) || loading || activationGate.current || verifyWait > 0) return
     if (!email.trim() || !isValidEmail(email.trim())) {
       setError('Vui lòng nhập địa chỉ email hợp lệ của bạn.')
       return
     }
 
-    setLoading(true)
+    activationGate.current = true; setLoading(true)
     setError(null)
+    setSuggestLogin(false)
     try {
-      const user = await activateAccount(codeToVerify, email.trim())
+      const user = await activateOnce(codeToVerify, email.trim(), () => activateAccount(codeToVerify, email.trim()))
       setSuccess(true)
       setLoading(false)
       setTimeout(() => {
-        navigate(authenticatedDestination(user), { replace: true })
+        navigate(authenticatedDestination(user, undefined, peekReturnPath()), { replace: true })
       }, 1200)
     } catch (err) {
       setLoading(false)
-      setError(err instanceof ApiClientError ? err.message : 'Mã xác thực không hợp lệ hoặc đã hết hạn.')
-    }
+      setSuggestLogin(isUsedOrInvalidActivation(err))
+      setError(activationErrorMessage(err, 'Mã xác thực không hợp lệ hoặc đã hết hạn.'))
+    } finally { activationGate.current = false }
   }
 
   async function handleResend() {
-    if (!email.trim() || resending || countdown > 0) return
+    if (!email.trim() || resendGate.current || resendWait > 0) return
     if (!isValidEmail(email.trim())) {
       setError('Vui lòng nhập email hợp lệ.')
       return
     }
-    setResending(true)
+    resendGate.current = true; setResending(true)
     setError(null)
     try {
       const res = await resendActivation(email.trim())
@@ -99,6 +109,7 @@ export function ActivateAccountPage() {
     } catch {
       setResendStatus('Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
     } finally {
+      resendGate.current = false
       setResending(false)
     }
   }
@@ -164,6 +175,11 @@ export function ActivateAccountPage() {
             {error && (
               <div style={{ marginBottom: 16 }}>
                 <StatusMessage tone="error">{error}</StatusMessage>
+                {suggestLogin && (
+                  <p style={{ fontSize: 14, margin: '8px 0 0' }}>
+                    <Link to="/login">Đi đến trang đăng nhập</Link>
+                  </p>
+                )}
               </div>
             )}
 
@@ -204,10 +220,10 @@ export function ActivateAccountPage() {
               className={`primary-button${loading ? ' is-loading' : ''}`}
               type="button"
               onClick={() => void handleManualActivate(otpCode)}
-              disabled={loading || otpCode.length < 6 || !email.trim()}
+              disabled={loading || otpCode.length < 6 || !email.trim() || verifyWait > 0}
               style={{ width: '100%' }}
             >
-              <span>{loading ? 'Đang kích hoạt...' : 'Kích hoạt tài khoản'}</span>
+              <span>{loading ? 'Đang kích hoạt...' : verifyWait > 0 ? `Thử lại sau ${verifyWait}s` : 'Kích hoạt tài khoản'}</span>
               {!loading && <ArrowRight size={20} weight="bold" />}
             </button>
 
@@ -217,9 +233,9 @@ export function ActivateAccountPage() {
                   {resendStatus}
                 </p>
               )}
-              {countdown > 0 ? (
+              {resendWait > 0 ? (
                 <span style={{ fontSize: 13, color: '#64748b' }}>
-                  Gửi lại mã sau <strong>{countdown}s</strong>
+                  Gửi lại mã sau <strong>{resendWait}s</strong>
                 </span>
               ) : (
                 <button

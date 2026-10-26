@@ -1,8 +1,10 @@
 import { Headset, WarningCircle } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ApiClientError } from '@/core/api/api-error'
 import { StatefulButton } from '@/components/ui/stateful-button'
 import { ActionStateDialog } from '@/shared/components/ActionStateDialog'
+import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
 import { SuccessDialog } from '@/shared/components/SuccessDialog'
 import { contactApi } from '../api/contact-api'
 import { ContactStatusBadge } from '../components/ContactStatusBadge'
@@ -18,6 +20,11 @@ const SUCCESS_MESSAGE = 'Đã gửi yêu cầu thành công. Đội ngũ chăm s
 const emptyDraft = { topic: '' as ContactTopic | '', message: '' }
 
 export function SupportRequestsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusedId = searchParams.get('request')?.trim() || ''
+  const [focusedRequest, setFocusedRequest] = useState<ContactRequestDto | null>(null)
+  const [focusLoading, setFocusLoading] = useState(false)
+  const [focusError, setFocusError] = useState('')
   const [draft, setDraft] = useState(emptyDraft)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState('')
@@ -53,6 +60,24 @@ export function SupportRequestsPage() {
       })
     return () => controller.abort()
   }, [page, reloadKey])
+
+  useEffect(() => {
+    if (!focusedId) { setFocusedRequest(null); setFocusError(''); setFocusLoading(false); return }
+    const controller = new AbortController()
+    setFocusedRequest(null); setFocusError(''); setFocusLoading(true)
+    void contactApi.get(focusedId, controller.signal).then((request) => {
+      if (!controller.signal.aborted) setFocusedRequest(request)
+    }).catch(() => {
+      if (!controller.signal.aborted) setFocusError('Không thể mở yêu cầu hỗ trợ này. Nội dung có thể không còn tồn tại hoặc bạn không có quyền xem.')
+    }).finally(() => { if (!controller.signal.aborted) setFocusLoading(false) })
+    return () => controller.abort()
+  }, [focusedId])
+
+  function closeFocusedRequest() {
+    const next = new URLSearchParams(searchParams)
+    next.delete('request')
+    setSearchParams(next, { replace: true })
+  }
 
   async function submit() {
     const errors = validateContactForm(draft.topic, draft.message)
@@ -175,6 +200,9 @@ export function SupportRequestsPage() {
     </section>
 
     <SuccessDialog open={successOpen} message={SUCCESS_MESSAGE} onClose={() => setSuccessOpen(false)} />
+    <AccessibleDialog open={Boolean(focusedId)} title="Chi tiết yêu cầu hỗ trợ" description="Nội dung thuộc tài khoản đang đăng nhập." onClose={closeFocusedRequest} footer={<button className="secondary-button" type="button" onClick={closeFocusedRequest}>Đóng chi tiết</button>}>
+      {focusLoading ? <p role="status">Đang tải yêu cầu hỗ trợ...</p> : focusError ? <p className="nm-dialog-error" role="alert">{focusError}</p> : focusedRequest ? <article className="nm-contact-item"><div className="nm-contact-item-top"><div><strong>{contactTopicLabel(focusedRequest.topic)}</strong><time dateTime={focusedRequest.created_at}>Gửi lúc {formatVietnamDateTime(focusedRequest.created_at)}</time></div><ContactStatusBadge value={focusedRequest.status} /></div><p className="nm-contact-item-message">{focusedRequest.message}</p></article> : null}
+    </AccessibleDialog>
     <ActionStateDialog
       open={Boolean(cancelTarget)}
       danger

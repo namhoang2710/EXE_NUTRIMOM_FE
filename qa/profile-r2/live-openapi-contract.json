@@ -1,0 +1,753 @@
+{
+  "info": {
+    "title": "NutriMom Backend API",
+    "description": "API chăm sóc sức khỏe mẹ bầu, hồ sơ y tế, nội dung và tư vấn chuyên gia.",
+    "contact": {
+      "name": "NutriMom Team"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/files/{fileId}/content": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Download file content using owner auth or a signed URL",
+        "operationId": "content",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Upload private bytes through the backend to the configured storage provider",
+        "operationId": "putContent",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/medical-records": {
+      "get": {
+        "tags": [
+          "Medical records"
+        ],
+        "summary": "List owned medical records",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "pregnancy_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PRENATAL_VISIT",
+                "ULTRASOUND",
+                "LAB_RESULT",
+                "PRESCRIPTION",
+                "DISCHARGE",
+                "OTHER"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCursorPageMedicalRecordResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Medical records"
+        ],
+        "summary": "Create a medical record",
+        "operationId": "create_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMedicalRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMedicalRecordResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/medical-records/{id}/reminders": {
+      "post": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Tạo nhắc nhở (tái khám, khám định kỳ) từ một hồ sơ y tế",
+        "operationId": "create_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReminderFromRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseReminderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/files/{fileId}/complete": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Complete and validate an upload",
+        "operationId": "complete",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteFileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/files/upload-sessions": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Create a private upload session",
+        "operationId": "createSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUploadSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUploadSessionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/medical-records/{id}": {
+      "get": {
+        "tags": [
+          "Medical records"
+        ],
+        "summary": "Get an owned medical record",
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMedicalRecordResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Medical records"
+        ],
+        "summary": "Soft delete an owned medical record",
+        "operationId": "delete_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Medical records"
+        ],
+        "summary": "Partially update an owned medical record",
+        "operationId": "update_4",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMedicalRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMedicalRecordResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/files/{fileId}/download-url": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Create a short-lived private download URL",
+        "operationId": "downloadUrl",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseDownloadUrlResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "schemas": {
+    "ApiResponseCursorPageMedicalRecordResponse": {
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/CursorPageMedicalRecordResponse"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/ApiMeta"
+        }
+      }
+    },
+    "CreateMedicalRecordRequest": {
+      "properties": {
+        "pregnancy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "PRENATAL_VISIT",
+            "ULTRASOUND",
+            "LAB_RESULT",
+            "PRESCRIPTION",
+            "DISCHARGE",
+            "OTHER"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "facility_name": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "clinician_name": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "summary": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "attachment_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "category",
+        "occurred_at",
+        "pregnancy_id",
+        "title"
+      ]
+    },
+    "ApiResponseMedicalRecordResponse": {
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/MedicalRecordResponse"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/ApiMeta"
+        }
+      }
+    },
+    "CreateReminderFromRecordRequest": {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "FOLLOW_UP",
+            "ROUTINE_CHECKUP",
+            "CUSTOM"
+          ]
+        },
+        "starts_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 2000,
+          "minLength": 0
+        },
+        "remind_minutes_before": {
+          "type": "integer",
+          "format": "int32",
+          "maximum": 10080,
+          "minimum": 0
+        },
+        "repeat": {
+          "$ref": "#/components/schemas/RepeatSpec"
+        }
+      },
+      "required": [
+        "starts_at",
+        "type"
+      ]
+    },
+    "ApiResponseReminderResponse": {
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/ReminderResponse"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/ApiMeta"
+        }
+      }
+    },
+    "CompleteFileRequest": {
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ApiResponseFileResponse": {
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/FileResponse"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/ApiMeta"
+        }
+      }
+    },
+    "CreateUploadSessionRequest": {
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "maxLength": 50,
+          "minLength": 0
+        },
+        "file_name": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "mime_type": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 0
+        },
+        "size_bytes": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "sha256": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "pregnancy_id": {
+          "type": "string"
+        },
+        "medical_record_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_name",
+        "mime_type",
+        "purpose",
+        "sha256",
+        "size_bytes"
+      ]
+    },
+    "ApiResponseUploadSessionResponse": {
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/UploadSessionResponse"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/ApiMeta"
+        }
+      }
+    },
+    "UpdateMedicalRecordRequest": {
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "PRENATAL_VISIT",
+            "ULTRASOUND",
+            "LAB_RESULT",
+            "PRESCRIPTION",
+            "DISCHARGE",
+            "OTHER"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "facility_name": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "clinician_name": {
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 0
+        },
+        "summary": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "attachment_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "required": [
+        "version"
+      ]
+    },
+    "ApiResponseDownloadUrlResponse": {
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/DownloadUrlResponse"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/ApiMeta"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+.nutrimom-social-link { display: inline-flex; min-height: 44px; align-items: center; gap: 9px; text-decoration: none; }
+.nutrimom-social-link svg { flex: 0 0 auto; }
+.nutrimom-social-link:focus-visible { outline: 3px solid var(--accent, #b59bdc); outline-offset: 3px; }
+.nutrimom-social-link:active { transform: scale(.98); }
+.landing-header-socials { display: flex; align-items: center; gap: 2px; }
+.landing-header-socials .nutrimom-social-link { width: 44px; justify-content: center; border-radius: 10px; color: inherit; transition: background-color 160ms ease; }
+.landing-header-socials .nutrimom-social-link:hover { background: rgb(255 255 255 / .12); }
+.landing-header-nav > .landing-header-socials { display: none; }
+@media (max-width: 1120px) {
+  .landing-header-actions > .landing-header-socials { display: none; }
+  .landing-header-nav > .landing-header-socials { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgb(255 255 255 / .15); }
+  .landing-header-nav > .landing-header-socials .nutrimom-social-link { width: auto; min-width: 44px; padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .nutrimom-social-link { transition: none; } .nutrimom-social-link:active { transform: none; } }

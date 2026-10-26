@@ -1,6 +1,12 @@
 import type { CursorPage, MedicalRecord, Pregnancy } from '../../../types/domain'
 
+export const medicalRecordCategoryLabels: Record<string, string> = {
+  PRENATAL_VISIT: 'Khám thai', ULTRASOUND: 'Siêu âm', LAB_RESULT: 'Kết quả xét nghiệm',
+  PRESCRIPTION: 'Đơn thuốc', DISCHARGE: 'Giấy ra viện', OTHER: 'Khác',
+}
+
 export interface MedicalRecordFilters {
+  pregnancyId?: string
   category: string
   from: string
   to: string
@@ -24,13 +30,14 @@ export async function loadCurrentPregnancy(getCurrentPregnancy: () => Promise<Pr
 export function createCurrentPregnancyLoader(getCurrentPregnancy: () => Promise<Pregnancy>) {
   let request: Promise<Pregnancy | null> | null = null
   return () => {
-    request ??= loadCurrentPregnancy(getCurrentPregnancy)
+    request ??= loadCurrentPregnancy(getCurrentPregnancy).finally(() => { request = null })
     return request
   }
 }
 
-export function buildMedicalRecordsQuery(pregnancyId: string, filters: MedicalRecordFilters, cursor?: string) {
-  const params = new URLSearchParams({ limit: '12', pregnancy_id: pregnancyId })
+export function buildMedicalRecordsQuery(filters: MedicalRecordFilters, cursor?: string) {
+  const params = new URLSearchParams({ limit: '12' })
+  if (filters.pregnancyId) params.set('pregnancy_id', filters.pregnancyId)
   if (filters.category) params.set('category', filters.category)
   if (filters.from) params.set('from', filters.from)
   if (filters.to) params.set('to', filters.to)
@@ -40,11 +47,10 @@ export function buildMedicalRecordsQuery(pregnancyId: string, filters: MedicalRe
 
 export function loadMedicalRecords(
   listRecords: (query: string) => Promise<CursorPage<MedicalRecord>>,
-  pregnancyId: string,
   filters: MedicalRecordFilters,
   cursor?: string,
 ) {
-  return listRecords(buildMedicalRecordsQuery(pregnancyId, filters, cursor))
+  return listRecords(buildMedicalRecordsQuery(filters, cursor))
 }
 
 export function vietnamDateAtStartOfDayUtc(date: string) {

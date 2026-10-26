@@ -112,6 +112,13 @@ function Rating({
       const fillPercentage = partiallyFilled
         ? (displayRating - (i - 1)) * 100
         : 0
+      if (!editable) {
+        stars.push(<span key={i} className="relative inline-block" aria-hidden="true">
+          <Star className={starVariants({ size })} style={{ color: 'var(--rating-gold)', opacity: .38 }} />
+          <span className="absolute inset-0 overflow-hidden" style={{ width: filled ? '100%' : `${fillPercentage}%` }}><Star weight="fill" className={starVariants({ size })} style={{ color: 'var(--rating-gold)' }} /></span>
+        </span>)
+        continue
+      }
 
       stars.push(
         <button
@@ -156,7 +163,8 @@ function Rating({
   return (
     <div
       data-slot="rating"
-      role={editable ? 'radiogroup' : undefined}
+      role={editable ? 'radiogroup' : 'img'}
+      aria-label={editable ? 'Chọn số sao' : `${rating.toLocaleString('vi-VN')} trên ${maxRating} sao`}
       className={cn(ratingVariants({ size }), className)}
       {...props}
     >
