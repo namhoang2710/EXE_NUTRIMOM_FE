@@ -73,7 +73,7 @@ async function interactiveChecks() {
     await f.page.getByRole('button', { name: 'Thông báo', exact: true }).click()
     await f.page.getByRole('heading', { name: 'Thông báo', exact: true }).click()
     await overlay(f, 'notifications', 'USER', '/app/nutrition', size)
-    if (!(await f.page.getByRole('dialog', { name: 'Hộp thông báo' }).isVisible())) throw new Error('Pointer events inside notification portal must not dismiss it')
+    if (!(await f.page.getByRole('dialog', { name: /^(Hộp thông báo|Thông báo)$/ }).isVisible())) throw new Error('Pointer events inside notification portal must not dismiss it')
     await f.page.keyboard.press('Escape')
     if (!(await f.page.getByRole('button', { name: 'Thông báo', exact: true }).evaluate(e => document.activeElement === e))) throw new Error('Escape must restore focus to the bell')
     await f.page.getByRole('button', { name: 'Hướng dẫn sử dụng', exact: true }).click()
@@ -172,6 +172,7 @@ try {
       const size = { width, height: width <= 390 ? 844 : 1000 }
       await f.page.setViewportSize(size)
       for (const route of paths) {
+        if (process.env.RESPONSIVE_QA_ROUTE_REGEX && !new RegExp(process.env.RESPONSIVE_QA_ROUTE_REGEX).test(route)) continue
         if (process.env.RESPONSIVE_QA_ROUTE && !route.includes(process.env.RESPONSIVE_QA_ROUTE)) continue
         await ready(f, route)
         await measure(f.page, role, route, size)
@@ -192,6 +193,7 @@ try {
   await writeFile(`${output}/results.json`, JSON.stringify(report, null, 2))
   console.log(JSON.stringify({ checks: results.length, overflow: results.filter(r => r.overflow).length, escaped: results.filter(r => r.escaped.length).length, pageErrors, missing: [...missing], unexpected }))
   await browser.close()
+  server.httpServer?.closeAllConnections()
   await server.close()
   if (Object.values(failures).some(items => items.length) || pageErrors.length || unexpected.length || missing.size) process.exitCode = 1
 }

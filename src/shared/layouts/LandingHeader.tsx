@@ -13,8 +13,6 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Tabs } from '@/components/ui/vercel-tabs'
-import { ThemeToggle } from '../components/ThemeToggle'
-import { SocialLinks } from '../components/SocialLinks'
 import { landingNavigation } from './landing-navigation'
 import { useMotionActivity } from '../hooks/useMotionActivity'
 
@@ -121,15 +119,12 @@ export function LandingHeader() {
           aria-label="Điều hướng chính"
         >
           <Tabs tabs={navigationTabs} activeTab={activeTab} onTabChange={() => setMenuOpen(false)} />
-          <div className="landing-header-socials" aria-label="Mạng xã hội NutriMom"><SocialLinks /></div>
         </nav>
 
         <div className="landing-header-actions">
-          <div className="landing-header-socials" aria-label="Mạng xã hội NutriMom"><SocialLinks iconOnly /></div>
           <Link className="landing-account-button" to="/login" aria-label="Đăng nhập" title="Đăng nhập">
             <UserCircle weight="fill" aria-hidden="true" />
           </Link>
-          <ThemeToggle />
           <button
             ref={menuToggle}
             className="landing-menu-toggle"

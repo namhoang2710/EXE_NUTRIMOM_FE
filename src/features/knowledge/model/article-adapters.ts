@@ -2,6 +2,7 @@ import type { ArticleCardViewModel, ArticleDetailViewModel, ArticleImageViewMode
 import { categoryLabel, stageLabel } from './article-types.ts'
 import type { ArticleDetailDto, ArticleImageDto, ArticleSummaryDto, MediaUploadDto } from './knowledge-dto'
 import { isValidYoutubeVideoId } from './youtube-video.ts'
+import { brandDisplayName } from '../../../shared/model/display-copy.ts'
 
 export function formatArticleDate(value?: string) {
   if (!value) return 'Chưa xuất bản'
@@ -38,7 +39,7 @@ export function mapArticleSummaryToCard(article: ArticleSummaryDto): ArticleCard
     publishedAtIso: article.publishedAt,
     coverImage: mapImage(article.coverImage),
     editorial: {
-      author: article.author?.name ?? 'Ban biên tập NutriMom',
+      author: brandDisplayName(article.author?.name ?? 'Ban biên tập NutriMom'),
       selected: false,
       moderation: 'approved',
       reviewer: null,

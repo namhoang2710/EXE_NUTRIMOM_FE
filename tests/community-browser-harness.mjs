@@ -39,7 +39,7 @@ const envelope = (post) => ({ post, open_report_count: post.id === id(2) ? 1 : 0
 const results = [], errors = [], coverage = new Set()
 let lastFixture
 async function fixture(options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: options.motion ? 'no-preference' : 'reduce' })
+  const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: options.motion ? 'no-preference' : 'reduce', ...(options.touch ? { hasTouch: true, isMobile: true, deviceScaleFactor: 2 } : {}) })
   const state = { posts: structuredClone(seeds), comments: [structuredClone(comment)], calls: [], list429: false, pinFail: false, createPinFail: false, readAll: false, ...options }
   if (options.pendingPinned) state.posts[2].pinned = true
   if (options.ownDeleted) state.posts[0].deleted_at = stamp

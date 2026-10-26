@@ -1,10 +1,12 @@
 import { CaretUp } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useFloatingObstruction } from '../hooks/useFloatingObstruction'
 
 const SCROLL_REVEAL_DISTANCE = 180
 
 export function ScrollProgressButton() {
+  const obstructed = useFloatingObstruction()
   const { pathname } = useLocation()
   const ringRef = useRef<SVGCircleElement>(null)
   const [visible, setVisible] = useState(false)
@@ -65,13 +67,13 @@ export function ScrollProgressButton() {
 
   return (
     <button
-      className={`scroll-progress-button${visible ? ' is-visible' : ''}`}
+      className={`scroll-progress-button${visible && !obstructed ? ' is-visible' : ''}`}
       type="button"
       onClick={scrollToTop}
       aria-label="Cuộn lên đầu trang"
       title="Lên đầu trang"
-      tabIndex={visible ? 0 : -1}
-      aria-hidden={!visible}
+      tabIndex={visible && !obstructed ? 0 : -1}
+      aria-hidden={!visible || obstructed}
     >
       <svg className="scroll-progress-ring" viewBox="0 0 64 64" aria-hidden="true">
         <circle className="scroll-progress-ring-track" cx="32" cy="32" r="29" pathLength="100" />

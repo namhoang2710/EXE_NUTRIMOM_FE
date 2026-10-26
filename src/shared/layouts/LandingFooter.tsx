@@ -7,7 +7,7 @@ import {
 import { Link } from 'react-router-dom'
 import { nutrimomContact } from '../config/contact'
 import { SocialLinks } from '../components/SocialLinks'
-import { landingNavigation } from './landing-navigation'
+import { FooterReviews } from '@/features/reviews/components/FooterReviews'
 
 export function LandingFooter() {
   return (
@@ -21,10 +21,7 @@ export function LandingFooter() {
           <p>Chăm sóc bằng sự thấu hiểu.</p>
         </div>
 
-        <div className="landing-footer-column">
-          <h2>Quick Links</h2>
-          {landingNavigation.map((item) => <Link key={item.to} to={item.to}>{item.label}</Link>)}
-        </div>
+        <FooterReviews />
 
         <div className="landing-footer-column">
           <h2>Kết nối</h2>
@@ -54,7 +51,6 @@ export function LandingFooter() {
       <div className="landing-footer-bottom">
         <span>© 2026 NutriMom. Mọi quyền được bảo lưu.</span>
         <span>All rights reserved. Designed by NutriDev</span>
-        <span>Chăm sóc bằng sự thấu hiểu.</span>
       </div>
     </footer>
   )

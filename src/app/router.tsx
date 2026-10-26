@@ -31,6 +31,10 @@ const ActivateAccountPage = lazy(() => import('@/features/auth/pages/ActivateAcc
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
 const MagicLinkVerifyPage = lazy(() => import('@/features/auth/pages/MagicLinkVerifyPage').then((module) => ({ default: module.MagicLinkVerifyPage })))
 const OtpPage = lazy(() => import('@/features/auth/pages/OtpPage').then((module) => ({ default: module.OtpPage })))
+const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then(module => ({ default: module.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then(module => ({ default: module.ResetPasswordPage })))
+const UserReviewsPage = lazy(() => import('@/features/reviews/pages/UserReviewsPage').then(module => ({ default: module.UserReviewsPage })))
+const AdminReviewsPage = lazy(() => import('@/features/reviews/pages/AdminReviewsPage').then(module => ({ default: module.AdminReviewsPage })))
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage').then((module) => ({ default: module.RegisterPage })))
 const ChatPage = lazy(() => import('@/features/chat/pages/ChatPage').then((module) => ({ default: module.ChatPage })))
 const ConsultationCallPage = lazy(() => import('@/features/consultation-video/pages/ConsultationCallPage').then((module) => ({ default: module.ConsultationCallPage })))
@@ -97,6 +101,8 @@ export function AppRouter() {
         <Route path="register" element={<RegisterPage />} />
       </Route>
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
+      <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route path="auth/activate" element={<ActivateAccountPage />} />
       <Route path="auth/verify" element={<MagicLinkVerifyPage />} />
 
@@ -118,6 +124,10 @@ export function AppRouter() {
         <Route path="support" element={<Suspense fallback={<UserRouteFallback />}><SupportRequestsPage /></Suspense>} />
         <Route path="account/password" element={<AccountPasswordPage />} />
         <Route path="account/disable" element={<AccountDisablePage />} />
+      </Route>
+
+      <Route path="app/reviews" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
+        <Route index element={<UserReviewsPage />} />
       </Route>
 
       <Route path="app/consultations/history" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
@@ -168,6 +178,7 @@ export function AppRouter() {
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="revenue" element={<AdminRevenuePage />} />
         <Route path="notifications" element={<AdminNotificationsPage />} />
+        <Route path="reviews" element={<AdminReviewsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
 

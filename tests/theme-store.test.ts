@@ -6,7 +6,7 @@ const events = new EventTarget()
 const values = new Map<string, string>()
 Object.assign(globalThis, {
   localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value) } },
-  window: { addEventListener: events.addEventListener.bind(events), removeEventListener: events.removeEventListener.bind(events), dispatchEvent: events.dispatchEvent.bind(events) },
+  window: { location: { pathname: '/app' }, addEventListener: events.addEventListener.bind(events), removeEventListener: events.removeEventListener.bind(events), dispatchEvent: events.dispatchEvent.bind(events) },
   document: { documentElement: { dataset: {} as Record<string, string> } },
 })
 

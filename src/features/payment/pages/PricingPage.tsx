@@ -516,21 +516,21 @@ function PaidPricingFlow({ planTier, screen, plans }: { planTier: PaidPlanTier; 
       exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
       transition={{ duration: reduceMotion ? 0.01 : 0.28, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="nm-payment-topline">
+      <div className="nm-payment-topline nm-payment-topline--checkout">
         <button className="nm-payment-back" type="button" onClick={goBack} disabled={busy}>
           <ArrowLeft size={17} aria-hidden="true" /> {screen === 'review' ? 'Quay lại chọn gói' : 'Quay lại bảng giá'}
         </button>
+        <span className="nm-payment-kicker">Gói chăm sóc NutriMom</span>
+        <div className="nm-payment-heading__secure" aria-label="Thanh toán dễ dàng">
+          <span><ShieldCheck size={22} weight="duotone" aria-hidden="true" /></span>
+          Thanh toán dễ dàng
+        </div>
       </div>
 
       <header className="nm-payment-heading">
         <div className="nm-payment-heading__copy">
-          <span className="nm-payment-kicker">Gói chăm sóc NutriMom</span>
           <h1 ref={heading} tabIndex={-1}>{screen === 'review' ? 'Xác nhận gói của mẹ.' : 'Chọn gói thật nhẹ nhàng.'}</h1>
           <p>{screen === 'review' ? 'Kiểm tra lại gói, phương thức và tổng tiền trước khi thanh toán.' : 'So sánh quyền lợi, đổi lựa chọn bất cứ lúc nào trước bước xác nhận.'}</p>
-        </div>
-        <div className="nm-payment-heading__secure" aria-label="Thanh toán dễ dàng">
-          <span><ShieldCheck size={22} weight="duotone" aria-hidden="true" /></span>
-          Thanh toán dễ dàng
         </div>
       </header>
 

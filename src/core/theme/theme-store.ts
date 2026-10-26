@@ -1,3 +1,5 @@
+import { effectiveTheme } from './theme-policy.ts'
+
 export type Theme = 'light' | 'dark'
 const storageKey = 'nutrimom.theme'
 const themeEvent = 'nutrimom:theme-changed'
@@ -31,7 +33,11 @@ export function subscribeTheme(listener: () => void) {
 
 /** Run before React mounts so direct links and session recovery use the saved appearance. */
 export function initializeTheme() {
-  const apply = () => { document.documentElement.dataset.theme = getTheme() }
+  const apply = applyTheme
   apply()
   return subscribeTheme(apply)
+}
+
+export function applyTheme() {
+  document.documentElement.dataset.theme = effectiveTheme(window.location.pathname, getTheme())
 }

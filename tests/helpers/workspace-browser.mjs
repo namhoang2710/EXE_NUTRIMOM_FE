@@ -13,9 +13,9 @@ const article = { id: 'article-qa', slug: 'cham-soc-thai-ky', title: 'Chăm sóc
 const group = { id: 'group-qa', pregnancy_id: pregnancy.id, owner_user_id: profile.id, status: 'ACTIVE', created_at: '2026-10-01T00:00:00Z' }
 const emptyPage = { items: [], page: 1, page_size: 20, total_items: 0, total_pages: 0 }
 const routes = {
-  guest: ['/', '/about', '/services', '/services/pregnancy-tracking', '/services/personal-health-records', '/services/expert-connection', '/services/care-knowledge', '/services/food-scan-ai', '/services/personalized-guidance', '/blog', '/blog/cham-soc-thai-ky', '/experts', '/contact', '/community', '/login', '/register', '/otp', '/auth/activate', '/auth/verify', '/unknown-page'],
-  USER: ['/app', '/app/nutrition', '/app/family', '/app/family?tab=tasks', '/app/family?tab=activity', '/app/knowledge', '/app/knowledge/cham-soc-thai-ky', '/app/pricing', '/app/community', '/app/contact', '/app/settings', '/app/experts', '/app/consultations', '/app/chat', '/app/assistant', '/app/profile', '/app/profile/health', '/app/profile/care', '/app/profile/records', '/app/profile/saved', '/app/profile/support', '/app/profile/account/password', '/app/profile/account/disable', '/app/consultations/history', '/app/appointment-questions', '/app/payment-history', '/payment/success', '/payment/cancel', '/family/invite', '/app/consultations/request-qa/call'],
-  ADMIN: ['/admin', '/admin/users', '/admin/experts', '/admin/appointments', '/admin/consultations', '/admin/support', '/admin/health', '/admin/nutrition', '/admin/knowledge', '/admin/community', '/admin/reports', '/admin/revenue', '/admin/notifications', '/admin/settings'],
+  guest: ['/', '/about', '/services', '/services/pregnancy-tracking', '/services/personal-health-records', '/services/expert-connection', '/services/care-knowledge', '/services/food-scan-ai', '/services/personalized-guidance', '/blog', '/blog/cham-soc-thai-ky', '/experts', '/contact', '/community', '/login', '/register', '/otp', '/forgot-password', '/reset-password', '/auth/activate', '/auth/verify', '/unknown-page'],
+  USER: ['/app', '/app/reviews', '/app/nutrition', '/app/family', '/app/family?tab=tasks', '/app/family?tab=activity', '/app/knowledge', '/app/knowledge/cham-soc-thai-ky', '/app/pricing', '/app/community', '/app/contact', '/app/settings', '/app/experts', '/app/consultations', '/app/chat', '/app/assistant', '/app/profile', '/app/profile/health', '/app/profile/care', '/app/profile/records', '/app/profile/saved', '/app/profile/support', '/app/profile/account/password', '/app/profile/account/disable', '/app/consultations/history', '/app/appointment-questions', '/app/payment-history', '/payment/success', '/payment/cancel', '/family/invite', '/app/consultations/request-qa/call'],
+  ADMIN: ['/admin', '/admin/reviews', '/admin/users', '/admin/experts', '/admin/appointments', '/admin/consultations', '/admin/support', '/admin/health', '/admin/nutrition', '/admin/knowledge', '/admin/community', '/admin/reports', '/admin/revenue', '/admin/notifications', '/admin/settings'],
   DOCTOR: ['/expert', '/expert?section=schedule', '/expert?section=requests', '/expert?section=slots', '/expert?section=reviews', '/expert/consultations/request-qa/call'],
   EXPERT: ['/expert', '/expert?section=schedule', '/expert?section=requests', '/expert?section=slots', '/expert?section=reviews', '/expert/consultations/request-qa/call'],
 }
@@ -47,7 +47,11 @@ async function session(role, touch = false, options = {}) {
     const request = route.request(), url = new URL(request.url()), path = url.pathname.replace('/api/v1', '')
     const ok = data => route.fulfill({ json: { data, meta: { request_id: 'responsive-qa' } } })
     let data
-    if (path === '/auth/me' || path === '/users/me') data = { ...profile, roles: [authRole], role: persona }
+    if (path === '/reviews/summary') data = { total: 0, by_rating: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 } }
+    else if (path === '/reviews' || path === '/admin/reviews') data = { items: [], has_more: false }
+    else if (path === '/reviews/me') return route.fulfill({ status: 404, json: { error: { code: 'WEB_REVIEW_NOT_FOUND', message: 'Chưa có đánh giá' } } })
+    else if (path === '/admin/reviews/pending-count') data = { count: 0 }
+    else if (path === '/auth/me' || path === '/users/me') data = { ...profile, roles: [authRole], role: persona }
     else if (path === '/notifications/unread-count') data = { count: 1 }
     else if (path === '/notifications') data = { realtime_revision: '0', items: [{ id: 'notice-qa', type: 'SYSTEM', audience: role === 'ADMIN' ? 'ADMIN' : 'USER', category: 'GENERAL', title: 'Lịch hẹn và thông tin chăm sóc của mẹ', body: 'Mở để xem những cập nhật mới nhất trong hành trình chăm sóc mẹ và bé.', created_at: '2026-10-21T00:00:00Z', deep_link: 'nutrimom://nutrition' }], has_more: false }
     else if (path === '/subscriptions/me') data = entitlementsFor('PLAN_399K')

@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Phone, User } from '@phosphor-icons/react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
@@ -11,6 +11,7 @@ import { getDeviceId } from '@/core/auth/device'
 import type { OtpChallenge, OtpPurpose } from '@/features/auth/model/auth-types'
 import { isValidPhone } from '../model/auth-validation'
 import { authenticatedDestination } from '../model/role-routing'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
 
 export function OtpPage() {
   const [searchParams] = useSearchParams()
@@ -27,6 +28,8 @@ export function OtpPage() {
   const [submitting, setSubmitting] = useState(false)
   const { requestOtp, verifyOtp } = useAuth()
   const navigate = useNavigate()
+  const gate = useRef(false)
+  const requestLimit = usePaymentCooldown('otp-request'), verifyLimit = usePaymentCooldown('otp-verify')
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -37,6 +40,7 @@ export function OtpPage() {
   }, [cooldown])
 
   async function sendOtp() {
+    if (gate.current || cooldown > 0 || requestLimit.blocked) return
     setError('')
     setMessage('')
 
@@ -53,7 +57,7 @@ export function OtpPage() {
       return
     }
 
-    setSubmitting(true)
+    gate.current = true; setSubmitting(true)
     try {
       const response = await requestOtp({
         phone: phone.trim(),
@@ -66,10 +70,12 @@ export function OtpPage() {
       setCode('')
       setMessage(`Mã OTP đã được gửi tới ${response.maskedPhone}.`)
     } catch (requestError) {
+      requestLimit.handleRateLimit(requestError)
       setError(requestError instanceof ApiClientError
         ? requestError.message
         : 'Không thể gửi mã OTP. Vui lòng thử lại.')
     } finally {
+      gate.current = false
       setSubmitting(false)
     }
   }
@@ -81,13 +87,14 @@ export function OtpPage() {
 
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (gate.current || verifyLimit.blocked) return
     setError('')
     if (!challenge || code.length !== 6) {
       setError('Vui lòng nhập đủ 6 chữ số OTP.')
       return
     }
 
-    setSubmitting(true)
+    gate.current = true; setSubmitting(true)
     try {
       const result = await verifyOtp({
         challengeId: challenge.challengeId,
@@ -97,10 +104,12 @@ export function OtpPage() {
       })
       navigate(authenticatedDestination(result.user), { replace: true })
     } catch (requestError) {
+      verifyLimit.handleRateLimit(requestError)
       setError(requestError instanceof ApiClientError
         ? requestError.message
         : 'Mã OTP chưa được xác minh. Vui lòng thử lại.')
     } finally {
+      gate.current = false
       setSubmitting(false)
     }
   }
@@ -155,8 +164,8 @@ export function OtpPage() {
             </label>
           )}
 
-          <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting}>
-            <span>{submitting ? 'Đang gửi mã...' : 'Gửi mã OTP'}</span>
+          <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting || requestLimit.blocked}>
+            <span>{submitting ? 'Đang gửi mã...' : requestLimit.blocked ? `Thử lại sau ${requestLimit.remaining}s` : 'Gửi mã OTP'}</span>
             {!submitting && <ArrowRight size={20} weight="bold" aria-hidden="true" />}
           </button>
 
@@ -179,8 +188,8 @@ export function OtpPage() {
             </div>
           )}
 
-          <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting || code.length !== 6}>
-            <span>{submitting ? 'Đang xác minh...' : 'Xác minh và tiếp tục'}</span>
+          <button className={`primary-button${submitting ? ' is-loading' : ''}`} type="submit" disabled={submitting || code.length !== 6 || verifyLimit.blocked}>
+            <span>{submitting ? 'Đang xác minh...' : verifyLimit.blocked ? `Thử lại sau ${verifyLimit.remaining}s` : 'Xác minh và tiếp tục'}</span>
             {!submitting && <ArrowRight size={20} weight="bold" aria-hidden="true" />}
           </button>
 
@@ -194,8 +203,8 @@ export function OtpPage() {
               <ArrowLeft size={17} />
               Đổi số điện thoại
             </button>
-            <button className="text-button" type="button" onClick={() => void sendOtp()} disabled={submitting || cooldown > 0}>
-              {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : 'Gửi lại mã'}
+            <button className="text-button" type="button" onClick={() => void sendOtp()} disabled={submitting || cooldown > 0 || requestLimit.blocked}>
+              {Math.max(cooldown, requestLimit.remaining) > 0 ? `Gửi lại sau ${Math.max(cooldown, requestLimit.remaining)}s` : 'Gửi lại mã'}
             </button>
           </div>
         </form>

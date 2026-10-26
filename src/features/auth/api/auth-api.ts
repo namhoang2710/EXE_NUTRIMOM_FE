@@ -2,6 +2,7 @@ import { profileRead, requireCurrentScope } from '../../../core/api/profile-requ
 import { apiClient, setRefreshHandler } from '../../../core/api/api-client.ts'
 import { ApiClientError, isAuthenticationError } from '../../../core/api/api-error.ts'
 import { ErrorCodes } from '../../../core/api/error-code.ts'
+import { publicAuthRequest } from './password-api.ts'
 import { getDeviceId } from '../../../core/auth/device.ts'
 import { clearSession, getSession, getSessionScope, saveApiSession } from '../../../core/auth/token-store.ts'
 import type {
@@ -164,50 +165,34 @@ async function logout() {
 }
 
 async function requestMagicLink(email: string, deviceId?: string) {
-  return apiClient.request<{ sent: boolean; message: string; debug_link?: string; debug_code?: string }>('/auth/magic-link/request', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  return publicAuthRequest<{ sent: boolean; message: string; debug_link?: string; debug_code?: string }>('email-send', '/auth/magic-link/request', {
       email: email.trim(),
       device_id: deviceId || getDeviceId(),
-    }),
   })
 }
 
 async function verifyMagicLink(tokenOrCode: string, deviceId?: string, email?: string) {
-  const response = await apiClient.request<AuthResponseDto>('/auth/magic-link/verify', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  const response = await publicAuthRequest<AuthResponseDto>('code-verify', '/auth/magic-link/verify', {
       token: tokenOrCode.trim(),
       code: tokenOrCode.trim(),
       email: email ? email.trim() : undefined,
       device_id: deviceId || getDeviceId(),
-    }),
   })
   return saveApiSession(response)
 }
 
 async function activateAccount(token: string, email?: string, deviceId?: string) {
-  const response = await apiClient.request<AuthResponseDto>('/auth/activate', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  const response = await publicAuthRequest<AuthResponseDto>('code-verify', '/auth/activate', {
       token: token.trim(),
       email: email ? email.trim() : undefined,
       device_id: deviceId || getDeviceId(),
-    }),
   })
   return saveApiSession(response)
 }
 
 async function resendActivation(email: string) {
-  return apiClient.request<{ sent: boolean; message: string }>('/auth/resend-activation', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  return publicAuthRequest<{ sent: boolean; message: string }>('email-send', '/auth/resend-activation', {
       email: email.trim(),
-    }),
   })
 }
 

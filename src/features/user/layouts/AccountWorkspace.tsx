@@ -55,6 +55,7 @@ export function AccountWorkspace() {
   const initial = name.trim().charAt(0).toUpperCase()
   const accountActive = location.pathname === '/app/profile' || location.pathname.startsWith('/app/profile/account/')
   const links = [
+    { to: '/app/reviews', end: false, label: 'Đánh giá NutriMom', icon: Heartbeat },
     { to: '/app/profile/health', end: false, label: 'Thai kỳ & sức khỏe', icon: Heartbeat },
     { to: '/app/profile/care', end: false, label: 'Kế hoạch chăm sóc', icon: FirstAidKit },
     { to: '/app/profile/records', end: false, label: 'Hồ sơ y tế', icon: FileText },

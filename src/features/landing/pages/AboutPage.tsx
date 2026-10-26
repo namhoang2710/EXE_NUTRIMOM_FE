@@ -36,7 +36,7 @@ const perspectives = [
     icon: Heartbeat,
     className: 'is-sage',
     title: 'Sức khỏe thể chất',
-    text: 'Giúp mẹ theo dõi hành trình sức khỏe, lưu giữ thông tin cần thiết và tiếp cận kiến thức phù hợp theo từng giai đoạn.',
+    text: 'Theo dõi sức khỏe, lưu giữ hồ sơ và để AI tối ưu, gợi ý thực đơn xuyên suốt hành trình của mẹ theo từng giai đoạn.',
   },
   {
     icon: Sparkle,

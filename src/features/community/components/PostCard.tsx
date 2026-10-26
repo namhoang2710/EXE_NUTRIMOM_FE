@@ -5,6 +5,7 @@ import { initial, relativeTime } from '../model/community-time'
 import { postStatusLabels, topicLabel } from '../model/community-topics'
 import { CommentsSection } from './CommentsSection'
 import { PostImages } from './PostImages'
+import { brandDisplayName } from '@/shared/model/display-copy'
 
 const COLLAPSE_AT = 420
 
@@ -40,12 +41,13 @@ export const PostCard = memo(function PostCard({ post, highlighted = false, show
   const isPublic = post.status === 'APPROVED' && !inactive
   const long = post.content.length > COLLAPSE_AT
   const text = long && !expanded ? `${post.content.slice(0, COLLAPSE_AT).trimEnd()}…` : post.content
+  const authorName = brandDisplayName(post.author.display_name)
 
-  return <article id={`${idPrefix}-${post.id}`} className={`nm-community-card${highlighted ? ' is-highlighted' : ''}${heartBurst > 0 ? ' is-celebrating' : ''}`} aria-label={`Bài viết của ${post.author.display_name}`}>
+  return <article id={`${idPrefix}-${post.id}`} className={`nm-community-card${highlighted ? ' is-highlighted' : ''}${heartBurst > 0 ? ' is-celebrating' : ''}`} aria-label={`Bài viết của ${authorName}`}>
     <header className="nm-community-card__head">
-      <span className="nm-community-avatar" aria-hidden="true">{initial(post.author.display_name)}</span>
+      <span className="nm-community-avatar" aria-hidden="true">{initial(authorName)}</span>
       <div className="nm-community-card__meta">
-        <strong>{post.author.display_name}</strong>
+        <strong>{authorName}</strong>
         {post.official && <span className="nm-community-official"><SealCheck size={14} weight="fill" aria-hidden />Ban quản trị</span>}
         <span><time dateTime={post.published_at ?? post.created_at}>{relativeTime(post.published_at ?? post.created_at)}</time>{post.edited_at && ' · đã chỉnh sửa'} · {topicLabel(post.topic)}</span>
       </div>

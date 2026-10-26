@@ -43,6 +43,7 @@ const idPattern = '[^/?#]+'
 
 export function adaptDeepLink(deepLink?: string): DeepLinkResult {
   if (!deepLink) return {}
+  if (deepLink === 'nutrimom://reviews/me') return { path: '/app/reviews' }
   const invitationById = deepLink.match(/^nutrimom:\/\/family\/invitations\/([^/?#]+)$/)
   if (invitationById) {
     try {

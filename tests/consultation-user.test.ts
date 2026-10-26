@@ -307,7 +307,7 @@ test('dialogs and toasts expose accessible semantics', async () => {
   assert.match(dialog, /aria-modal="true"/)
   assert.match(cancel, /<AccessibleDialog/)
   assert.match(review, /<Rating rating=\{rating\}[^>]*editable/)
-  assert.match(ratingSource, /role=\{editable \? 'radiogroup' : undefined\}/)
+  assert.match(ratingSource, /role=\{editable \? 'radiogroup' : 'img'\}/)
   assert.match(ratingSource, /aria-label=\{`\$\{i\} sao`\}/)
   assert.match(toast, /aria-live="polite"/)
   assert.match(toast, /role=\{toast\.tone === 'error' \? 'alert' : 'status'\}/)

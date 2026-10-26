@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   BookOpenText,
-  Camera,
   CheckCircle,
   ForkKnife,
   Sparkle,
@@ -171,27 +170,27 @@ export function HomeIntelligence() {
       <div className="homeIntelligence__inner">
         <div className="homeIntelligence__copy">
           <span className="homeIntelligence__eyebrow"><Sparkle size={14} weight="fill" /> AI DINH DƯỠNG CÓ BỐI CẢNH</span>
-          <h2 id="homeIntelligence-title">Không chỉ nhận diện món ăn.<br /><em>AI hiểu mẹ đang cần gì.</em></h2>
-          <p>NutriMom đặt kết quả phân tích bữa ăn bên cạnh tuần thai và hồ sơ cá nhân để gợi ý gần với nhu cầu thực tế hơn.</p>
+          <h2 id="homeIntelligence-title">Thực đơn theo từng chặng.<br /><em>AI đồng hành cùng mẹ.</em></h2>
+          <p>AI tối ưu và gợi ý thực đơn xuyên suốt hành trình của mẹ, dựa trên giai đoạn, hồ sơ và nhu cầu dinh dưỡng cá nhân.</p>
           <ol>
-            <li><span>01</span><div><strong>Chụp hoặc tải ảnh</strong><small>Ghi nhận bữa ăn trong vài giây.</small></div></li>
-            <li><span>02</span><div><strong>Hiểu chất và lượng</strong><small>Nhìn rõ nhóm chất, phần thiếu và xu hướng dư.</small></div></li>
-            <li><span>03</span><div><strong>Nhận gợi ý tiếp theo</strong><small>Điều chỉnh bữa sau nhẹ nhàng, không áp đặt.</small></div></li>
+            <li><span>01</span><div><strong>Hiểu hành trình của mẹ</strong><small>Kết nối giai đoạn, sở thích và hồ sơ dinh dưỡng.</small></div></li>
+            <li><span>02</span><div><strong>Gợi ý thực đơn phù hợp</strong><small>Cân đối nhóm chất cho từng bữa trong ngày.</small></div></li>
+            <li><span>03</span><div><strong>Điều chỉnh cùng mẹ</strong><small>Tối ưu lựa chọn khi nhu cầu của mẹ thay đổi.</small></div></li>
           </ol>
-          <Link className="homeIntelligence__link" to="/services/food-scan-ai">Khám phá AI scan món ăn <ArrowRight size={17} weight="bold" /></Link>
+          <Link className="homeIntelligence__link" to="/services/personalized-guidance">Khám phá gợi ý thực đơn AI <ArrowRight size={17} weight="bold" /></Link>
         </div>
 
-        <div className="homeIntelligence__visual" aria-label="Minh họa luồng phân tích món ăn bằng AI">
+        <div className="homeIntelligence__visual" aria-label="Minh họa gợi ý thực đơn theo hành trình, không phải kết quả cá nhân">
           <div className="homeIntelligence__visualTop"><span><HeartMark /> NutriMom AI</span><small>Thai tuần 24</small></div>
           <div className="homeIntelligence__meal">
-            <span className="homeIntelligence__camera"><Camera size={31} weight="duotone" /></span>
-            <div><small>BỮA TRƯA HÔM NAY</small><strong>Cơm gạo lứt · Cá hồi · Rau xanh</strong></div>
-            <span className="homeIntelligence__score">8.6</span>
+            <span className="homeIntelligence__camera"><ForkKnife size={31} weight="duotone" /></span>
+            <div><small>THỰC ĐƠN GỢI Ý · MINH HỌA</small><strong>Cơm gạo lứt · Cá hồi · Rau xanh</strong></div>
+            <span className="homeIntelligence__score"><CheckCircle size={24} /></span>
           </div>
           <div className="homeIntelligence__nutrients">
-            <div><span>Protein</span><i><b style={{ width: '82%' }} /></i><strong>Tốt</strong></div>
-            <div><span>Chất xơ</span><i><b style={{ width: '56%' }} /></i><strong>Cần thêm</strong></div>
-            <div><span>Sắt</span><i><b style={{ width: '48%' }} /></i><strong>Cần thêm</strong></div>
+            <div><span>Bữa sáng</span><i><b style={{ width: '82%' }} /></i><strong>Yến mạch</strong></div>
+            <div><span>Bữa phụ</span><i><b style={{ width: '56%' }} /></i><strong>Trái cây</strong></div>
+            <div><span>Bữa tối</span><i><b style={{ width: '70%' }} /></i><strong>Rau và đậu</strong></div>
           </div>
           <div className="homeIntelligence__suggestion">
             <ForkKnife size={21} weight="duotone" />
