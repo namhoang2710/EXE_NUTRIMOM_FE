@@ -6,7 +6,7 @@ import { profileRead, seedProfileResource, invalidateProfileResources, requireCu
 import { forConsumer } from '../../../core/api/resource-cache.ts'
 import { createConcurrencyPool } from '../../../core/api/concurrency-pool.ts'
 import { ApiClientError } from '../../../core/api/api-error.ts'
-import type { BirthPlan, CarePlan, CursorPage, Guidance, MedicalRecord, MomDashboard, PartnerDashboard, Pregnancy, PregnancyCalculation, PreparationItem, UploadedFile, UploadSession } from '@/types/domain'
+import type { ActivePregnancy, BirthPlan, CarePlan, CursorPage, Guidance, MedicalRecord, MomDashboard, PartnerDashboard, Pregnancy, PregnancyStatus, PregnancyCalculation, PreparationItem, UploadedFile, UploadSession } from '@/types/domain'
 
 const pregnancyReads = { run: profileRead }
 const binaryReads = createSingleFlight()
@@ -21,11 +21,12 @@ function pregnancyReadKey(resource: string) {
 }
 
 export const pregnancyApi = {
-  current: () => pregnancyReads.run(pregnancyReadKey('current'), () => apiClient.request<Pregnancy>('/pregnancies/current')),
+  current: () => pregnancyReads.run(pregnancyReadKey('current'), () => apiClient.request<ActivePregnancy>('/pregnancies/current')),
+  list: (status?: PregnancyStatus, signal?: AbortSignal) => profileRead(pregnancyReadKey(`list:${status ?? ''}`), () => apiClient.request<Pregnancy[]>(`/pregnancies${status ? `?status=${encodeURIComponent(status)}` : ''}`), signal),
   calculate: (body: Record<string, unknown>) => apiClient.request<PregnancyCalculation>('/pregnancies/calculate', { method: 'POST', body: JSON.stringify(body) }),
   create: async (body: Record<string, unknown>) => {
     const scope = getSessionScope()
-    const created = await apiClient.request<Pregnancy>('/pregnancies', { method: 'POST', body: JSON.stringify(body) })
+    const created = await apiClient.request<ActivePregnancy>('/pregnancies', { method: 'POST', body: JSON.stringify(body) })
     requireCurrentScope(scope)
     invalidateDashboards()
     invalidateProfileResources('pregnancy:')
@@ -41,7 +42,7 @@ export const pregnancyApi = {
     invalidateDashboards()
     invalidateProfileResources('pregnancy:')
     invalidateProfileResources('care:')
-    seedProfileResource('pregnancy:current', updated)
+    if (updated.status === 'ACTIVE') seedProfileResource('pregnancy:current', updated)
     return updated
   },
 }

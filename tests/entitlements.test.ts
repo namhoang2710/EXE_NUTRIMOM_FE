@@ -48,7 +48,7 @@ test('permits renewal and upgrade, prevents buying a lower tier and FREE checkou
 })
 
 test('catalog maps actual prices, durations and quotas without inventing usage', () => {
-  const dto = { ...planDtos[1]!, price: 421000, duration_days: 45 }
+  const dto = { ...planDtos[1]!, price: 421000, duration_days: 45, duration_label: '45 ngày' }
   const mapped = toPricingPlan(dto)
   assert.equal(mapped.amount, 421000)
   assert.equal(mapped.price, '421.000đ')

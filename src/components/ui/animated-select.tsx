@@ -47,6 +47,9 @@ export function AnimatedSelect<T extends string>({
   const openRef = useRef(open)
   openRef.current = open
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, options.findIndex((option) => option.value === value)))
+  const activeIndexRef = useRef(activeIndex)
+  const pendingOpenIndex = useRef<number | null>(null)
+  const menuReady = useRef(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -59,10 +62,13 @@ export function AnimatedSelect<T extends string>({
 
   useEffect(() => {
     if (!open) return
-    const initialIndex = options[selectedIndex]?.disabled ? findEnabledOptionIndex(options, 0, 1) : selectedIndex
+    menuReady.current = true
+    const initialIndex = pendingOpenIndex.current ?? (options[selectedIndex]?.disabled ? findEnabledOptionIndex(options, 0, 1) : selectedIndex)
+    pendingOpenIndex.current = null
+    activeIndexRef.current = initialIndex
     setActiveIndex(initialIndex)
     const frame = window.requestAnimationFrame(() => {
-      optionRefs.current[initialIndex]?.focus()
+      optionRefs.current[activeIndexRef.current]?.focus()
       if (reduceMotion && scrollIntoViewOnOpen) menuRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })
     })
 
@@ -72,6 +78,7 @@ export function AnimatedSelect<T extends string>({
 
     document.addEventListener('pointerdown', closeFromOutside)
     return () => {
+      menuReady.current = false
       window.cancelAnimationFrame(frame)
       document.removeEventListener('pointerdown', closeFromOutside)
     }
@@ -82,6 +89,7 @@ export function AnimatedSelect<T extends string>({
   }, [disabled])
 
   function closeAndReturnFocus() {
+    pendingOpenIndex.current = null
     setOpen(false)
     triggerRef.current?.focus()
   }
@@ -98,16 +106,20 @@ export function AnimatedSelect<T extends string>({
     const normalized = findEnabledOptionIndex(options, (nextIndex + options.length) % options.length, direction)
     if (normalized < 0) return
     setActiveIndex(normalized)
+    activeIndexRef.current = normalized
     optionRefs.current[normalized]?.focus()
   }
 
   function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
     event.preventDefault()
-    if (event.key === 'Home') setActiveIndex(findEnabledOptionIndex(options, 0, 1))
-    else if (event.key === 'End') setActiveIndex(findEnabledOptionIndex(options, options.length - 1, -1))
-    else if (event.key === 'ArrowUp') setActiveIndex(findEnabledOptionIndex(options, selectedIndex - 1, -1))
-    else setActiveIndex(findEnabledOptionIndex(options, selectedIndex + 1, 1))
+    const nextIndex = event.key === 'Home' ? findEnabledOptionIndex(options, 0, 1)
+      : event.key === 'End' ? findEnabledOptionIndex(options, options.length - 1, -1)
+        : findEnabledOptionIndex(options, selectedIndex + (event.key === 'ArrowUp' ? -1 : 1), event.key === 'ArrowUp' ? -1 : 1)
+    pendingOpenIndex.current = menuReady.current ? null : nextIndex
+    activeIndexRef.current = nextIndex
+    setActiveIndex(nextIndex)
+    if (open) optionRefs.current[nextIndex]?.focus()
     setOpen(true)
   }
 
@@ -181,7 +193,7 @@ export function AnimatedSelect<T extends string>({
                   disabled={option.disabled}
                   className={cn('nm-animated-select-option', index === activeIndex && 'is-focused', option.disabled && 'is-disabled')}
                   onClick={() => choose(option)}
-                  onFocus={() => setActiveIndex(index)}
+                  onFocus={() => { activeIndexRef.current = index; setActiveIndex(index) }}
                   onKeyDown={(event) => handleOptionKeyDown(event, index)}
                 >
                   <span className="nm-animated-select-option-copy"><span>{option.label}</span>{option.description && <small>{option.description}</small>}</span>

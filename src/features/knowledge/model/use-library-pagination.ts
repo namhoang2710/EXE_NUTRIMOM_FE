@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { usePaymentCooldown } from '@/features/payment/hooks/usePaymentCooldown'
 import { knowledgeApi } from '../api/knowledge-api'
 import { mapArticleSummaryToCard } from './article-adapters'
 import type { ArticleCardViewModel } from './article-types'
@@ -12,6 +13,7 @@ const emptyPage: ArticlePageDto<ArticleCardViewModel> = {
 }
 
 export function useLibraryPagination() {
+  const { handleRateLimit, remaining } = usePaymentCooldown('knowledge-library')
   const [searchParams, setSearchParams] = useSearchParams()
   const query = useMemo(() => readLibraryQuery(searchParams.toString()), [searchParams])
   const requestKey = JSON.stringify(query)
@@ -36,11 +38,12 @@ export function useLibraryPagination() {
       }
     }).catch((reason: unknown) => {
       if (controller.signal.aborted) return
+      handleRateLimit(reason)
       setError(reason instanceof Error ? reason.message : 'Không thể tải bài viết.')
       setLoadedKey(requestKey)
     })
     return () => controller.abort()
-  }, [query, requestKey, retry, searchParams, setSearchParams])
+  }, [query, requestKey, retry, searchParams, setSearchParams, handleRateLimit])
 
   const updateFilter = useCallback(<K extends keyof BlogFilters>(name: K, value: BlogFilters[K]) => {
     setSearchParams((current) => updateLibrarySearch(current, name, value), { replace: true })
@@ -64,10 +67,11 @@ export function useLibraryPagination() {
   }, [setSearchParams])
 
   const retryLoad = useCallback(() => {
+    if (remaining > 0) return
     setError('')
     setLoadedKey('')
     setRetry((value) => value + 1)
-  }, [])
+  }, [remaining])
 
-  return { query, pagination: response, loading, error, updateFilter, resetFilters, changePage, retryLoad }
+  return { query, pagination: response, loading, error, updateFilter, resetFilters, changePage, retryLoad, retryIn: remaining }
 }

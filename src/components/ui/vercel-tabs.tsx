@@ -99,7 +99,7 @@ const Tabs = forwardRef<HTMLDivElement, TabsProps>(
                 else tabRefs.current.delete(tab.id)
               },
               className: cn('vercel-tabs-trigger', selected && 'is-active'),
-              onPointerEnter: () => setHoveredId(tab.id),
+              onPointerEnter: (event: React.PointerEvent) => { if (event.pointerType === 'mouse') setHoveredId(tab.id) },
               onPointerLeave: () => setHoveredId(null),
               onFocus: () => setFocusedId(tab.id),
               onBlur: () => setFocusedId(null),

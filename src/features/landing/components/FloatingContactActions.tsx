@@ -1,5 +1,7 @@
 import { EnvelopeSimple, InstagramLogo, MapPin, Phone } from '@phosphor-icons/react'
 import { nutrimomContact, nutrimomSocials } from '../../../shared/config/contact'
+import { useEffect, useState } from 'react'
+import { useFloatingObstruction } from '@/shared/hooks/useFloatingObstruction'
 
 interface FloatingContactActionsProps {
   visible: boolean
@@ -34,11 +36,21 @@ const contactActions = [
 ] as const
 
 export function FloatingContactActions({ visible }: FloatingContactActionsProps) {
+  const blocked = useFloatingObstruction()
+  const [footerVisible, setFooterVisible] = useState(false)
+  useEffect(() => {
+    const footer = document.querySelector('.landing-footer')
+    if (!footer) return
+    const observer = new IntersectionObserver(([entry]) => setFooterVisible(entry.isIntersecting), { rootMargin: '24px' })
+    observer.observe(footer)
+    return () => observer.disconnect()
+  }, [])
+  const shown = visible && !blocked && !footerVisible
   return (
     <nav
-      className={`floating-contact-actions${visible ? ' is-visible' : ''}`}
+      className={`floating-contact-actions${shown ? ' is-visible' : ''}`}
       aria-label="Liên hệ nhanh"
-      aria-hidden={!visible}
+      aria-hidden={!shown}
     >
       {contactActions.map((action) => (
         <a
@@ -47,7 +59,7 @@ export function FloatingContactActions({ visible }: FloatingContactActionsProps)
           key={action.label}
           title={action.label}
           aria-label={action.label}
-          tabIndex={visible ? 0 : -1}
+          tabIndex={shown ? 0 : -1}
           target={'external' in action && action.external ? '_blank' : undefined}
           rel={'external' in action && action.external ? 'noopener noreferrer' : undefined}
         >

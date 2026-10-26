@@ -4,16 +4,19 @@ import { familyErrorMessage, isFamilyError } from '../model/family-errors'
 import { waitForFamilyLoading } from '../model/family-loading'
 import type { ActivityEvent } from '../model/family-types'
 import { activityFeedNextState } from '../model/family-requests'
+import { getSessionScope } from '@/core/auth/token-store'
+import { requireCurrentScope } from '@/core/api/profile-requests'
 
 const activityRequests = new Map<string, Promise<Awaited<ReturnType<typeof familyApi.activity>>>>()
 
 function requestActivityPage(cursor?: string) {
-  const key = cursor || '__first__'
+  const scope = getSessionScope()
+  const key = JSON.stringify([scope, cursor || '__first__'])
   const existing = activityRequests.get(key)
   if (existing) return existing
-  const request = familyApi.activity(cursor)
+  const request = familyApi.activity(cursor).then((page) => { requireCurrentScope(scope); return page })
   activityRequests.set(key, request)
-  void request.finally(() => { window.setTimeout(() => activityRequests.delete(key), 0) }).catch(() => undefined)
+  void request.finally(() => { window.setTimeout(() => { if (activityRequests.get(key) === request) activityRequests.delete(key) }, 0) }).catch(() => undefined)
   return request
 }
 export function useActivityFeed(enabled: boolean) {

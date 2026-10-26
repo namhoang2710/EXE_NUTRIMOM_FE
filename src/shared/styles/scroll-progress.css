@@ -77,10 +77,10 @@
   outline-offset: 4px;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 700px) {
   .scroll-progress-button {
     right: 14px;
-    bottom: 16px;
+    bottom: calc(16px + var(--mobile-dock-clearance, env(safe-area-inset-bottom, 0px)));
     width: 56px;
     height: 56px;
   }

@@ -9,6 +9,7 @@ export interface AuthContextValue {
   user: User | null
   profile: UserProfile | null
   profileError: string | null
+  logoutRedirect: { locationKey: string; to: '/login' | '/' } | null
   reloadProfile: () => Promise<UserProfile>
   updateProfile: (body: ProfilePatch) => Promise<UserProfile>
   login: (payload: LoginInput) => Promise<User>
@@ -20,7 +21,7 @@ export interface AuthContextValue {
   requestMagicLink: (email: string) => Promise<{ sent: boolean; message: string; debug_link?: string; debug_code?: string }>
   verifyMagicLink: (tokenOrCode: string, email?: string) => Promise<User>
   refresh: () => Promise<void>
-  logout: () => Promise<void>
+  logout: (destination?: '/login' | '/') => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

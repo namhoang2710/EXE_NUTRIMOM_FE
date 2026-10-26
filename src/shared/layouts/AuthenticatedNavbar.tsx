@@ -1,6 +1,6 @@
 import { CaretDown, List, X } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { AnimatedTabs, type AnimatedTab } from '@/components/ui/animated-tabs'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
@@ -26,7 +26,6 @@ export function AuthenticatedNavbar() {
     movement: 0,
     visible: true,
   })
-  const navigate = useNavigate()
   const location = useLocation()
   useEffect(() => {
     function onPointer(event: PointerEvent) {
@@ -97,7 +96,6 @@ export function AuthenticatedNavbar() {
       /* The local session is cleared even if the server is unavailable. */
     } finally {
       setBusy(false)
-      navigate('/login', { replace: true })
     }
   }
   const name =
@@ -106,7 +104,7 @@ export function AuthenticatedNavbar() {
     location.pathname === '/app/contact' ||
     location.pathname === '/app/experts' ||
     location.pathname.startsWith('/app/consultations')
-  const personalActive = ['/app/pricing', '/app/family', '/app/nutrition'].some(
+  const personalActive = ['/app/pricing', '/app/payment-history', '/app/family', '/app/nutrition'].some(
     (path) => location.pathname.startsWith(path),
   )
   const activeNavigation = guideActive
@@ -231,7 +229,7 @@ export function AuthenticatedNavbar() {
             <div
               className={`nm-guide-dropdown${personalOpen ? ' is-open' : ''}`}
               id="nm-personal-dropdown"
-              aria-hidden={!personalOpen}
+              inert={!personalOpen}
             >
               <Link
                 to="/app/pricing#pricing"
@@ -239,6 +237,9 @@ export function AuthenticatedNavbar() {
                 onClick={closeNavigation}
               >
                 Bảng giá
+              </Link>
+              <Link to="/app/payment-history" tabIndex={personalOpen ? 0 : -1} onClick={closeNavigation}>
+                Lịch sử giao dịch
               </Link>
               <Link
                 to="/app/family"
@@ -311,7 +312,7 @@ export function AuthenticatedNavbar() {
             <div
               className={`nm-guide-dropdown${guideOpen ? ' is-open' : ''}`}
               id="nm-guide-dropdown"
-              aria-hidden={!guideOpen}
+              inert={!guideOpen}
             >
               <Link
                 to="/app/contact"
@@ -368,7 +369,7 @@ export function AuthenticatedNavbar() {
             <div
               className={`nm-account-dropdown${accountOpen ? ' is-open' : ''}`}
               id="nm-account-dropdown"
-              aria-hidden={!accountOpen}
+              inert={!accountOpen}
             >
               <Link
                 to="/app/profile/health"

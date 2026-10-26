@@ -3,13 +3,15 @@ import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { createServer, preview as previewServer } from 'vite'
 const require = createRequire(import.meta.url)
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const engines = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const output =
   process.env.NUTRITION_QA_OUTPUT || 'qa-artifacts/nutrition-redesign'
 await mkdir(output, { recursive: true })
 const production = process.env.NUTRITION_QA_MODE === 'production'
 const port = Number(process.env.NUTRITION_QA_PORT || 5195)
 const viteOptions = {
+  // Concurrent QA servers must not invalidate each other's optimized dependency URLs.
+  cacheDir: `node_modules/.vite-qa-${port}`,
   server: {
     host: '127.0.0.1',
     port,
@@ -26,7 +28,21 @@ const runtimeServer = production
   : await createServer(viteOptions)
 if (!production) await runtimeServer.listen()
 const server = runtimeServer
-const browser = await chromium.launch({ channel: 'chrome', headless: true })
+// A real open SSE response keeps layout/resize tests from measuring fixture EOF reconnects.
+server.middlewares.use('/__qa/admin-realtime', (request, response) => {
+  response.setHeader('Access-Control-Allow-Origin', '*')
+  response.setHeader('Access-Control-Allow-Headers', 'Authorization, Accept-Language, X-Device-Id, X-Request-Id')
+  if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return }
+  response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' })
+  response.write(`event: ready\ndata: ${JSON.stringify({ protocol_version:1, admin_user_id:'nutrition-account-a', dashboard_revision:'0', notifications_revision:'0', unread_count:0 })}\n\n`)
+  const heartbeat = setInterval(() => response.write('event: heartbeat\ndata: {"protocol_version":1}\n\n'), 15_000)
+  response.on('close', () => clearInterval(heartbeat))
+})
+// Register before Vite's SPA fallback, including when using previewServer.
+const sseLayer = server.middlewares.stack.pop()
+server.middlewares.stack.unshift(sseLayer)
+const engine = process.env.NUTRIMOM_QA_BROWSER || 'chromium'
+const browser = await engines[engine].launch({ ...(engine === 'chromium' ? { channel: 'chrome', ...(process.env.NUTRIMOM_QA_FAKE_MEDIA === '1' ? { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] } : {}) } : {}), headless: true })
 const passed = [],
   unexpected = [],
   pageErrors = [],

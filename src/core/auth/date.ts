@@ -1,15 +1,12 @@
-export function todayDate() {
-  const now = new Date()
-  const offset = now.getTimezoneOffset() * 60_000
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
-}
+import { formatVietnamDate, isCalendarDate, vietnamDate } from '../date-time/vietnam.ts'
+
+export function todayDate(now = new Date()) { return vietnamDate(now) }
 
 export function isDateOnly(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00`))
+  return isCalendarDate(value)
 }
 
 export function formatDate(value?: string | null) {
   if (!value) return 'Chưa cập nhật'
-  const date = new Date(value.includes('T') ? value : `${value}T00:00:00`)
-  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+  return formatVietnamDate(value) || 'Chưa cập nhật'
 }

@@ -1,6 +1,6 @@
 import { ArrowRight, EnvelopeSimple, Phone, User } from '@phosphor-icons/react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { FormField } from '@/shared/components/FormField'
 import { PasswordField } from '@/shared/components/PasswordField'
@@ -12,6 +12,7 @@ import { mapRegisterFieldErrors, registerFieldError, type RegisterFormValues } f
 import { activateOnce } from '../model/activation-request'
 import { authenticatedDestination } from '../model/role-routing'
 import { getStoredTrafficSource } from '@/core/analytics/traffic-tracker'
+import { usePasswordCooldown } from '../hooks/usePasswordCooldown'
 
 type RegisterForm = RegisterFormValues
 
@@ -43,9 +44,14 @@ export function RegisterPage() {
   const [countdown, setCountdown] = useState(0)
   const [resending, setResending] = useState(false)
   const [resendStatus, setResendStatus] = useState<string | null>(null)
+  const resendGate = useRef(false), submitGate = useRef(false)
+  const emailWait = usePasswordCooldown('email-send'), verifyWait = usePasswordCooldown('code-verify')
+  const resendWait = Math.max(countdown, emailWait)
 
   const { register, resendActivation, activateAccount } = useAuth()
   const navigate = useNavigate()
+  // Đường dẫn đích (vd. Cộng đồng) do trang trước gửi; authenticatedDestination chỉ nhận đường dẫn nội bộ /app.
+  const returnTo = (useLocation().state as { from?: unknown } | null)?.from
 
   useEffect(() => {
     if (countdown <= 0) return
@@ -56,7 +62,8 @@ export function RegisterPage() {
   }, [countdown])
 
   async function handleResend() {
-    if (!form.email || resending || countdown > 0) return
+    if (!form.email || resendGate.current || resendWait > 0) return
+    resendGate.current = true
     setResending(true)
     setActivationError('')
     try {
@@ -67,18 +74,19 @@ export function RegisterPage() {
       setResendStatus(null)
       setActivationError(err instanceof ApiClientError ? err.serverMessage || err.message : 'Không thể gửi lại mã kích hoạt. Vui lòng thử lại sau.')
     } finally {
+      resendGate.current = false
       setResending(false)
     }
   }
 
   async function handleActivate(codeToVerify: string) {
-    if (!/^\d{6}$/.test(codeToVerify) || activationInFlight.current) return
+    if (!/^\d{6}$/.test(codeToVerify) || activationInFlight.current || verifyWait > 0) return
     activationInFlight.current = true
     setActivating(true)
     setActivationError('')
     try {
       const user = await activateOnce(codeToVerify, form.email.trim(), () => activateAccount(codeToVerify, form.email.trim()))
-      navigate(authenticatedDestination(user), { replace: true })
+      navigate(authenticatedDestination(user, undefined, returnTo), { replace: true })
     } catch (err) {
       if (err instanceof ApiClientError) {
         setActivationError(err.serverMessage || err.message || 'Mã xác thực kích hoạt không chính xác hoặc đã hết hạn.')
@@ -110,7 +118,7 @@ export function RegisterPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (submitting) return
+    if (submitGate.current) return
     setError('')
     const nextErrors: Record<string, string> = {}
     const trimmedDisplayName = form.displayName.trim()
@@ -126,7 +134,7 @@ export function RegisterPage() {
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    setSubmitting(true)
+    submitGate.current = true; setSubmitting(true)
     try {
       await register({
         displayName: trimmedDisplayName,
@@ -155,6 +163,7 @@ export function RegisterPage() {
         setFieldErrors(errors)
       }
     } finally {
+      submitGate.current = false
       setSubmitting(false)
     }
   }
@@ -230,10 +239,10 @@ export function RegisterPage() {
             className={`primary-button${activating ? ' is-loading' : ''}`}
             type="button"
             onClick={() => void handleActivate(otpCode)}
-            disabled={activating || otpCode.length < 6}
+            disabled={activating || otpCode.length < 6 || verifyWait > 0}
             style={{ width: '100%' }}
           >
-            <span>{activating ? 'Đang kích hoạt...' : 'Kích hoạt & Đăng nhập'}</span>
+            <span>{activating ? 'Đang kích hoạt...' : verifyWait > 0 ? `Thử lại sau ${verifyWait}s` : 'Kích hoạt & Đăng nhập'}</span>
             {!activating && <ArrowRight size={20} weight="bold" />}
           </button>
 
@@ -243,9 +252,9 @@ export function RegisterPage() {
                 {resendStatus}
               </p>
             )}
-            {countdown > 0 ? (
+            {resendWait > 0 ? (
               <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-                Gửi lại mã sau <strong>{countdown}s</strong>
+                Gửi lại mã sau <strong>{resendWait}s</strong>
               </span>
             ) : (
               <button
@@ -269,7 +278,7 @@ export function RegisterPage() {
       title="Tạo tài khoản NutriMom"
       error={error}
       subtitle="Bắt đầu hồ sơ chăm sóc thai kỳ của bạn chỉ trong vài phút."
-      footer={<p>Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>}
+      footer={<p>Đã có tài khoản? <Link to="/login" state={returnTo ? { from: returnTo } : undefined}>Đăng nhập</Link></p>}
       panelVariant="register"
       showHomeLink
     >

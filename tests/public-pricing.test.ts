@@ -36,7 +36,7 @@ test('keeps the plan-specific benefits and cadence from the public contract', ()
   assert.equal(basic.features.find((feature) => feature.label === 'Lịch nhắc nhở')?.included, true)
   assert.equal(basic.features.find((feature) => feature.label === 'Gợi ý cá nhân toàn diện')?.included, true)
   assert.equal(comprehensive.features.find((feature) => feature.label === 'Liên kết gia đình')?.included, true)
-  assert.equal(comprehensive.cadence, '30 ngày')
+  assert.equal(comprehensive.cadence, '10 tháng')
 })
 
 test('sends every anonymous plan CTA through login while preserving its destination', () => {

@@ -139,7 +139,7 @@ async function request<T>(path: string, options: ApiRequestOptions = {}, mode: '
     logDiagnostic({ level: 'error', category: 'api', event: 'network_failure', method, route_template: routeTemplate, client_request_id: clientRequestId, duration_ms: Date.now() - startedAt, reason: error instanceof Error ? error.name : 'unknown' })
     throw new ApiClientError(0, {
       code: ErrorCodes.networkError,
-      message: 'Không kết nối được backend. Hãy kiểm tra Spring Boot đang chạy ở cổng 8080.',
+      message: 'Không kết nối được máy chủ NutriMom. Vui lòng kiểm tra kết nối và thử lại sau.',
       retryable: true,
     })
   }

@@ -1,7 +1,8 @@
 import { profileRead, requireCurrentScope } from '../../../core/api/profile-requests.ts'
 import { apiClient, setRefreshHandler } from '../../../core/api/api-client.ts'
-import { ApiClientError } from '../../../core/api/api-error.ts'
+import { ApiClientError, isAuthenticationError } from '../../../core/api/api-error.ts'
 import { ErrorCodes } from '../../../core/api/error-code.ts'
+import { publicAuthRequest } from './password-api.ts'
 import { getDeviceId } from '../../../core/auth/device.ts'
 import { clearSession, getSession, getSessionScope, saveApiSession } from '../../../core/auth/token-store.ts'
 import type {
@@ -59,7 +60,9 @@ async function performRefresh() {
     requireCurrentScope(scope)
     return saveApiSession(response, true)
   } catch (error) {
-    if (getSession() === current) clearSession()
+    const rejectedSession = isAuthenticationError(error)
+      || (error instanceof ApiClientError && (error.status === 403 || error.code === 'INVALID_REFRESH_TOKEN'))
+    if (getSession() === current && rejectedSession) clearSession()
     throw error
   }
 }
@@ -148,67 +151,49 @@ async function me(): Promise<User> {
 }
 
 async function logout() {
-  const scope = getSessionScope()
   const current = getSession()
-  try {
-    if (current?.refreshToken) {
-      await apiClient.request<{ logged_out: boolean }>('/auth/logout', {
-        method: 'POST',
-        authenticated: false,
-        retryAfterRefresh: false,
-        body: JSON.stringify({ refresh_token: current.refreshToken }),
-      })
-    }
-  } finally {
-    if (scope === getSessionScope()) clearSession()
+  // Local logout is immediate, even when remote token revocation is slow or fails.
+  // Its eventual response must not clear a session accepted in the meantime.
+  clearSession()
+  if (current?.refreshToken) {
+    await apiClient.request<{ logged_out: boolean }>('/auth/logout', {
+      method: 'POST',
+      authenticated: false,
+      retryAfterRefresh: false,
+      body: JSON.stringify({ refresh_token: current.refreshToken }),
+    })
   }
 }
 
 async function requestMagicLink(email: string, deviceId?: string) {
-  return apiClient.request<{ sent: boolean; message: string; debug_link?: string; debug_code?: string }>('/auth/magic-link/request', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  return publicAuthRequest<{ sent: boolean; message: string; debug_link?: string; debug_code?: string }>('email-send', '/auth/magic-link/request', {
       email: email.trim(),
       device_id: deviceId || getDeviceId(),
-    }),
   })
 }
 
 async function verifyMagicLink(tokenOrCode: string, deviceId?: string, email?: string) {
-  const response = await apiClient.request<AuthResponseDto>('/auth/magic-link/verify', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  const response = await publicAuthRequest<AuthResponseDto>('code-verify', '/auth/magic-link/verify', {
       token: tokenOrCode.trim(),
       code: tokenOrCode.trim(),
       email: email ? email.trim() : undefined,
       device_id: deviceId || getDeviceId(),
-    }),
   })
   return saveApiSession(response)
 }
 
 async function activateAccount(token: string, email?: string, deviceId?: string) {
-  const response = await apiClient.request<AuthResponseDto>('/auth/activate', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  const response = await publicAuthRequest<AuthResponseDto>('code-verify', '/auth/activate', {
       token: token.trim(),
       email: email ? email.trim() : undefined,
       device_id: deviceId || getDeviceId(),
-    }),
   })
   return saveApiSession(response)
 }
 
 async function resendActivation(email: string) {
-  return apiClient.request<{ sent: boolean; message: string }>('/auth/resend-activation', {
-    method: 'POST',
-    authenticated: false,
-    body: JSON.stringify({
+  return publicAuthRequest<{ sent: boolean; message: string }>('email-send', '/auth/resend-activation', {
       email: email.trim(),
-    }),
   })
 }
 

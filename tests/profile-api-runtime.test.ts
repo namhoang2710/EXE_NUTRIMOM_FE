@@ -25,7 +25,7 @@ const { profileRead, invalidateProfileResources } = await import('../src/core/ap
 const { env } = await import('../src/core/config/env.ts')
 const { userApi } = await import('../src/features/user/api/user-api.ts')
 const { authApi } = await import('../src/features/auth/api/auth-api.ts')
-const { filesApi, recordsApi, sha256, uploadContent } = await import('../src/features/maternity/api/domain-api.ts')
+const { filesApi, recordsApi, pregnancyApi, sha256, uploadContent } = await import('../src/features/maternity/api/domain-api.ts')
 const { clearDiagnosticEvents, getDiagnosticEvents } = await import('../src/core/diagnostics/logger.ts')
 
 function response(user = 'u1', access = 'secret-jwt'): AuthResponseDto {
@@ -212,4 +212,64 @@ test('foreign-user and storage errors are surfaced', async () => {
 
 test('SHA-256 uses actual bytes rather than metadata', async () => {
   assert.equal(await sha256(new File(['abc'], 'synthetic.pdf', { type: 'application/pdf' })), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+})
+
+test('pregnancy history coalesces reads, is cached by status and is isolated across accounts', async () => {
+  reset(); const calls: string[] = []
+  globalThis.fetch = (async (url: RequestInfo | URL) => { calls.push(String(url)); return json([{ id: 'closed', status: 'COMPLETED' }]) }) as typeof fetch
+  const [first, second] = await Promise.all([pregnancyApi.list(), pregnancyApi.list()])
+  assert.deepEqual(first, second)
+  await pregnancyApi.list()
+  assert.equal(calls.length, 1)
+  assert.ok(calls[0].endsWith('/pregnancies'))
+  await pregnancyApi.list('COMPLETED')
+  assert.ok(calls[1].endsWith('/pregnancies?status=COMPLETED'))
+  saveApiSession(response('another-mom'))
+  await pregnancyApi.list()
+  assert.equal(calls.length, 3)
+})
+
+test('closing a pregnancy invalidates history and never seeds it as current', async () => {
+  reset(); let historyReads = 0, currentReads = 0
+  globalThis.fetch = (async (url: RequestInfo | URL, options?: RequestInit) => {
+    if (options?.method === 'PATCH') return json({ id: 'old', status: 'COMPLETED', version: 1 })
+    if (String(url).endsWith('/current')) { currentReads += 1; return json({ code: 'RESOURCE_NOT_FOUND', message: 'No active pregnancy' }, 404) }
+    historyReads += 1; return json([{ id: 'old', status: 'ACTIVE' }])
+  }) as typeof fetch
+  await pregnancyApi.list()
+  await pregnancyApi.update('old', { status: 'COMPLETED', version: 0 })
+  await pregnancyApi.list()
+  await assert.rejects(pregnancyApi.current(), /No active pregnancy/)
+  assert.equal(historyReads, 2); assert.equal(currentReads, 1)
+})
+
+test('historical record mutations invalidate all-pregnancy and that pregnancy lists', async () => {
+  reset(); const reads: string[] = []
+  globalThis.fetch = (async (url: RequestInfo | URL, options?: RequestInit) => {
+    if (options?.method === 'DELETE') return new Response(null, { status: 204 })
+    if (options?.method === 'PATCH') return json({ id: 'historical-record', pregnancy_id: 'old', version: 1 })
+    reads.push(String(url)); return json({ items: [], has_more: false })
+  }) as typeof fetch
+  const load = () => Promise.all([recordsApi.list('?limit=12'), recordsApi.list('?pregnancy_id=old'), recordsApi.list('?pregnancy_id=current')])
+  await load(); assert.equal(reads.length, 3)
+  await recordsApi.update('historical-record', { version: 0 })
+  await load(); assert.equal(reads.length, 5)
+  await recordsApi.remove('historical-record', 'old')
+  await load(); assert.equal(reads.length, 7)
+  assert.equal(reads.filter((path) => path.endsWith('pregnancy_id=current')).length, 1)
+})
+
+test('records 429 respects Retry-After across filters without an automatic retry', async () => {
+  reset(); let calls = 0
+    globalThis.fetch = (async () => {
+      calls += 1
+      return calls === 1 ? new Response(JSON.stringify({ error: { code: 'RATE_LIMITED', message: 'Chờ rồi thử lại' } }), { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '1' } }) : json({ items: [] })
+    }) as typeof fetch
+    await assert.rejects(recordsApi.list('?limit=12'), (reason: unknown) => reason instanceof Error && 'retryAfterMs' in reason && reason.retryAfterMs === 1000)
+    await assert.rejects(recordsApi.list('?pregnancy_id=old'), (reason: unknown) => reason instanceof Error && 'status' in reason && reason.status === 429)
+    assert.equal(calls, 1)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    assert.equal(calls, 1)
+    await recordsApi.list('?pregnancy_id=old')
+    assert.equal(calls, 2)
 })

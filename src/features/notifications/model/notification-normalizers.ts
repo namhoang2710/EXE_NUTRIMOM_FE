@@ -1,5 +1,6 @@
 import type { NotificationAudience, NotificationCategory, NotificationItem, NotificationPage, NotificationType } from './notification-types.ts'
 import { logDiagnostic } from '../../../core/diagnostics/logger.ts'
+import { compactNotificationBody } from '../../../shared/model/display-copy.ts'
 
 type JsonRecord = Record<string, unknown>
 
@@ -39,7 +40,7 @@ export function normalizeNotificationItem(value: unknown): NotificationItem | un
     id,
     type,
     title,
-    body,
+    body: compactNotificationBody(body),
     created_at: createdAt,
     ...(['USER', 'ADMIN'].includes(item.audience as string) ? { audience: item.audience as NotificationAudience } : {}),
     ...(['ACCOUNT', 'PAYMENT', 'APPOINTMENT', 'SUPPORT', 'GENERAL'].includes(item.category as string) ? { category: item.category as NotificationCategory } : {}),

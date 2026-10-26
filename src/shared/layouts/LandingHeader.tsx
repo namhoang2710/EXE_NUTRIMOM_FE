@@ -13,12 +13,13 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Tabs } from '@/components/ui/vercel-tabs'
-import { ThemeToggle } from '../components/ThemeToggle'
 import { landingNavigation } from './landing-navigation'
+import { useMotionActivity } from '../hooks/useMotionActivity'
 
 const navigationTabs = landingNavigation.map(item => ({ id: item.to, label: item.label, to: item.to }))
 
 export function LandingHeader() {
+  const motionRef = useMotionActivity<HTMLElement>()
   const { pathname } = useLocation()
   const activeTab = landingNavigation.find(item => item.to === '/'
     ? pathname === '/'
@@ -29,7 +30,7 @@ export function LandingHeader() {
   const menuToggle = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    const viewport = window.matchMedia('(max-width: 960px)')
+    const viewport = window.matchMedia('(max-width: 1120px)')
     function closeDesktopMenu() {
       if (!viewport.matches) setMenuOpen(false)
     }
@@ -81,7 +82,7 @@ export function LandingHeader() {
   }, [menuOpen])
 
   return (
-    <header className={`landing-header${headerHidden ? ' is-hidden' : ''}`} onFocusCapture={() => setHeaderHidden(false)}>
+    <header ref={motionRef} className={`landing-header${headerHidden ? ' is-hidden' : ''}`} onFocusCapture={() => setHeaderHidden(false)}>
       <div className="nutrimom-floating-decorations" aria-hidden="true">
         <span className="nutrimom-floating-decoration is-star-four">
           <StarFour size={18} weight="fill" />
@@ -124,7 +125,6 @@ export function LandingHeader() {
           <Link className="landing-account-button" to="/login" aria-label="Đăng nhập" title="Đăng nhập">
             <UserCircle weight="fill" aria-hidden="true" />
           </Link>
-          <ThemeToggle />
           <button
             ref={menuToggle}
             className="landing-menu-toggle"

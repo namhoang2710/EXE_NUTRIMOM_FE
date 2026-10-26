@@ -1,7 +1,6 @@
 import { CaretDown, List, SignOut } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { AdminGreeting } from './AdminGreeting'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
@@ -12,7 +11,6 @@ import { adminNotificationIcon, adminNotificationLabel } from './AdminNotificati
 import { dateTime } from '../model/admin-workspace-formatters'
 export function AdminTopbar({ onMenuOpen,bellOpen,setBellOpen }: { onMenuOpen:() => void; bellOpen:boolean; setBellOpen:(value:boolean | ((current:boolean) => boolean)) => void }) {
   const { user,logout,status } = useAuth()
-  const navigate = useNavigate()
   const [profileOpen,setProfileOpen] = useState(false)
   const [loggingOut,setLoggingOut] = useState(false)
   const reducedMotion = useReducedMotion()
@@ -26,7 +24,7 @@ export function AdminTopbar({ onMenuOpen,bellOpen,setBellOpen }: { onMenuOpen:()
     document.addEventListener('pointerdown',close); document.addEventListener('keydown',key)
     return () => { document.removeEventListener('pointerdown',close); document.removeEventListener('keydown',key) }
   },[profileOpen])
-  async function signOut() { if (loggingOut) return; setLoggingOut(true); try { await logout(); navigate('/login',{ replace:true }) } finally { setLoggingOut(false) } }
+  async function signOut() { if (loggingOut) return; setLoggingOut(true); try { await logout() } catch { /* Local logout already completed. */ } finally { setLoggingOut(false) } }
   return <header className="admin-topbar"><button className="admin-menu-button" type="button" onClick={onMenuOpen} aria-label="Mở điều hướng" aria-controls="admin-sidebar"><List size={22} /></button>
     <AdminGreeting />
     <div className="admin-topbar-actions"><ThemeToggle /><div><NotificationBellView panelClassName="admin-notification-panel" loadOnOpen={false} open={bellOpen} setOpen={setBellOpen} allPath="/admin/notifications" itemLabel={adminNotificationLabel} itemIcon={adminNotificationIcon} formatTime={dateTime} authenticated={!feed.accessDenied && status === 'authenticated' && Boolean(user?.roles.includes('ADMIN'))} feed={feed} pending={feed.mutationPending} adaptLink={(link) => adaptAdminNotificationLink(link,status === 'authenticated' && Boolean(user?.roles.includes('ADMIN')))} />{feed.stale && <span className="admin-count-stale" role="status" title="Số thông báo chưa đọc chưa được cập nhật." aria-label="Số thông báo chưa đọc chưa được cập nhật.">!</span>}</div>

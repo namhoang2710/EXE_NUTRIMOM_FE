@@ -100,7 +100,7 @@ test('datetime-local converts correctly in UTC and Vietnam, including date bound
   const script = `import { localDateTimeToUtc } from ${JSON.stringify(helperUrl)};
     console.log(JSON.stringify(${JSON.stringify(values)}.map(localDateTimeToUtc)));`
   const cases = [
-    { timeZone: 'UTC', expected: ['2099-10-03T08:30:00.000Z', '2099-10-03T00:15:00.000Z'] },
+    { timeZone: 'UTC', expected: ['2099-10-03T01:30:00.000Z', '2099-10-02T17:15:00.000Z'] },
     { timeZone: 'Asia/Ho_Chi_Minh', expected: ['2099-10-03T01:30:00.000Z', '2099-10-02T17:15:00.000Z'] },
   ]
 
@@ -133,6 +133,7 @@ test('repeat validation enforces interval, weekly days, six times, and until bou
   assert.ok(errors.days_of_week)
   assert.ok(errors.times_of_day)
   assert.ok(errors.until)
+  assert.equal(validateReminderForm({ ...form, repeatMode: 'NONE', until: '2020-01-01' }, new Date('2026-01-01T00:00:00Z')).until, undefined, 'A hidden repeat end date must not block a one-time reminder')
 })
 
 test('PATCH always includes version and emits clear flags rather than null', () => {
@@ -162,8 +163,8 @@ test('occurrence API sends the event starts_at verbatim and conflict UI refetche
   const api = await readFile(new URL('../src/features/calendar/api/calendar-api.ts', import.meta.url), 'utf8')
   const dialog = await readFile(new URL('../src/features/calendar/components/ReminderDialog.tsx', import.meta.url), 'utf8')
   assert.match(api, /occurrencePayload\(occurrenceAt, status\)/)
-  assert.match(dialog, /VERSION_CONFLICT[^]*calendarApi\.reminder\(detail\.id\)/)
-  assert.match(dialog, /Dữ liệu đã thay đổi, vui lòng tải lại/)
+  assert.match(dialog, /calendarApi\.refreshReminder\(detail\.id\)/)
+  assert.match(dialog, /Bản nháp được giữ nguyên/)
 })
 
 test('occurrence payload preserves starts_at and serializes DONE, SKIPPED, and undo exactly', () => {
@@ -332,7 +333,7 @@ test('deep-link adapter allows only known app routes', () => {
 })
 
 test('dashboard greeting follows pregnancy and no-pregnancy contracts', () => {
-  assert.deepEqual(dashboardGreeting({ profile_summary: { display_name: 'An', salutation: 'chị', role: 'MOM' }, pregnancy_summary: { id: 'p', status: 'ACTIVE', gestational_week: 20, gestational_day: 3, trimester: 2, days_until_due: 100, calculation_source: 'LMP', version: 1 } }), { title: 'Chào mẹ An', subtitle: 'Hiện tại bé đã được 20 tuần 3 ngày.' })
+  assert.deepEqual(dashboardGreeting({ profile_summary: { display_name: 'An', salutation: 'chị', role: 'MOM' }, pregnancy_summary: { id: 'p', status: 'ACTIVE', gestational_week: 20, gestational_day: 3, trimester: 2, days_until_due: 100 } }), { title: 'Chào mẹ An', subtitle: 'Hiện tại bé đã được 20 tuần 3 ngày.' })
   assert.deepEqual(dashboardGreeting({ profile_summary: { display_name: 'Nguyễn Bé Cò', salutation: 'chị', role: 'USER' } }), { title: 'Chào chị, Nguyễn Bé Cò', subtitle: 'Chúc chị một ngày mới an lành.' })
 })
 

@@ -13,7 +13,7 @@ export function optionalRealtimeRevision(value: unknown): string | undefined {
     return realtimeRevision(value.summary.snapshot.realtime_revision)
 }
 export const newerRevision = (next: string, old?: string) => old === undefined || BigInt(next) > BigInt(old)
-export type RealtimeSnapshot = { protocol_version: 1; admin_user_id: string; dashboard_revision: string; notifications_revision: string; unread_count: number }
+export type RealtimeSnapshot = { protocol_version: 1; admin_user_id: string; dashboard_revision: string; notifications_revision: string; unread_count: number; community_pending_count?: number }
 export type RealtimeEvent = { type: 'ready' | 'update'; snapshot: RealtimeSnapshot } | { type: 'heartbeat' } | { type: 'access_revoked' }
 export function decodeRealtimeEvent(event: string, data: string, userId: string): RealtimeEvent | undefined {
   if (!['ready','update','heartbeat','access_revoked'].includes(event)) return
@@ -26,7 +26,8 @@ export function decodeRealtimeEvent(event: string, data: string, userId: string)
     return { type: event }
   }
   if (p.admin_user_id !== userId || typeof p.unread_count !== 'number' || !Number.isSafeInteger(p.unread_count) || p.unread_count < 0) throw new AdminRealtimeContractError()
-  return { type: event as 'ready' | 'update', snapshot: { protocol_version: 1, admin_user_id: userId, dashboard_revision: realtimeRevision(p.dashboard_revision), notifications_revision: realtimeRevision(p.notifications_revision), unread_count: p.unread_count } }
+  if (p.community_pending_count !== undefined && (typeof p.community_pending_count !== 'number' || !Number.isSafeInteger(p.community_pending_count) || p.community_pending_count < 0)) throw new AdminRealtimeContractError()
+  return { type: event as 'ready' | 'update', snapshot: { protocol_version: 1, admin_user_id: userId, dashboard_revision: realtimeRevision(p.dashboard_revision), notifications_revision: realtimeRevision(p.notifications_revision), unread_count: p.unread_count, ...(p.community_pending_count !== undefined ? { community_pending_count: p.community_pending_count as number } : {}) } }
 }
 
 /** Incremental UTF-8 SSE decoder. EOF never dispatches an unterminated frame. */

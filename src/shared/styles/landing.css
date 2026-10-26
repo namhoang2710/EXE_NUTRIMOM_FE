@@ -2314,7 +2314,7 @@
       color-mix(in srgb, var(--page) 12%, transparent) 72%,
       transparent 100%
     ),
-    url('/banner5.png');
+    url('/optimized/banner5.webp');
   background-position: center, center left;
   background-repeat: no-repeat;
   background-size: cover, cover;
@@ -4097,7 +4097,7 @@ html:has(.testimonial-marquee-section) {
         color-mix(in srgb, var(--page) 22%, transparent) 78%,
         transparent 100%
       ),
-      url('/banner5.png');
+      url('/optimized/banner5.webp');
     background-position: center, 28% center;
   }
 
@@ -4530,7 +4530,7 @@ html:has(.testimonial-marquee-section) {
 
   .landing-footer-socials,
   .landing-footer-bottom {
-    padding-left: 54px;
+    padding-left: 0;
   }
 
   .landing-footer-bottom {
@@ -4553,3 +4553,6 @@ html:has(.testimonial-marquee-section) {
     animation-iteration-count: 1 !important;
   }
 }
+
+[data-motion-active="false"] .testimonial-marquee-track,
+[data-motion-active="false"] .nutrimom-floating-decoration { animation-play-state: paused; }

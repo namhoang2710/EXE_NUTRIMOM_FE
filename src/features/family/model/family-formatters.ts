@@ -1,4 +1,5 @@
 import type { ActivityEvent, FamilyMember, FamilyRelationship, FamilyScope, FamilyTaskPriority, FamilyTaskStatus } from './family-types'
+import { vietnamLocalDateTimeToIso } from '../../../core/date-time/vietnam.ts'
 
 export const relationshipLabels: Record<FamilyRelationship, string> = {
   PARTNER: 'Bạn đời',
@@ -54,9 +55,7 @@ export function formatVietnamDateTime(value?: string) {
 }
 
 export function toIsoTimestamp(localValue: string) {
-  if (!localValue) return undefined
-  const timestamp = new Date(localValue)
-  return Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString()
+  return vietnamLocalDateTimeToIso(localValue)
 }
 
 export function memberRelationshipLabel(member?: FamilyMember) {

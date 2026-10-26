@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-24",
+  "branch": "feature/responsive-motion-hardening",
+  "checks": {
+    "lint": 0,
+    "types": 0,
+    "testTypes": 0,
+    "tests": 0,
+    "build": 0,
+    "diff": 0
+  },
+  "unitTests": {
+    "passed": 572,
+    "failed": 0,
+    "skipped": 0
+  },
+  "audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "browserEvidence": {
+    "chromium-light": {
+      "cases": 456,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/chromium-light/results.json"
+    },
+    "chromium-dark": {
+      "cases": 456,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/chromium-dark/results.json"
+    },
+    "firefox": {
+      "cases": 152,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/firefox/results.json"
+    },
+    "webkit": {
+      "cases": 152,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/webkit/results.json"
+    },
+    "interactions": {
+      "cases": 115,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/interactions/results.json"
+    },
+    "resize": {
+      "cases": 20,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/resize/results.json"
+    },
+    "behavior-final": {
+      "cases": 14,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/behavior-final/results.json"
+    },
+    "community-conflict": {
+      "cases": 1,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/community-conflict/results.json"
+    },
+    "personas": {
+      "cases": 1,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/personas/results.json"
+    },
+    "cms-final": {
+      "cases": 1,
+      "errors": 0,
+      "report": "qa-artifacts/responsive-hardening/cms-final/results.json"
+    }
+  },
+  "performanceVisits": 44,
+  "optimizedImages": {
+    "count": 37,
+    "beforeBytes": 36810309,
+    "afterBytes": 3452488
+  },
+  "preservedUserAssetsSHA256": {
+    "bsiNam.jpg": "e76df29fb39f29866ebce424d339d5f3a926a03ba01d292ecd987a1efdf5a3f9",
+    "bsiNu.jpg": "5d5d0eb625dbeeb55f53fef7ec510e4874298d97397a87c250439d7463e1514f",
+    "bsiNu2.jpg": "4d5cdeefa242808ec1034cff2f419479db32921b0fac8f9de04b860061d75585",
+    "dinhduongNutri.jpg": "2ae8ac5f07bc98823afae544eed38438033ccc0eb989bbefb6c193567ed25385",
+    "nutrimom-logo-vector-draft.svg": "5b66811f7bcad15b9bcd5f5e3d679a3fd34ac62f9e3fd70ec1cb4de95bb080d6"
+  },
+  "notExecuted": [
+    "production deploy/push/merge",
+    "live backend integration",
+    "physical iPhone/Android and embedded browsers",
+    "real payment and live video call"
+  ]
+}

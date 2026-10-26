@@ -212,7 +212,7 @@ function ActiveRoom({ info, credentials, choices, completing, completeDisabled, 
         const nextRoom = new Room({
           adaptiveStream: true,
           dynacast: true,
-          videoCaptureDefaults: { resolution: VideoPresets.h540.resolution, frameRate: 20 },
+          videoCaptureDefaults: { resolution: window.matchMedia('(max-width: 800px) and (orientation: portrait)').matches ? { width: 540, height: 960 } : VideoPresets.h540.resolution, frameRate: 20, facingMode: 'user' },
           publishDefaults: {
             videoCodec: 'vp8',
             videoEncoding: { maxBitrate: 700_000, maxFramerate: 20 },

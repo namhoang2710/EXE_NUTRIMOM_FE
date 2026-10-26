@@ -1,0 +1,229 @@
+{
+  "date": "2026-10-24",
+  "branch": "feature/responsive-motion-hardening",
+  "base": "f96ae408673a67f84cc4452946bdcfae2d624863",
+  "routes": {
+    "guest": [
+      "/",
+      "/about",
+      "/auth/activate",
+      "/auth/verify",
+      "/blog",
+      "/blog/cham-soc-thai-ky",
+      "/community",
+      "/contact",
+      "/experts",
+      "/login",
+      "/otp",
+      "/register",
+      "/services",
+      "/services/care-knowledge",
+      "/services/expert-connection",
+      "/services/food-scan-ai",
+      "/services/personal-health-records",
+      "/services/personalized-guidance",
+      "/services/pregnancy-tracking",
+      "/unknown-page"
+    ],
+    "USER": [
+      "/app",
+      "/app/appointment-questions",
+      "/app/assistant",
+      "/app/chat",
+      "/app/community",
+      "/app/consultations",
+      "/app/consultations/history",
+      "/app/consultations/request-qa/call",
+      "/app/contact",
+      "/app/experts",
+      "/app/family",
+      "/app/family?tab=activity",
+      "/app/family?tab=tasks",
+      "/app/knowledge",
+      "/app/knowledge/cham-soc-thai-ky",
+      "/app/nutrition",
+      "/app/payment-history",
+      "/app/pricing",
+      "/app/profile",
+      "/app/profile/account/disable",
+      "/app/profile/account/password",
+      "/app/profile/care",
+      "/app/profile/health",
+      "/app/profile/records",
+      "/app/profile/saved",
+      "/app/profile/support",
+      "/app/settings",
+      "/family/invite",
+      "/payment/cancel",
+      "/payment/success"
+    ],
+    "ADMIN": [
+      "/admin",
+      "/admin/appointments",
+      "/admin/community",
+      "/admin/consultations",
+      "/admin/experts",
+      "/admin/health",
+      "/admin/knowledge",
+      "/admin/notifications",
+      "/admin/nutrition",
+      "/admin/reports",
+      "/admin/revenue",
+      "/admin/settings",
+      "/admin/support",
+      "/admin/users"
+    ],
+    "DOCTOR": [
+      "/expert",
+      "/expert/consultations/request-qa/call",
+      "/expert?section=requests",
+      "/expert?section=reviews",
+      "/expert?section=schedule",
+      "/expert?section=slots"
+    ],
+    "EXPERT": [
+      "/expert",
+      "/expert/consultations/request-qa/call",
+      "/expert?section=requests",
+      "/expert?section=reviews",
+      "/expert?section=schedule",
+      "/expert?section=slots"
+    ]
+  },
+  "browsers": {
+    "chromium-light": {
+      "version": "156.0.8078.47",
+      "cases": 456,
+      "themes": [
+        "light"
+      ],
+      "widths": [
+        320,
+        390,
+        768,
+        1024,
+        1440,
+        1920
+      ],
+      "failures": {
+        "overflow": 0,
+        "escaped": 0,
+        "blank": 0,
+        "overlays": 0
+      },
+      "pageErrors": [],
+      "missing": [],
+      "unexpected": []
+    },
+    "chromium-dark": {
+      "version": "156.0.8078.47",
+      "cases": 456,
+      "themes": [
+        "dark"
+      ],
+      "widths": [
+        320,
+        390,
+        768,
+        1024,
+        1440,
+        1920
+      ],
+      "failures": {
+        "overflow": 0,
+        "escaped": 0,
+        "blank": 0,
+        "overlays": 0
+      },
+      "pageErrors": [],
+      "missing": [],
+      "unexpected": []
+    },
+    "firefox": {
+      "version": "153.0",
+      "cases": 152,
+      "themes": [
+        "light"
+      ],
+      "widths": [
+        390,
+        1440
+      ],
+      "failures": {
+        "overflow": 0,
+        "escaped": 0,
+        "blank": 0,
+        "overlays": 0
+      },
+      "pageErrors": [],
+      "missing": [],
+      "unexpected": []
+    },
+    "webkit": {
+      "version": "26.5",
+      "cases": 152,
+      "themes": [
+        "dark"
+      ],
+      "widths": [
+        390,
+        1440
+      ],
+      "failures": {
+        "overflow": 0,
+        "escaped": 0,
+        "blank": 0,
+        "overlays": 0
+      },
+      "pageErrors": [],
+      "missing": [],
+      "unexpected": []
+    },
+    "interactions": {
+      "version": "156.0.8078.47",
+      "cases": 115,
+      "themes": [
+        "light"
+      ],
+      "widths": [
+        320,
+        390,
+        568,
+        768,
+        844
+      ],
+      "failures": {
+        "overflow": 0,
+        "escaped": 0,
+        "blank": 0,
+        "overlays": 0
+      },
+      "pageErrors": [],
+      "missing": [],
+      "unexpected": []
+    },
+    "resize": {
+      "version": "156.0.8078.47",
+      "cases": 20,
+      "themes": [
+        "light"
+      ],
+      "widths": [
+        320,
+        768,
+        844,
+        1440,
+        1920
+      ],
+      "failures": {
+        "overflow": 0,
+        "escaped": 0,
+        "blank": 0,
+        "overlays": 0
+      },
+      "pageErrors": [],
+      "missing": [],
+      "unexpected": []
+    }
+  }
+}

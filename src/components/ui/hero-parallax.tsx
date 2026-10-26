@@ -37,7 +37,7 @@ interface HeroParallaxProps {
   labelledBy?: string
 }
 
-type MotionProfile = 'compact' | 'tablet' | 'desktop'
+type MotionProfile = 'compact' | 'compact-flow' | 'tablet' | 'desktop'
 
 const springConfig = { stiffness: 105, damping: 32, mass: 0.82 }
 
@@ -51,7 +51,9 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
 
 function getMotionProfile(): MotionProfile {
   if (typeof window === 'undefined') return 'desktop'
-  if (window.matchMedia('(max-width: 767px)').matches) return 'compact'
+  if (window.matchMedia('(max-width: 767px)').matches) {
+    return window.matchMedia('(max-height: 800px)').matches ? 'compact-flow' : 'compact'
+  }
   if (window.matchMedia('(max-width: 1100px)').matches) return 'tablet'
   return 'desktop'
 }
@@ -62,22 +64,44 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
     forwardedRef,
   ) {
     const sectionRef = useRef<HTMLElement>(null)
+    const galleryRef = useRef<HTMLDivElement>(null)
     const prefersReducedMotion = useReducedMotion()
     const [motionProfile, setMotionProfile] = useState<MotionProfile>(getMotionProfile)
+    const [compactTravel, setCompactTravel] = useState(160)
+    const shouldAnimate = !prefersReducedMotion
+    const isCompact = motionProfile === 'compact' || motionProfile === 'compact-flow'
+    const isTablet = motionProfile === 'tablet'
 
     useEffect(() => {
       const compactMedia = window.matchMedia('(max-width: 767px)')
+      const shortMedia = window.matchMedia('(max-width: 767px) and (max-height: 800px)')
       const tabletMedia = window.matchMedia('(min-width: 768px) and (max-width: 1100px)')
       const updateProfile = () => setMotionProfile(getMotionProfile())
 
       updateProfile()
       compactMedia.addEventListener('change', updateProfile)
+      shortMedia.addEventListener('change', updateProfile)
       tabletMedia.addEventListener('change', updateProfile)
       return () => {
         compactMedia.removeEventListener('change', updateProfile)
+        shortMedia.removeEventListener('change', updateProfile)
         tabletMedia.removeEventListener('change', updateProfile)
       }
     }, [])
+
+    useEffect(() => {
+      const section = sectionRef.current
+      const row = galleryRef.current?.querySelector<HTMLElement>('.hero-parallax__row')
+      if (!isCompact || !section || !row) return
+
+      // Move between the first and last cards without exposing empty row ends.
+      const measureTravel = () => setCompactTravel(Math.max(0, (row.scrollWidth - section.clientWidth) / 2 + 16))
+      const observer = new ResizeObserver(measureTravel)
+      observer.observe(section)
+      observer.observe(row)
+      measureTravel()
+      return () => observer.disconnect()
+    }, [isCompact])
 
     const setSectionRef = useCallback((node: HTMLElement | null) => {
       sectionRef.current = node
@@ -86,17 +110,14 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
 
     const { scrollYProgress } = useScroll({
       target: sectionRef,
-      offset: ['start start', 'end start'],
+      offset: ['start start', motionProfile === 'compact' ? 'end end' : 'end start'],
     })
-
-    const shouldAnimate = !prefersReducedMotion && motionProfile !== 'compact'
-    const isTablet = motionProfile === 'tablet'
 
     const firstRowX = useSpring(
       useTransform(
         scrollYProgress,
         [0, 1],
-        shouldAnimate ? (isTablet ? [-120, -430] : [-150, -880]) : [0, 0],
+        shouldAnimate ? (isCompact ? [compactTravel, -compactTravel] : isTablet ? [-120, -430] : [-150, -880]) : [0, 0],
       ),
       springConfig,
     )
@@ -104,7 +125,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 1],
-        shouldAnimate ? (isTablet ? [-430, -80] : [-760, -40]) : [0, 0],
+        shouldAnimate ? (isCompact ? [-compactTravel, compactTravel] : isTablet ? [-430, -80] : [-760, -40]) : [0, 0],
       ),
       springConfig,
     )
@@ -112,7 +133,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 1],
-        shouldAnimate ? (isTablet ? [-80, -390] : [-30, -720]) : [0, 0],
+        shouldAnimate ? (isCompact ? [compactTravel, -compactTravel] : isTablet ? [-80, -390] : [-30, -720]) : [0, 0],
       ),
       springConfig,
     )
@@ -120,7 +141,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.42],
-        shouldAnimate ? (isTablet ? [8, 0] : [14, 0]) : [0, 0],
+        shouldAnimate ? (isCompact ? [4, 0] : isTablet ? [8, 0] : [14, 0]) : [0, 0],
       ),
       springConfig,
     )
@@ -128,7 +149,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.42],
-        shouldAnimate ? (isTablet ? [6, 0] : [12, 0]) : [0, 0],
+        shouldAnimate ? (isCompact ? [2, 0] : isTablet ? [6, 0] : [12, 0]) : [0, 0],
       ),
       springConfig,
     )
@@ -136,7 +157,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.72],
-        shouldAnimate ? (isTablet ? [140, -64] : [220, -120]) : [0, 0],
+        shouldAnimate ? (isCompact ? [10, -8] : isTablet ? [140, -64] : [220, -120]) : [0, 0],
       ),
       springConfig,
     )
@@ -144,7 +165,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
       useTransform(
         scrollYProgress,
         [0, 0.3],
-        shouldAnimate ? [0.38, 1] : [1, 1],
+        shouldAnimate ? (isCompact ? [0.86, 1] : [0.38, 1]) : [1, 1],
       ),
       springConfig,
     )
@@ -162,6 +183,7 @@ export const HeroParallax = forwardRef<HTMLElement, HeroParallaxProps>(
           <div className="hero-parallax__ambient" aria-hidden="true" />
 
           <motion.div
+            ref={galleryRef}
             className="hero-parallax__gallery"
             style={{
               opacity: galleryOpacity,
@@ -215,6 +237,7 @@ function ProductCard({ item }: { item: HeroParallaxItem }) {
     <motion.article
       className={`hero-parallax__card hero-parallax__card--${item.fit ?? 'cover'}`}
       whileHover={prefersReducedMotion ? undefined : { y: -8 }}
+      whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
       transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link className="hero-parallax__link" to={item.link}>

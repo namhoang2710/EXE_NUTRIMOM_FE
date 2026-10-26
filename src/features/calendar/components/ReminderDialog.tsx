@@ -7,6 +7,7 @@ import { AnimatedSelect } from '@/components/ui/animated-select'
 import { Switch } from '@/components/ui/switch'
 import { ApiClientError } from '@/core/api/api-error'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
+import { DiscardDraftDialog } from '@/shared/components/DiscardDraftDialog'
 import { CalendarDatePicker } from '@/shared/components/CalendarDatePicker'
 import { calendarApi } from '../api/calendar-api'
 import { formatCalendarDate, localDate, nextWeeklyAnchor, reminderCreatePayload, reminderPatchPayload, toLocalDateTimeValue, validateReminderForm } from '../model/calendar-helpers'
@@ -82,7 +83,37 @@ export function ReminderDialog({ open, detail, pregnancyId, estimatedDueDate, on
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const submitGate = useRef(false)
-  useEffect(() => { if (open) { setValue(formValue(detail, estimatedDueDate)); setErrors({}); setError(''); clearUpgrade() } }, [detail, estimatedDueDate, open, clearUpgrade])
+  const initialized = useRef<string | null>(null)
+  const original = useRef(JSON.stringify(value))
+  const baseDetail = useRef(detail)
+  const [conflict, setConflict] = useState(false)
+  const [latestTitle, setLatestTitle] = useState('')
+  const [discard, setDiscard] = useState(false)
+  useEffect(() => {
+    if (!open) { initialized.current = null; return }
+    const key = detail?.id ?? 'new'
+    if (initialized.current === key) return
+    initialized.current = key; baseDetail.current = detail
+    const draft = formValue(detail, estimatedDueDate)
+    original.current = JSON.stringify(draft)
+    setValue(draft); setErrors({}); setError(''); setConflict(false); setLatestTitle(''); setDiscard(false); clearUpgrade()
+  }, [detail, estimatedDueDate, open, clearUpgrade])
+
+  function requestClose() {
+    if (saving) return
+    if (original.current !== JSON.stringify(value)) setDiscard(true)
+    else onClose()
+  }
+
+  async function reloadLatest() {
+    if (!detail || submitGate.current || cooldown.blocked) return
+    submitGate.current = true; setSaving(true)
+    try {
+      const latest = await calendarApi.refreshReminder(detail.id)
+      baseDetail.current = latest; setLatestTitle(latest.title); setConflict(false); setError(''); onConflict?.(latest)
+    } catch (reason) { cooldown.handleRateLimit(reason); setError(reason instanceof Error ? reason.message : 'Không thể tải bản mới. Bản nháp vẫn được giữ.') }
+    finally { submitGate.current = false; setSaving(false) }
+  }
 
   const anchoredStart = value.repeatMode === 'WEEKLY' ? nextWeeklyAnchor(value.startsAtLocal, value.daysOfWeek) : value.startsAtLocal
   const preview = useMemo(() => {
@@ -97,22 +128,22 @@ export function ReminderDialog({ open, detail, pregnancyId, estimatedDueDate, on
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (submitGate.current || cooldown.blocked) return
-    const validation = validateReminderForm(value, new Date(), detail?.starts_at)
+    if (submitGate.current || cooldown.blocked || conflict) return
+    const validation = validateReminderForm(value, new Date(), baseDetail.current?.starts_at)
     if (Object.keys(validation).length) { setErrors(validation); return }
     submitGate.current = true; setSaving(true); setError(''); setErrors({})
     try {
       if (!detail && !await access.checkAccess()) return
       const saved = detail
-        ? await calendarApi.updateReminder(detail.id, reminderPatchPayload(value, detail))
+        ? await calendarApi.updateReminder(detail.id, reminderPatchPayload(value, baseDetail.current ?? detail))
         : await calendarApi.createReminder(reminderCreatePayload(value, pregnancyId))
       onSaved(saved)
     } catch (reason) {
       if (!detail && access.handleError(reason)) return
       cooldown.handleRateLimit(reason)
       if (reason instanceof ApiClientError && reason.code === 'VERSION_CONFLICT' && detail) {
-        setError('Dữ liệu đã thay đổi, vui lòng tải lại.')
-        try { const latest = await calendarApi.reminder(detail.id); onConflict?.(latest) } catch { /* Keep the conflict visible if refresh also fails. */ }
+        setConflict(true)
+        setError('Dữ liệu đã thay đổi ở nơi khác. Bản nháp được giữ nguyên; xem bản mới trước khi quyết định lưu.')
       } else {
         if (reason instanceof ApiClientError && reason.code === 'VALIDATION_ERROR') setErrors(reason.fields)
         setError(reason instanceof Error ? reason.message : 'Không thể lưu lịch nhắc nhở.')
@@ -120,7 +151,7 @@ export function ReminderDialog({ open, detail, pregnancyId, estimatedDueDate, on
     } finally { submitGate.current = false; setSaving(false) }
   }
 
-  return <AccessibleDialog open={open} title={detail ? 'Sửa lịch nhắc nhở' : 'Thêm lịch nhắc nhở'} description="Lịch này chỉ thuộc tài khoản đang đăng nhập." onClose={onClose} busy={saving} className="calendar-reminder-dialog" footer={upgradeHint ? undefined : <><button className="secondary-button" type="button" disabled={saving} onClick={onClose}>Hủy</button><button className="primary-button" type="submit" form={formId} disabled={saving || cooldown.remaining > 0}>{cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining}s` : saving ? 'Đang lưu...' : detail ? 'Lưu thay đổi' : 'Tạo lịch nhắc'}</button></>}>
+  return <><AccessibleDialog open={open} title={detail ? 'Sửa lịch nhắc nhở' : 'Thêm lịch nhắc nhở'} description="Lịch này chỉ thuộc tài khoản đang đăng nhập." onClose={requestClose} busy={saving || discard} className="calendar-reminder-dialog" footer={upgradeHint ? undefined : <><button className="secondary-button" type="button" disabled={saving} onClick={requestClose}>Hủy</button><button className="primary-button" type="submit" form={formId} disabled={saving || conflict || cooldown.remaining > 0}>{cooldown.remaining > 0 ? `Thử lại sau ${cooldown.remaining}s` : saving ? 'Đang lưu...' : detail ? 'Lưu thay đổi' : 'Tạo lịch nhắc'}</button></>}>
     {upgradeHint ? <UpgradePrompt hint={upgradeHint} onDismiss={access.upgrade && !access.hint ? clearUpgrade : onClose} /> : <form id={formId} className="calendar-reminder-form" onSubmit={submit} noValidate>
       <AnimatedSelect label="Loại nhắc" value={value.type} options={reminderTypes} onValueChange={changeType} />
       <label>Tiêu đề <span>{value.title.length}/255</span><input value={value.title} maxLength={255} onChange={(event) => patch({ title: event.target.value })} aria-invalid={Boolean(errors.title)} />{errors.title && <small role="alert">{errors.title}</small>}</label>
@@ -137,6 +168,8 @@ export function ReminderDialog({ open, detail, pregnancyId, estimatedDueDate, on
       </section>
       {preview && <p className="calendar-first-preview"><strong>Lần nhắc đầu tiên:</strong> {preview}</p>}
       {error && <p className="nm-dialog-error" role="alert">{error}</p>}
+      {conflict && <button className="secondary-button" type="button" disabled={saving || cooldown.remaining > 0} onClick={() => void reloadLatest()}>Xem bản mới, giữ bản nháp</button>}
+      {latestTitle && <p role="status">Bản mới: {latestTitle}. Bản nháp vẫn được giữ; kiểm tra trước khi lưu thay đổi.</p>}
     </form>}
-  </AccessibleDialog>
+  </AccessibleDialog><DiscardDraftDialog open={discard} onContinue={() => setDiscard(false)} onDiscard={onClose} /></>
 }

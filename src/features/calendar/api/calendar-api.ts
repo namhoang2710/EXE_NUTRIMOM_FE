@@ -26,6 +26,10 @@ export const calendarApi = {
   sharedEvents: (from: string, to: string, signal?: AbortSignal, types: CalendarSource[] = [], timezone?: string) => read(buildSharedEventsPath(from, to, [...types].sort(), timezone), normalizeSharedCalendarEvents, signal),
   reminders: (filters: { from?: string; to?: string; status?: string; timezone?: string } = {}, signal?: AbortSignal) => read(buildRemindersPath(filters), normalizeReminderList, signal),
   reminder: (id: string, signal?: AbortSignal) => read(`/calendar/reminders/${encodeURIComponent(id)}`, normalizeReminderDetail, signal),
+  refreshReminder(id: string, signal?: AbortSignal) {
+    invalidateProfileResources(`calendar:/calendar/reminders/${encodeURIComponent(id)}`)
+    return this.reminder(id, signal)
+  },
   createReminder: (body: CreateReminderPayload) => mutate(async () => normalizeReminderDetail(await apiClient.request<unknown>('/calendar/reminders', { method: 'POST', body: JSON.stringify(body) }))),
   updateReminder: (id: string, body: UpdateReminderPayload) => mutate(async () => normalizeReminderDetail(await apiClient.request<unknown>(`/calendar/reminders/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(body) }))),
   deleteReminder: (id: string) => mutate(() => apiClient.request<void>(`/calendar/reminders/${encodeURIComponent(id)}`, { method: 'DELETE' })),

@@ -1,5 +1,6 @@
 import { ArrowRight, BookOpenText, ChatsCircle, HandHeart, ShieldCheck } from '@phosphor-icons/react'
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { knowledgeApi } from '../api/knowledge-api'
 import { ArticleCard } from '../components/ArticleCard'
 import { KnowledgeLibrary } from '../components/KnowledgeLibrary'
@@ -50,7 +51,7 @@ export function BlogPage({ library = false }: { library?: boolean }) {
             <div className="nm-blog-trust-row"><span><ShieldCheck size={18} /> Do ban biên tập quản lý</span>{articleCount !== null && <span><BookOpenText size={18} /> {articleCount} bài đã xuất bản</span>}</div>
           </div>
           <div className="nm-blog-hero-visual" aria-hidden="true">
-            <img src="/benner_blog1.png" alt="" />
+            <img src="/optimized/benner_blog1.webp" alt="" />
             <div className="nm-hero-caption"><HandHeart size={26} weight="duotone" /><span>Mỗi hành trình đều khác nhau.<br /><strong>Mẹ cứ bước theo nhịp của mình.</strong></span></div>
           </div>
         </div>
@@ -66,7 +67,7 @@ export function BlogPage({ library = false }: { library?: boolean }) {
       <section className="nm-blog-section landing-section" id="cong-dong" aria-labelledby="community-heading">
         <div className="nm-community-preview">
           <span className="nm-community-icon"><ChatsCircle size={32} weight="duotone" /></span>
-          <div><div className="nm-community-preview-label"><span>Community · Thành viên chia sẻ</span><span className="nm-coming-soon">Sắp ra mắt</span></div><h2 id="community-heading">{communityPreview.title}</h2><p>{communityPreview.description}</p><div className="nm-community-stages">{communityPreview.stages.map((stage) => <span key={stage}>{stage}</span>)}</div><small>Trải nghiệm cá nhân không thay thế thông tin y tế đã biên tập hoặc tư vấn chuyên môn.</small></div>
+          <div><div className="nm-community-preview-label"><span>Community · Thành viên chia sẻ</span><Link className="nm-text-link" to={authenticated ? '/app/community' : '/community'}>Khám phá cộng đồng <ArrowRight size={16} /></Link></div><h2 id="community-heading">{communityPreview.title}</h2><p>{communityPreview.description}</p><div className="nm-community-stages">{communityPreview.stages.map((stage) => <span key={stage}>{stage}</span>)}</div><small>Trải nghiệm cá nhân không thay thế thông tin y tế đã biên tập hoặc tư vấn chuyên môn.</small></div>
         </div>
       </section>
 

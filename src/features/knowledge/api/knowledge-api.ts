@@ -1,4 +1,5 @@
-import { profileRead, invalidateProfileResources } from '@/core/api/profile-requests'
+import { profileRead, invalidateProfileResources, requireCurrentScope } from '@/core/api/profile-requests'
+import { getSessionScope } from '@/core/auth/token-store'
 import { apiClient } from '@/core/api/api-client'
 import type {
   AdminArticleListQuery,
@@ -18,19 +19,25 @@ export const knowledgeApi = {
   listArticles(query: PublicArticleListQuery, signal?: AbortSignal) {
     const path = `${knowledgeEndpoints.publicArticles}${buildKnowledgeQueryString(query)}`
     if (query.savedOnly) return profileRead(`saved:list:${path}`, () => apiClient.request<ArticlePageDto<ArticleSummaryDto>>(path), signal)
-    return apiClient.request<ArticlePageDto<ArticleSummaryDto>>(path, { signal })
+    return profileRead(`knowledge:list:${path}`, () => apiClient.request<ArticlePageDto<ArticleSummaryDto>>(path), signal)
   },
   getArticle(slug: string, signal?: AbortSignal) {
-    return apiClient.request<ArticleDetailDto>(knowledgeEndpoints.publicArticle(slug), { signal })
+    return profileRead(`knowledge:article:${slug}`, () => apiClient.request<ArticleDetailDto>(knowledgeEndpoints.publicArticle(slug)), signal)
   },
   async saveBookmark(slug: string) {
+    const scope = getSessionScope()
     const result = await apiClient.request<boolean>(knowledgeEndpoints.bookmark(slug), { method: 'PUT' })
+    requireCurrentScope(scope)
     invalidateProfileResources('saved:')
+    invalidateProfileResources('knowledge:')
     return result
   },
   async removeBookmark(slug: string) {
+    const scope = getSessionScope()
     const result = await apiClient.request<boolean>(knowledgeEndpoints.bookmark(slug), { method: 'DELETE' })
+    requireCurrentScope(scope)
     invalidateProfileResources('saved:')
+    invalidateProfileResources('knowledge:')
     return result
   },
   listAllSavedSlugs(signal?: AbortSignal) {

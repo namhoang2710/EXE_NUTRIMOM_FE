@@ -5,6 +5,7 @@ import { useRef, useState } from 'react'
 import { AnimatedSelect } from '@/components/ui/animated-select'
 import { ApiClientError } from '@/core/api/api-error'
 import { AccessibleDialog } from '@/shared/components/AccessibleDialog'
+import { DiscardDraftDialog } from '@/shared/components/DiscardDraftDialog'
 import { nutritionApi } from '../api/nutrition-api'
 import { useNutritionRead } from '../hooks/useNutritionRead'
 import {
@@ -42,9 +43,9 @@ export function DiaryComposer({
   onSaved: (view: DiaryView, sourceDate: string) => void
 }) {
   const cooldown = useNutritionCooldown()
-  const entry = seed.entry
+  const [entry, setEntry] = useState(seed.entry)
   const initialRecipe =
-    entry?.recipe_id || seed.item?.recipe_id || seed.recipe?.id || ''
+    seed.entry?.recipe_id || seed.item?.recipe_id || seed.recipe?.id || ''
   const [date, setDate] = useState(entry?.local_date || seed.date)
   const [meal, setMeal] = useState<MealType>(
     entry?.meal_type || seed.meal || seed.recipe?.meal_types[0] || 'LUNCH',
@@ -56,7 +57,7 @@ export function DiaryComposer({
   const baseServings = entry?.servings ?? seed.item?.servings ?? 1
   const [servings, setServings] = useState(String(baseServings))
   const [customChoice, setCustomChoice] = useState(Boolean(seed.custom))
-  const custom = entry ? !entry.recipe_id : customChoice
+  const custom = seed.entry ? !seed.entry.recipe_id : customChoice
   const [text, setText] = useState(entry?.custom_text || '')
   const [amount, setAmount] = useState(entry?.amount_text || '')
   const [incomplete, setIncomplete] = useState(
@@ -70,6 +71,15 @@ export function DiaryComposer({
   const versionConflict = requiresReload || (error instanceof ApiClientError && error.code === 'VERSION_CONFLICT')
   const writing = useRef(false),
     attempt = useRef(new DiaryAttempt())
+  const [discard, setDiscard] = useState(false)
+  const [refreshed, setRefreshed] = useState(false)
+  const snapshot = JSON.stringify({ date, meal, recipeId, servings, text, amount, incomplete, customChoice })
+  const original = useRef(snapshot)
+  function requestClose() {
+    if (busy) return
+    if (original.current !== snapshot) setDiscard(true)
+    else onClose()
+  }
   async function submit(replay = false) {
     if (writing.current || cooldown.blocked || versionConflict) return
     if (
@@ -140,11 +150,12 @@ export function DiaryComposer({
     }
   }
   return (
+    <>
     <AccessibleDialog
       open
       title={entry ? 'Sửa món đã ghi' : 'Xác nhận đã ăn'}
-      onClose={onClose}
-      busy={busy}
+      onClose={requestClose}
+      busy={busy || discard}
       className="nutrition-dialog"
     >
       <form
@@ -294,12 +305,16 @@ export function DiaryComposer({
             writing.current = true
             setBusy(true)
             try {
-              const latest = await nutritionApi.diary(date, undefined, true)
-              onSaved(latest, date)
+              const latest = await nutritionApi.diary(entry?.local_date || date, undefined, true)
+              const updated = entry ? latest.entries.find((item) => item.entry_id === entry.entry_id) : undefined
+              if (entry && !updated) { setError(new Error('Món đã bị xóa hoặc chuyển sang ngày khác. Bản nháp của bạn vẫn được giữ.')); return }
+              if (updated) setEntry(updated)
+              setRequiresReload(false); setError(null); setRefreshed(true)
             } catch (reason) { setError(reason) }
             finally { writing.current = false; setBusy(false) }
-          }}>Tải nhật ký mới và chọn lại</NutritionButton>
+          }}>Tải nhật ký mới, giữ nội dung đang sửa</NutritionButton>
         )}
+        {refreshed && <details className="nutrition-message"><summary>Đã tải nhật ký mới, bản nháp vẫn được giữ</summary><p>Nội dung trên máy chủ: {entry?.custom_text || entry?.name || 'Món chưa được ghi'}. Kiểm tra bản nháp trước khi lưu.</p></details>}
         {retry && (
           <p className="nutrition-message">
             Chưa xác nhận kết quả. Thử lại giữ nguyên mã yêu cầu và nội dung để
@@ -325,13 +340,15 @@ export function DiaryComposer({
             type="button"
             className="nutrition-button"
             disabled={busy}
-            onClick={onClose}
+            onClick={requestClose}
           >
             Đóng
           </NutritionButton>
         </div>
       </form>
     </AccessibleDialog>
+    <DiscardDraftDialog open={discard} onContinue={() => setDiscard(false)} onDiscard={onClose} />
+    </>
   )
 }
 

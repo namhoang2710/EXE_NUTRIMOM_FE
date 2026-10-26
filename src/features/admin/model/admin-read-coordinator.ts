@@ -29,7 +29,7 @@ export function createAdminReadCoordinator(now: () => number = () => Date.now(),
     if (reason.status === 403 || (notificationKey(key) && reason.status === 401)) { clear(); denied = true }
     if (reason.status === 429) {
       const fallback = notificationKey(key) ? Math.min(300_000, 60_000 * 2 ** Math.min(notificationFailures++, 3)) + Math.floor(Math.random() * 3_000) : 30_000
-      const next = { until: now() + (reason.retryAfterMs ?? fallback), error: reason }
+      const next = { until: now() + Math.max(1000, reason.retryAfterMs ?? fallback), error: reason }
       cooldowns.set(key, next)
       if (notificationKey(key)) notificationCooldown = { ...next, until: Math.max(next.until, notificationCooldown?.until ?? 0) }
       if (key.startsWith('GET:/admin/')) adminCooldown = { ...next, until: Math.max(next.until, adminCooldown?.until ?? 0) }

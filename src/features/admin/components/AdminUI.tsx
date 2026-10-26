@@ -1,3 +1,5 @@
+import '../styles/admin-payment-badge.css'
+import { Check } from '@phosphor-icons/react'
 import { AdminDropdown } from './AdminDropdown'
 import {
   ArrowClockwise,
@@ -10,6 +12,7 @@ import { adminLabel } from '../model/admin-workspace-query'
 
 export function StatusBadge({ value }: { value: string }) {
   const normalized = value.toUpperCase().replaceAll(' ', '_')
+  if (normalized === 'PAID') return <span className="admin-badge admin-payment-paid"><Check size={13} weight="bold" aria-hidden="true" />Đã thanh toán</span>
   const tone = ['ACTIVE', 'CONFIRMED', 'COMPLETED', 'READY', 'PUBLISHED', 'ON_TRACK'].includes(normalized)
     ? 'positive'
     : ['LOCKED', 'DISABLED', 'SUSPENDED', 'CANCELLED', 'HIGH', 'REVIEW_REQUIRED', 'NEEDS_ATTENTION', 'ARCHIVED'].includes(normalized)

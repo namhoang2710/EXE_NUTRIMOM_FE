@@ -21,7 +21,7 @@
 .nm-assistant-account-summary > div { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .nm-assistant-account-summary a { padding: 3px 7px; border-radius: 5px; background: var(--surface); color: var(--accent-strong); font-size: 10px; text-decoration: none; }
 .nm-assistant-account-summary > small { display: block; margin-top: 8px; font-size: 9px; color: var(--muted); }
-.nm-assistant-window { position: fixed; z-index: 70; right: 28px; bottom: 112px; width: 430px; height: min(690px, calc(100dvh - 142px)); min-height: 360px; border-radius: 20px; border: 1px solid var(--border-strong); overflow: hidden; box-shadow: var(--shadow), 0 6px 20px rgb(0 0 0 / .08); animation: nm-assistant-enter 160ms ease-out; }
+.nm-assistant-window { position: fixed; z-index: 70; right: 28px; bottom: 112px; width: 430px; height: min(690px, calc(100dvh - 142px)); min-height: 0; border-radius: 20px; border: 1px solid var(--border-strong); overflow: hidden; box-shadow: var(--shadow), 0 6px 20px rgb(0 0 0 / .08); animation: nm-assistant-enter 160ms ease-out; }
 .nm-assistant-launcher { position: fixed; z-index: 71; right: 28px; bottom: 28px; display: grid; width: 68px; height: 68px; place-items: center; padding: 3px; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--accent-strong) 86%, #cdbbe8); background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--surface) 88%, #fff), color-mix(in srgb, var(--accent-soft) 76%, var(--surface))); color: var(--button-text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent), 0 11px 30px rgb(66 45 100 / .24), inset 0 0 0 1px color-mix(in srgb, #fff 55%, transparent); cursor: pointer; transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease; }
 .nm-assistant-launcher:hover { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent), 0 14px 34px rgb(66 45 100 / .3), inset 0 0 0 1px color-mix(in srgb, #fff 65%, transparent); transform: translateY(-2px); }
 .nm-assistant-launcher:active { transform: translateY(0) scale(.98); }
@@ -137,3 +137,25 @@ body:has(.nm-assistant-launcher) .scroll-progress-button { right: 31px; bottom: 
 @media (max-width: 380px) { .nm-assistant-window { right: 8px; width: calc(100% - 16px); } .nm-assistant-panel-header { padding: 14px 12px 12px; } .nm-assistant-brand { gap: 6px; } .nm-assistant-brand-mark { width: 38px; height: 38px; overflow: hidden; } .nm-assistant-brand-mark canvas { width: 38px !important; height: 38px !important; } .nm-assistant-brand p { display: none; } .nm-assistant-header-tools { gap: 0; } .nm-assistant-feed { padding-inline: 15px; } .nm-assistant-composer { padding-inline: 12px; } }
 
 @media (min-width: 621px) and (max-width: 640px) { body:has(.nm-assistant-launcher) .scroll-progress-button { right: 17px; } }
+
+@media (max-height: 520px) {
+  .nm-assistant-window .nm-assistant-panel-header { padding: 8px 12px; }
+  .nm-assistant-window .nm-assistant-feed { padding: 8px 12px; }
+  .nm-assistant-window .nm-assistant-composer { padding: 8px 12px; }
+  .nm-assistant-window .nm-assistant-composer > p { display: none; }
+}
+@media (max-height: 520px) and (min-width: 480px) {
+  .nm-assistant-window {
+    top: 12px;
+    right: 108px;
+    bottom: 12px;
+    width: min(430px, calc(100% - 124px));
+    height: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  body:has(.contactQuickActions) .nm-assistant-launcher { bottom: calc(20px + var(--mobile-dock-clearance, 0px)); }
+  body:has(.contactQuickActions) .nm-assistant-window { bottom: calc(100px + var(--mobile-dock-clearance, 0px)); height: min(650px, calc(100dvh - 122px - var(--mobile-dock-clearance, 0px))); }
+  body:has(.contactQuickActions):has(.nm-assistant-launcher) .scroll-progress-button { bottom: calc(100px + var(--mobile-dock-clearance, 0px)); }
+}

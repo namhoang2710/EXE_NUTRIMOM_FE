@@ -15,6 +15,7 @@ interface ActionStateDialogProps {
   danger?: boolean
   compact?: boolean
   closeOnSuccess?: boolean
+  disabled?: boolean
   onAction: () => Promise<void>
   onClose: () => void
   onCompleted?: () => void
@@ -32,6 +33,7 @@ export function ActionStateDialog({
   danger = false,
   compact = false,
   closeOnSuccess = false,
+  disabled = false,
   onAction,
   onClose,
   onCompleted,
@@ -43,6 +45,7 @@ export function ActionStateDialog({
   useEffect(() => { if (open) dispatch({ type: 'RESET' }) }, [open])
 
   async function confirm() {
+    if (disabled) return
     await gate.current.run(async () => {
       await performDialogAction(onAction, dispatch, errorMessage, { closeOnSuccess, onCompleted, onClose })
     })
@@ -69,7 +72,7 @@ export function ActionStateDialog({
       ) : (
         <>
           <button className="secondary-button" type="button" disabled={busy} onClick={closeDialog}>{cancelLabel}</button>
-          <button className={danger ? 'danger-submit' : 'primary-button'} type="button" disabled={busy} onClick={() => void confirm()}>{busy ? busyLabel : confirmLabel}</button>
+          <button className={danger ? 'danger-submit' : 'primary-button'} type="button" disabled={busy || disabled} onClick={() => void confirm()}>{busy ? busyLabel : confirmLabel}</button>
         </>
       )}
     >

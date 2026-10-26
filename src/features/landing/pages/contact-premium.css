@@ -767,6 +767,8 @@ a.contactChannel:hover .contactChannel__arrow { transform: translateX(4px); }
 }
 
 @media (max-width: 700px) {
+  html:has(.contactQuickActions) { --mobile-dock-clearance: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .landing-shell:has(.contactQuickActions) .landing-footer { padding-bottom: var(--mobile-dock-clearance); }
   .contactHero__inner { padding-block: 62px 68px; }
   .contactHero__copy h1 { font-size: clamp(42px, 12vw, 56px); }
   .contactHero__copy > p { font-size: 14px; }
@@ -782,10 +784,10 @@ a.contactChannel:hover .contactChannel__arrow { transform: translateX(4px); }
     position: fixed;
     z-index: 27;
     right: 12px;
-    bottom: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     left: 12px;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     padding: 7px;
     border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
@@ -807,6 +809,11 @@ a.contactChannel:hover .contactChannel__arrow { transform: translateX(4px); }
   }
 
   .contactQuickAction.is-phone { background: #47745c; }
+  .contactQuickAction.is-facebook { background: #1959b7; }
+  .contactQuickAction.is-tiktok { background: #24212c; }
+  .contactQuickAction .social-link-label { font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .contactQuickAction { min-width: 0; gap: 6px; }
+  body:has(.contactForm input:focus, .contactForm textarea:focus) .contactQuickActions { visibility: hidden; pointer-events: none; }
   .contactQuickAction.is-instagram {
     background: linear-gradient(135deg, #833ab4, #e1306c 58%, #f77737);
   }

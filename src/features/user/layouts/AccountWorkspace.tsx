@@ -1,6 +1,6 @@
 import { BookmarkSimple, CaretDown, ClockCounterClockwise, FileText, FirstAidKit, GearSix, Headset, Heartbeat, House, List, LockKey, SignOut, UserCircle, X } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { getSessionScope } from '@/core/auth/token-store'
 import { SubscriptionStatus } from '@/features/payment/components/SubscriptionStatus'
@@ -11,7 +11,6 @@ import './account-workspace.css'
 export function AccountWorkspace() {
   const { profile, logout } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(() => location.pathname === '/app/profile' || location.pathname.startsWith('/app/profile/account/'))
   const [loggingOut, setLoggingOut] = useState(false)
@@ -49,13 +48,14 @@ export function AccountWorkspace() {
     if (loggingOut) return
     setLoggingOut(true)
     try { await logout() } catch { /* The local session is cleared even if the server is unavailable. */ }
-    finally { setLoggingOut(false); navigate('/login', { replace: true }) }
+    finally { setLoggingOut(false) }
   }
 
   const name = profile?.display_name || 'Thành viên NutriMom'
   const initial = name.trim().charAt(0).toUpperCase()
   const accountActive = location.pathname === '/app/profile' || location.pathname.startsWith('/app/profile/account/')
   const links = [
+    { to: '/app/reviews', end: false, label: 'Đánh giá NutriMom', icon: Heartbeat },
     { to: '/app/profile/health', end: false, label: 'Thai kỳ & sức khỏe', icon: Heartbeat },
     { to: '/app/profile/care', end: false, label: 'Kế hoạch chăm sóc', icon: FirstAidKit },
     { to: '/app/profile/records', end: false, label: 'Hồ sơ y tế', icon: FileText },

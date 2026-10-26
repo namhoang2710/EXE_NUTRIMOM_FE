@@ -9,7 +9,7 @@ const features = [
   ['DOCTOR_BOOKING', 'Đặt lịch bác sĩ'], ['SUPPORT', 'Luôn nhận hỗ trợ'],
 ]
 function plan(id: SubscriptionPlanDto['id'], name: string, price: number, excluded: string[], scan_quota: SubscriptionPlanDto['scan_quota']): SubscriptionPlanDto {
-  return { id, name, price, description: id === 'FREE' ? 'Khởi đầu nhẹ nhàng với những công cụ thiết yếu cho hành trình của mẹ.' : id === 'PLAN_399K' ? 'Đầy đủ công cụ chăm sóc, theo dõi và kết nối gia đình trong suốt thai kỳ.' : 'Thêm công cụ theo dõi chủ động và gợi ý phù hợp với từng giai đoạn.', currency: 'VND', duration_days: id === 'FREE' ? 0 : 30, featured: id === 'PLAN_399K', features: features.map(([code, label]) => ({ code: code!, label: label!, included: !excluded.includes(code!) })), scan_quota }
+  return { id, name, price, description: id === 'FREE' ? 'Khởi đầu nhẹ nhàng với những công cụ thiết yếu cho hành trình của mẹ.' : id === 'PLAN_399K' ? 'Đầy đủ công cụ chăm sóc, theo dõi và kết nối gia đình trong suốt thai kỳ.' : 'Thêm công cụ theo dõi chủ động và gợi ý phù hợp với từng giai đoạn.', currency: 'VND', duration_days: id === 'FREE' ? 0 : id === 'PLAN_399K' ? 300 : 30, duration_iso: id === 'FREE' ? 'P0D' : id === 'PLAN_399K' ? 'P10M' : 'P30D', duration_label: id === 'FREE' ? 'Mãi mãi' : id === 'PLAN_399K' ? '10 tháng' : '30 ngày', featured: id === 'PLAN_399K', features: features.map(([code, label]) => ({ code: code!, label: label!, included: !excluded.includes(code!) })), scan_quota }
 }
 export const planDtos = [
   plan('FREE', 'Gói Miễn phí', 0, ['FAMILY_SHARING', 'CONCEPTION_CALCULATOR', 'CALENDAR_REMINDERS', 'PERSONALISED_GUIDANCE'], { limit: 2, period: 'LIFETIME', unlimited: false }),

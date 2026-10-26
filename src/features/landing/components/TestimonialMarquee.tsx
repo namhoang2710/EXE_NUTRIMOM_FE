@@ -1,13 +1,15 @@
+import { useMotionActivity } from '@/shared/hooks/useMotionActivity'
+
 const testimonials = [
-  { image: '/rate1.png', alt: 'Đánh giá của Nguyễn Minh Anh về đội ngũ bác sĩ của NutriMom.' },
-  { image: '/rate2.png', alt: 'Đánh giá của Trần Ngọc Hân về trải nghiệm đồng hành cùng NutriMom.' },
-  { image: '/rate3.png', alt: 'Đánh giá của Lê Hoàng Yến về kiến thức chăm sóc mẹ và bé.' },
-  { image: '/rate4.png', alt: 'Đánh giá của Phạm Thùy Dương về dịch vụ của NutriMom.' },
-  { image: '/rate5.png', alt: 'Đánh giá của Đỗ Quốc Bảo về hành trình chăm sóc gia đình cùng NutriMom.' },
-  { image: '/rate6.png', alt: 'Đánh giá của Nguyễn Thị Mai về sự hỗ trợ từ NutriMom.' },
-  { image: '/rate7.png', alt: 'Đánh giá của Emily Carter về trải nghiệm sử dụng NutriMom.' },
-  { image: '/rate8.png', alt: 'Đánh giá của Min-jun Park về thông tin và trải nghiệm tại NutriMom.' },
-  { image: '/rate9.png', alt: 'Đánh giá ngắn của Min-jun Park dành cho NutriMom.' },
+  { image: '/optimized/rate1.webp', alt: 'Đánh giá của Nguyễn Minh Anh về đội ngũ bác sĩ của NutriMom.' },
+  { image: '/optimized/rate2.webp', alt: 'Đánh giá của Trần Ngọc Hân về trải nghiệm đồng hành cùng NutriMom.' },
+  { image: '/optimized/rate3.webp', alt: 'Đánh giá của Lê Hoàng Yến về kiến thức chăm sóc mẹ và bé.' },
+  { image: '/optimized/rate4.webp', alt: 'Đánh giá của Phạm Thùy Dương về dịch vụ của NutriMom.' },
+  { image: '/optimized/rate5.webp', alt: 'Đánh giá của Đỗ Quốc Bảo về hành trình chăm sóc gia đình cùng NutriMom.' },
+  { image: '/optimized/rate6.webp', alt: 'Đánh giá của Nguyễn Thị Mai về sự hỗ trợ từ NutriMom.' },
+  { image: '/optimized/rate7.webp', alt: 'Đánh giá của Emily Carter về trải nghiệm sử dụng NutriMom.' },
+  { image: '/optimized/rate8.webp', alt: 'Đánh giá của Min-jun Park về thông tin và trải nghiệm tại NutriMom.' },
+  { image: '/optimized/rate9.webp', alt: 'Đánh giá ngắn của Min-jun Park dành cho NutriMom.' },
 ] as const
 
 interface TestimonialGroupProps {
@@ -45,8 +47,10 @@ function TestimonialGroup({ duplicate = false }: TestimonialGroupProps) {
 }
 
 export function TestimonialMarquee() {
+  const motionRef = useMotionActivity<HTMLElement>()
   return (
     <section
+      ref={motionRef}
       className="testimonial-marquee-section"
       aria-labelledby="testimonial-marquee-title"
       aria-label="Đánh giá từ cộng đồng NutriMom"

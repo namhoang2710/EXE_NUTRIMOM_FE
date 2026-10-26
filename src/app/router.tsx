@@ -31,6 +31,10 @@ const ActivateAccountPage = lazy(() => import('@/features/auth/pages/ActivateAcc
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
 const MagicLinkVerifyPage = lazy(() => import('@/features/auth/pages/MagicLinkVerifyPage').then((module) => ({ default: module.MagicLinkVerifyPage })))
 const OtpPage = lazy(() => import('@/features/auth/pages/OtpPage').then((module) => ({ default: module.OtpPage })))
+const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then(module => ({ default: module.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then(module => ({ default: module.ResetPasswordPage })))
+const UserReviewsPage = lazy(() => import('@/features/reviews/pages/UserReviewsPage').then(module => ({ default: module.UserReviewsPage })))
+const AdminReviewsPage = lazy(() => import('@/features/reviews/pages/AdminReviewsPage').then(module => ({ default: module.AdminReviewsPage })))
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage').then((module) => ({ default: module.RegisterPage })))
 const ChatPage = lazy(() => import('@/features/chat/pages/ChatPage').then((module) => ({ default: module.ChatPage })))
 const ConsultationCallPage = lazy(() => import('@/features/consultation-video/pages/ConsultationCallPage').then((module) => ({ default: module.ConsultationCallPage })))
@@ -40,7 +44,9 @@ const ExpertsPage = lazy(() => import('@/features/experts/pages/ExpertsPage').th
 const BlogArticlePage = lazy(() => import('@/features/knowledge/pages/BlogArticlePage').then((module) => ({ default: module.BlogArticlePage })))
 const BlogPage = lazy(() => import('@/features/knowledge/pages/BlogPage').then((module) => ({ default: module.BlogPage })))
 const KnowledgePage = lazy(() => import('@/features/knowledge/pages/KnowledgePage').then((module) => ({ default: module.KnowledgePage })))
-const CommunityPage = lazy(() => import('@/features/knowledge/pages/CommunityPage').then((module) => ({ default: module.CommunityPage })))
+const CommunityPage = lazy(() => import('@/features/community/pages/CommunityPage').then((module) => ({ default: module.CommunityPage })))
+const CommunityGatePage = lazy(() => import('@/features/community/pages/CommunityGatePage').then((module) => ({ default: module.CommunityGatePage })))
+const AdminCommunityPage = lazy(() => import('@/features/community/pages/AdminCommunityPage').then((module) => ({ default: module.AdminCommunityPage })))
 const AboutPage = lazy(() => import('@/features/landing/pages/AboutPage').then((module) => ({ default: module.AboutPage })))
 const ContactPage = lazy(() => import('@/features/landing/pages/ContactPage').then((module) => ({ default: module.ContactPage })))
 const HomePage = lazy(() => import('@/features/landing/pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -49,6 +55,7 @@ const ServicesPage = lazy(() => import('@/features/landing/pages/ServicesPage').
 const NutritionPage = lazy(() => import('@/features/nutrition/pages/NutritionPage').then((module) => ({ default: module.NutritionPage })))
 const PaymentCancelPage = lazy(() => import('@/features/payment/pages/PaymentCancelPage').then((module) => ({ default: module.PaymentCancelPage })))
 const PaymentSuccessPage = lazy(() => import('@/features/payment/pages/PaymentSuccessPage').then((module) => ({ default: module.PaymentSuccessPage })))
+const PaymentHistoryPage = lazy(() => import('@/features/payment/pages/PaymentHistoryPage').then((module) => ({ default: module.PaymentHistoryPage })))
 const PricingEntry = lazy(() => import('@/features/payment/pages/PricingEntry').then((module) => ({ default: module.PricingEntry })))
 const AppHomePage = lazy(() => import('@/features/user/pages/AppHomePage').then((module) => ({ default: module.AppHomePage })))
 const ProfilePage = lazy(() => import('@/features/user/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
@@ -84,6 +91,7 @@ export function AppRouter() {
         <Route path="services/:serviceSlug" element={<ServiceDetailPage />} />
         <Route path="blog" element={<BlogPage />} />
         <Route path="blog/:articleSlug" element={<BlogArticlePage />} />
+        <Route path="community" element={<CommunityGatePage />} />
         <Route path="experts" element={<ExpertsPage />} />
         <Route path="contact" element={<ContactPage />} />
       </Route>
@@ -93,6 +101,8 @@ export function AppRouter() {
         <Route path="register" element={<RegisterPage />} />
       </Route>
       <Route path="otp" element={<GuestOnly><OtpPage /></GuestOnly>} />
+      <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route path="auth/activate" element={<ActivateAccountPage />} />
       <Route path="auth/verify" element={<MagicLinkVerifyPage />} />
 
@@ -116,6 +126,10 @@ export function AppRouter() {
         <Route path="account/disable" element={<AccountDisablePage />} />
       </Route>
 
+      <Route path="app/reviews" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
+        <Route index element={<UserReviewsPage />} />
+      </Route>
+
       <Route path="app/consultations/history" element={<ProtectedRoute><AccountWorkspace /></ProtectedRoute>}>
         <Route index element={<ConsultationHistoryPage />} />
       </Route>
@@ -124,6 +138,7 @@ export function AppRouter() {
       <Route path="app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<AppHomePage />} />
         <Route path="dashboard" element={<Navigate to="/app" replace />} />
+        <Route path="payment-history" element={<Suspense fallback={<UserRouteFallback />}><PaymentHistoryPage /></Suspense>} />
         <Route path="family" element={<Suspense fallback={<UserRouteFallback />}><FamilyPage /></Suspense>} />
         <Route path="family/invitations/:invitationId" element={<Suspense fallback={<UserRouteFallback />}><FamilyInvitationByIdPage /></Suspense>} />
         <Route path="appointment-questions" element={<AppointmentQuestionsPage />} />
@@ -159,9 +174,11 @@ export function AppRouter() {
         <Route path="health" element={<AdminHealthPage />} />
         <Route path="nutrition" element={<AdminNutritionPage />} />
         <Route path="knowledge" element={<AdminKnowledgePage />} />
+        <Route path="community" element={<AdminCommunityPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="revenue" element={<AdminRevenuePage />} />
         <Route path="notifications" element={<AdminNotificationsPage />} />
+        <Route path="reviews" element={<AdminReviewsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
 

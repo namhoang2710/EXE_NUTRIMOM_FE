@@ -6,9 +6,7 @@ import {
   CheckCircle,
   Clock,
   EnvelopeSimple,
-  FacebookLogo,
   Heart,
-  InstagramLogo,
   MapPin,
   PaperPlaneTilt,
   Phone,
@@ -17,6 +15,7 @@ import {
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { nutrimomContact, nutrimomSocials } from '../../../shared/config/contact'
+import { SocialLinks } from '../../../shared/components/SocialLinks'
 import './contact-premium.css'
 
 const contactChannels = [
@@ -39,36 +38,6 @@ const contactChannels = [
     label: 'Văn phòng NutriMom',
     value: nutrimomContact.office,
     description: 'Hỗ trợ trực tuyến cho gia đình trên toàn quốc',
-  },
-] as const
-
-const quickActions = [
-  {
-    icon: Phone,
-    label: 'Gọi ngay',
-    note: nutrimomContact.phone.label,
-    href: nutrimomContact.phone.href,
-    className: 'is-phone',
-  },
-  {
-    icon: InstagramLogo,
-    label: 'Instagram',
-    note: 'Theo dõi NutriMom',
-    href: nutrimomSocials.instagram.href,
-    className: 'is-instagram',
-    external: true,
-  },
-  {
-    icon: () => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.47 6.28 6.28 0 0 0 1.86-4.47V8.78a8.18 8.18 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-.86-.21z" />
-      </svg>
-    ),
-    label: 'TikTok',
-    note: '@nutrimom202',
-    href: nutrimomSocials.tiktok.href,
-    className: 'is-tiktok',
-    external: true,
   },
 ] as const
 
@@ -211,10 +180,10 @@ export function ContactPage() {
             <div className="contactHero__careDivider" />
             <div className="contactHero__carePromise">
               <div className="contactHero__avatars" aria-hidden="true">
-                <img src="/bsi_PHAT.jpg" width="36" height="36" alt="" />
-                <img src="/bsi_PHU.jpg" width="36" height="36" alt="" />
-                <img src="/bsi_THANH.jpg" width="36" height="36" alt="" />
-                <img src="/bsi_HAI.jpg" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_PHAT.webp" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_PHU.webp" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_THANH.webp" width="36" height="36" alt="" />
+                <img src="/optimized/bsi_HAI.webp" width="36" height="36" alt="" />
                 <span className="contactHero__avatarMore">10+</span>
               </div>
               <p><strong>Đội ngũ chăm sóc</strong><br />sẵn sàng đồng hành cùng mẹ.</p>
@@ -256,32 +225,7 @@ export function ContactPage() {
           <div className="contactSocials">
             <span>Theo dõi và trò chuyện cùng chúng tôi</span>
             <div>
-              <a
-                href={nutrimomSocials.tiktok.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={nutrimomSocials.tiktok.ariaLabel}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 4 }}>
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.47 6.28 6.28 0 0 0 1.86-4.47V8.78a8.18 8.18 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-.86-.21z" />
-                </svg> TikTok
-              </a>
-              <a
-                href={nutrimomSocials.instagram.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={nutrimomSocials.instagram.ariaLabel}
-              >
-                <InstagramLogo size={18} weight="bold" aria-hidden="true" /> Instagram
-              </a>
-              <a
-                href={nutrimomSocials.facebook.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={nutrimomSocials.facebook.ariaLabel}
-              >
-                <FacebookLogo size={18} weight="fill" aria-hidden="true" /> Facebook
-              </a>
+              <SocialLinks />
             </div>
           </div>
         </div>
@@ -403,19 +347,7 @@ export function ContactPage() {
       </section>
 
       <nav className="contactQuickActions" aria-label="Liên hệ nhanh">
-        {quickActions.map(({ icon: Icon, label, note, href, className, ...action }) => (
-          <a
-            className={`contactQuickAction ${className}`}
-            href={href}
-            key={label}
-            target={'external' in action ? '_blank' : undefined}
-            rel={'external' in action ? 'noopener noreferrer' : undefined}
-            aria-label={'external' in action ? `${label} (mở trong tab mới)` : label}
-          >
-            <Icon size={19} weight="fill" aria-hidden="true" />
-            <span><strong>{label}</strong><small>{note}</small></span>
-          </a>
-        ))}
+        <SocialLinks linkClassName="contactQuickAction" />
       </nav>
     </main>
   )

@@ -1,6 +1,14 @@
 .nm-app-shell.has-overview-hero .nm-floating-nav {
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
+.nm-overview-hero__playback {
+  position: absolute; right: 16px; bottom: 16px; z-index: 3; display: inline-flex;
+  min-height: 44px; align-items: center; justify-content: center; gap: 7px;
+  border: 1px solid rgb(255 255 255 / .4); border-radius: 12px; padding: 8px 12px;
+  color: #fff; background: rgb(34 24 51 / .8); font: inherit; font-size: 12px; cursor: pointer;
+}
+.nm-overview-hero__playback:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.nm-overview-hero__footer { padding-right: 145px; }
 .nm-overview-hero {
   --hero-background: #fff;
   --hero-text: #000;

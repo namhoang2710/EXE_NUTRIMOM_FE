@@ -438,6 +438,12 @@
   width: 100%;
   aspect-ratio: 1.6;
 }
+.nutrition-catalog-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
 .nutrition-recipe-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

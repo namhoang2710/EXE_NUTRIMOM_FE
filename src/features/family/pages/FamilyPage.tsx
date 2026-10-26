@@ -163,7 +163,7 @@ export function FamilyPage() {
 
   return <main className="family-page">
     <header className="family-hero">
-      <img className="family-hero-image" src="/bannerHub.png" width="2164" height="727" alt="" aria-hidden="true" fetchPriority="high" decoding="async" />
+      <img className="family-hero-image" src="/optimized/bannerHub.webp" width="2164" height="727" alt="" aria-hidden="true" fetchPriority="high" decoding="async" />
       <div className="family-hero-inner">
         <h1 className="sr-only">Family Hub</h1>
         <p className="sr-only">Chia sẻ đúng thông tin, phối hợp công việc và theo dõi hoạt động của gia đình.</p>

@@ -8,6 +8,7 @@ import { formatDate } from '@/core/auth/date'
 import { CalendarOverview } from '@/features/calendar/components/CalendarOverview'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { dashboardApi } from '@/features/maternity/api/domain-api'
+import { hasRunningPregnancyAge } from '@/features/maternity/model/pregnancy-context'
 import { formatEventTime } from '@/features/calendar/model/calendar-helpers'
 import { formatVietnamDateTime } from '@/features/family/model/family-formatters'
 import { StatusMessage } from '@/shared/components/StatusMessage'
@@ -59,7 +60,7 @@ export function AppHomePage() {
   }, [authStatus, load])
 
   const greeting = isPartner ? { title: `Chào ${profile?.display_name || user?.displayName || 'bạn'}`, subtitle: 'Những thông tin được chia sẻ trong hành trình thai kỳ của gia đình.' } : dashboardGreeting(dashboard)
-  const pregnancy = dashboard?.pregnancy_summary
+  const pregnancy = hasRunningPregnancyAge(dashboard?.pregnancy_summary) ? dashboard.pregnancy_summary : null
   const partnerPregnancyGranted = partnerDashboard?.pregnancy_overview !== undefined
   const partnerTasksGranted = partnerDashboard?.assigned_tasks !== undefined
   const partnerCalendarGranted = partnerDashboard?.shared_calendar !== undefined

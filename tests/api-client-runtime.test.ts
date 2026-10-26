@@ -29,7 +29,7 @@ const { ApiClientError } = await import('../src/core/api/api-error.ts')
 const { calendarApi } = await import('../src/features/calendar/api/calendar-api.ts')
 const { clearSession, getSession, saveApiSession } = await import('../src/core/auth/token-store.ts')
 const { clearDiagnosticEvents, getDiagnosticEvents } = await import('../src/core/diagnostics/logger.ts')
-await import('../src/features/auth/api/auth-api.ts')
+const { authApi } = await import('../src/features/auth/api/auth-api.ts')
 
 function authResponse(accessToken: string, refreshToken: string) {
   return {
@@ -291,4 +291,80 @@ test('refresh failure clears the session and emits one auth-state event for conc
   assert.equal(clearedEvents, 1)
   assert.equal(getSession(), null)
   assert.ok(results.every((result) => result.status === 'rejected'))
+})
+
+test('refresh 429 preserves the session and its cooldown without replaying protected writes', async () => {
+  resetSession()
+  saveApiSession(authResponse('expired-access', 'valid-refresh'))
+  let refreshCalls = 0, writes = 0
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith('/auth/refresh')) {
+      refreshCalls += 1
+      const response = jsonResponse({ error: { code: 'RATE_LIMITED', message: 'Wait' } }, 429)
+      response.headers.set('Retry-After', '60')
+      return response
+    }
+    if (init?.method === 'POST') writes += 1
+    return unauthorized()
+  }) as typeof fetch
+  const results = await Promise.allSettled([
+    apiClient.request('/qa-protected-write', { method: 'POST' }),
+    apiClient.request('/qa-protected-read'),
+  ])
+  assert.ok(results.every(result => result.status === 'rejected' && result.reason.status === 429))
+  assert.equal(getSession()?.refreshToken, 'valid-refresh')
+  await assert.rejects(apiClient.request('/qa-protected-read'), (reason: unknown) => reason instanceof ApiClientError && reason.status === 429)
+  assert.equal(refreshCalls, 1)
+  assert.equal(writes, 1)
+})
+
+test('temporary refresh server and network failures preserve the session for a later manual retry', async () => {
+  for (const networkFailure of [false, true]) {
+    resetSession()
+    saveApiSession(authResponse('expired-access', 'valid-refresh'))
+    let refreshCalls = 0
+    globalThis.fetch = (async () => {
+      refreshCalls += 1
+      if (networkFailure) throw new TypeError('Synthetic network failure')
+      return jsonResponse({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Unavailable' } }, 503)
+    }) as typeof fetch
+    await assert.rejects(authApi.refresh())
+    assert.equal(getSession()?.refreshToken, 'valid-refresh')
+    assert.equal(refreshCalls, 1)
+    globalThis.fetch = (async () => jsonResponse(authResponse('recovered-access', 'rotated-refresh'))) as typeof fetch
+    await authApi.refresh()
+    assert.equal(getSession()?.accessToken, 'recovered-access')
+  }
+})
+
+test('logout clears local auth before revocation completes and cannot clear a newer login', async () => {
+  resetSession()
+  saveApiSession(authResponse('access-a', 'refresh-a'))
+  let finish!: (response: Response) => void
+  let requestBody: unknown
+  globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+    requestBody = JSON.parse(String(init?.body))
+    return new Promise<Response>((resolve) => { finish = resolve })
+  }) as typeof fetch
+  const pending = authApi.logout()
+  assert.equal(getSession(), null)
+  assert.equal(sessionStorage.getItem('nutrimom.auth-session'), null)
+  assert.deepEqual(requestBody, { refresh_token: 'refresh-a' })
+  const next = authResponse('access-b', 'refresh-b')
+  next.user.id = 'user-2'
+  saveApiSession(next)
+  finish(jsonResponse({ logged_out: true }))
+  await pending
+  assert.equal(getSession()?.user.id, 'user-2')
+  assert.equal(getSession()?.accessToken, 'access-b')
+})
+
+test('failed logout revocation leaves local auth cleared', async () => {
+  resetSession()
+  saveApiSession(authResponse('access-a', 'refresh-a'))
+  globalThis.fetch = (async () => jsonResponse({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Unavailable' } }, 503)) as typeof fetch
+  const pending = authApi.logout()
+  assert.equal(getSession(), null)
+  await assert.rejects(pending)
+  assert.equal(getSession(), null)
 })
