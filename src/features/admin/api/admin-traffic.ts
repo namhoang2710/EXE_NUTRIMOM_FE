@@ -25,11 +25,11 @@ export interface TrafficSummaryResponse {
 }
 
 const DEFAULT_CHANNELS: { source: string; display_name: string }[] = [
-  { source: 'TIKTOK', display_name: 'TikTok (@nutrimom202)' },
+  { source: 'TIKTOK', display_name: 'TikTok' },
   { source: 'FACEBOOK', display_name: 'Facebook' },
   { source: 'INSTAGRAM', display_name: 'Instagram' },
   { source: 'GOOGLE', display_name: 'Google Ads / Tìm kiếm' },
-  { source: 'DIRECT', display_name: 'Trực tiếp / Tự nhiên' },
+  { source: 'DIRECT', display_name: 'Truy cập trực tiếp' },
   { source: 'OTHER', display_name: 'Kênh khác' },
 ]
 
