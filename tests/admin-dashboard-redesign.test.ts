@@ -12,8 +12,8 @@ import { bookingSparkline } from '../src/features/admin/model/admin-dashboard-st
 
 const payload=(mode='up')=>enrichDashboard(fixtureResponse('/admin/dashboard',new URLSearchParams()),mode)
 test('Vietnam greeting boundaries are independent of the machine timezone',()=>{
-  for(const [time,expected] of [['04:59','evening'],['05:00','morning'],['11:59','morning'],['12:00','afternoon'],['17:59','afternoon'],['18:00','evening']]) assert.equal(adminGreeting(new Date(`2026-10-13T${time}:00+07:00`)),`Good ${expected}, Sếp`)
-  assert.equal(formatAdminGreeting(new Date('2026-12-31T17:00:00Z')),'Good evening, Sếp | Hôm nay 01/01/27 | 00:00')
+  for(const [time,expected] of [['04:59','Chào buổi tối'],['05:00','Chào buổi sáng'],['11:59','Chào buổi sáng'],['12:00','Chào buổi chiều'],['17:59','Chào buổi chiều'],['18:00','Chào buổi tối']]) assert.equal(adminGreeting(new Date(`2026-10-13T${time}:00+07:00`)),expected)
+  assert.equal(formatAdminGreeting(new Date('2026-12-31T17:00:00Z')),'Chào buổi tối | Hôm nay 01/01/27 | 00:00')
 })
 test('overview uses complete real monthly data and a single customer snapshot',()=>{
   const raw=payload(),p=mapDashboardRedesign(raw);assert.equal(p.overview!.lifetime_real_collected_amount,123456789);assert.equal(p.customer_snapshot!.total_customers,100)

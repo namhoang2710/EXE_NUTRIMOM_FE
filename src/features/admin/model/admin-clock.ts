@@ -4,6 +4,6 @@ const timeFormat = new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Min
 export function formatAdminClock(now: Date) { return `Hôm nay ${dateFormat.format(now)} | ${timeFormat.format(now)}` }
 export function adminGreeting(now: Date) {
   const hour = Number(timeFormat.formatToParts(now).find(part => part.type === 'hour')?.value)
-  return hour >= 5 && hour < 12 ? 'Good morning, Sếp' : hour >= 12 && hour < 18 ? 'Good afternoon, Sếp' : 'Good evening, Sếp'
+  return hour >= 5 && hour < 12 ? 'Chào buổi sáng' : hour >= 12 && hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'
 }
 export function formatAdminGreeting(now: Date) { return `${adminGreeting(now)} | ${formatAdminClock(now)}` }

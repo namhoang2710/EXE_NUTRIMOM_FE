@@ -4,8 +4,6 @@ import {
   ArrowSquareOut,
   CaretRight,
   ChartBar,
-  Check,
-  Copy,
   CreditCard,
   Eye,
   Funnel,
@@ -28,69 +26,16 @@ import {
   YAxis,
 } from 'recharts'
 import { fetchTrafficSummary, type SourceMetricDto, type TrafficSummaryResponse } from '../api/admin-traffic'
+import { AdminUtmModal } from './AdminUtmModal'
 import '../styles/admin-traffic.css'
 
 const SOURCE_COLORS: Record<string, string> = {
-  TIKTOK: '#00f2fe',
+  TIKTOK: '#00b4d8',
   FACEBOOK: '#1877F2',
   INSTAGRAM: '#E1306C',
   GOOGLE: '#ea4335',
-  DIRECT: '#8b5cf6',
+  DIRECT: '#7264ad',
   OTHER: '#6b7280',
-}
-
-const PLATFORM_CONFIG: Record<
-  string,
-  {
-    name: string
-    color: string
-    gradient: string
-    badge: string
-    badgeClass: string
-  }
-> = {
-  TIKTOK: {
-    name: 'TikTok (@nutrimom202)',
-    color: '#00f2fe',
-    gradient: 'linear-gradient(135deg, rgba(0,242,254,0.12) 0%, rgba(255,0,80,0.08) 100%)',
-    badge: '🔥 Trọng tâm Viral',
-    badgeClass: 'badge-pill-tiktok',
-  },
-  FACEBOOK: {
-    name: 'Facebook',
-    color: '#1877F2',
-    gradient: 'linear-gradient(135deg, rgba(24,119,242,0.1) 0%, rgba(24,119,242,0.04) 100%)',
-    badge: '👥 Mạng xã hội',
-    badgeClass: 'badge-pill-facebook',
-  },
-  INSTAGRAM: {
-    name: 'Instagram',
-    color: '#E1306C',
-    gradient: 'linear-gradient(135deg, rgba(225,48,108,0.12) 0%, rgba(253,29,29,0.06) 100%)',
-    badge: '📸 Hình ảnh & Reels',
-    badgeClass: 'badge-pill-instagram',
-  },
-  GOOGLE: {
-    name: 'Google Ads / Tìm kiếm',
-    color: '#ea4335',
-    gradient: 'linear-gradient(135deg, rgba(234,67,53,0.1) 0%, rgba(66,133,244,0.06) 100%)',
-    badge: '🔍 Quảng cáo & Search',
-    badgeClass: 'badge-pill-google',
-  },
-  DIRECT: {
-    name: 'Trực tiếp / Tự nhiên',
-    color: '#8b5cf6',
-    gradient: 'linear-gradient(135deg, rgba(139,92,246,0.1) 0%, rgba(139,92,246,0.04) 100%)',
-    badge: '⭐ Khách trung thành',
-    badgeClass: 'badge-pill-direct',
-  },
-  OTHER: {
-    name: 'Kênh khác',
-    color: '#6b7280',
-    gradient: 'linear-gradient(135deg, rgba(107,114,128,0.08) 0%, rgba(107,114,128,0.03) 100%)',
-    badge: '🌐 Khác',
-    badgeClass: 'badge-pill-other',
-  },
 }
 
 function TikTokIcon({ size = 18 }: { size?: number }) {
@@ -160,13 +105,8 @@ export function AdminTrafficAnalytics() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<TrafficSummaryResponse | null>(null)
-
-  // UTM Generator State
-  const [utmSource, setUtmSource] = useState('tiktok')
-  const [utmPage, setUtmPage] = useState('/')
-  const [utmMedium, setUtmMedium] = useState('bio')
-  const [utmCampaign, setUtmCampaign] = useState('launch_2026')
-  const [copied, setCopied] = useState(false)
+  const [utmModalOpen, setUtmModalOpen] = useState(false)
+  const [targetUtmSource, setTargetUtmSource] = useState('tiktok')
 
   const dateRange = useMemo(() => {
     const to = new Date().toISOString().slice(0, 10)
@@ -211,7 +151,6 @@ export function AdminTrafficAnalytics() {
     if (!summary || !summary.metrics) return []
     const active = summary.metrics.filter((m) => m.visits > 0)
     if (active.length === 0) {
-      // Fallback showing distribution of signups or placeholder
       return summary.metrics.map((m) => ({
         name: m.display_name,
         source: m.source,
@@ -233,7 +172,18 @@ export function AdminTrafficAnalytics() {
   const barChartData = useMemo(() => {
     if (!summary || !summary.metrics) return []
     return summary.metrics.map((m) => ({
-      name: m.source === 'TIKTOK' ? 'TikTok' : m.source === 'FACEBOOK' ? 'Facebook' : m.source === 'INSTAGRAM' ? 'Instagram' : m.source === 'GOOGLE' ? 'Google' : m.source === 'DIRECT' ? 'Trực tiếp' : 'Khác',
+      name:
+        m.source === 'TIKTOK'
+          ? 'TikTok'
+          : m.source === 'FACEBOOK'
+          ? 'Facebook'
+          : m.source === 'INSTAGRAM'
+          ? 'Instagram'
+          : m.source === 'GOOGLE'
+          ? 'Google'
+          : m.source === 'DIRECT'
+          ? 'Trực tiếp'
+          : 'Khác',
       fullName: m.display_name,
       source: m.source,
       'Lượt truy cập': m.visits,
@@ -249,31 +199,9 @@ export function AdminTrafficAnalytics() {
     return summary.metrics.find((m) => m.source === selectedPlatform)
   }, [selectedPlatform, summary])
 
-  // Generated UTM URL
-  const generatedUtmUrl = useMemo(() => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nutrimom.vn'
-    const target = utmPage === '/' ? '' : utmPage
-    return `${origin}${target}?utm_source=${utmSource}&utm_medium=${utmMedium}&utm_campaign=${encodeURIComponent(
-      utmCampaign.trim() || 'social',
-    )}`
-  }, [utmSource, utmPage, utmMedium, utmCampaign])
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedUtmUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Fallback
-    }
-  }
-
-  const handleSelectPlatformForUtm = (source: string) => {
-    setUtmSource(source.toLowerCase())
-    const el = document.getElementById('utm-creator-section')
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' })
-    }
+  const openUtmForSource = (source: string) => {
+    setTargetUtmSource(source.toLowerCase())
+    setUtmModalOpen(true)
   }
 
   return (
@@ -284,11 +212,9 @@ export function AdminTrafficAnalytics() {
           <div className="admin-traffic-title-group">
             <h2 id="traffic-analytics-heading">
               <TrendUp size={24} weight="bold" color="#7264ad" />
-              Lưu lượng & Chuyển đổi Marketing
+              Lưu lượng & Hiệu quả tiếp thị
             </h2>
-            <p>
-              Đo lường người dùng từ TikTok (@nutrimom202), Facebook, Instagram và theo dõi hành trình chuyển đổi.
-            </p>
+            <p>Thống kê lưu lượng truy cập đa kênh và hiệu quả chuyển đổi người dùng.</p>
           </div>
 
           <div className="admin-traffic-actions">
@@ -334,14 +260,24 @@ export function AdminTrafficAnalytics() {
               Làm mới
             </button>
 
+            <button
+              type="button"
+              className="admin-traffic-btn-utm-trigger"
+              onClick={() => openUtmForSource('tiktok')}
+              title="Tạo link gắn mã UTM theo dõi chiến dịch"
+            >
+              <LinkSimple size={16} weight="bold" />
+              Tạo link UTM
+            </button>
+
             <a
               href={summary?.ga4_console_url || 'https://analytics.google.com/'}
               target="_blank"
               rel="noopener noreferrer"
               className="admin-traffic-btn-ga4"
-              title="Xem số liệu chi tiết trên Google Analytics 4 Console"
+              title="Mở Google Analytics 4 Console"
             >
-              GA4 Console ({summary?.ga4_property_id || 'G-4KC1688D38'})
+              Báo cáo GA4
               <ArrowSquareOut size={15} weight="bold" />
             </a>
           </div>
@@ -402,7 +338,7 @@ export function AdminTrafficAnalytics() {
           <div className="admin-traffic-tabs-header">
             <span className="admin-traffic-tabs-title">
               <Funnel size={16} weight="bold" />
-              Bộ lọc biểu đồ theo nền tảng:
+              Lọc theo kênh:
             </span>
             {selectedPlatform !== 'ALL' && (
               <button
@@ -410,7 +346,7 @@ export function AdminTrafficAnalytics() {
                 className="admin-traffic-btn-reset-filter"
                 onClick={() => setSelectedPlatform('ALL')}
               >
-                Quay lại xem tất cả
+                Quay lại xem tất cả kênh
               </button>
             )}
           </div>
@@ -422,7 +358,7 @@ export function AdminTrafficAnalytics() {
               onClick={() => setSelectedPlatform('ALL')}
             >
               <ChartBar size={16} weight="bold" />
-              Tất cả nền tảng
+              Tất cả kênh
             </button>
             {summary?.metrics?.map((m) => {
               const isSelected = selectedPlatform === m.source
@@ -441,31 +377,33 @@ export function AdminTrafficAnalytics() {
                     <ChannelIcon source={m.source} size={15} />
                   </span>
                   <span>{m.display_name}</span>
-                  <span className="tab-pill-badge">{m.visits} xem</span>
                 </button>
               )
             })}
           </div>
         </div>
 
-        {/* FOCUSED PLATFORM VIEW (Khi chọn 1 nền tảng cụ thể) */}
+        {/* FOCUSED PLATFORM VIEW (Khi người dùng chọn 1 kênh cụ thể) */}
         {focusedMetric ? (
           <div className="admin-platform-focus-box">
-            <div className="admin-focus-banner" style={{ borderLeftColor: SOURCE_COLORS[focusedMetric.source] || '#7264ad' }}>
+            <div
+              className="admin-focus-banner"
+              style={{ borderLeftColor: SOURCE_COLORS[focusedMetric.source] || '#7264ad' }}
+            >
               <div className="admin-focus-header">
                 <div className="admin-focus-title-wrap">
-                  <div className="admin-focus-icon-badge" style={{ backgroundColor: SOURCE_COLORS[focusedMetric.source] || '#7264ad' }}>
+                  <div
+                    className="admin-focus-icon-badge"
+                    style={{ backgroundColor: SOURCE_COLORS[focusedMetric.source] || '#7264ad' }}
+                  >
                     <ChannelIcon source={focusedMetric.source} size={24} />
                   </div>
                   <div>
                     <h3 className="admin-focus-title">
                       Chỉ số chi tiết: {focusedMetric.display_name}
-                      <span className={`admin-channel-pill-tag ${PLATFORM_CONFIG[focusedMetric.source]?.badgeClass || ''}`}>
-                        {PLATFORM_CONFIG[focusedMetric.source]?.badge || 'Kênh tiếp thị'}
-                      </span>
                     </h3>
                     <p className="admin-focus-sub">
-                      Hiệu quả tiếp cận và tỷ lệ chuyển đổi của riêng kênh {focusedMetric.display_name} trong giai đoạn được chọn.
+                      Hiệu quả tiếp cận và tỷ lệ chuyển đổi của kênh {focusedMetric.display_name} trong giai đoạn được chọn.
                     </p>
                   </div>
                 </div>
@@ -474,10 +412,17 @@ export function AdminTrafficAnalytics() {
                   <button
                     type="button"
                     className="admin-focus-btn-utm"
-                    onClick={() => handleSelectPlatformForUtm(focusedMetric.source)}
+                    onClick={() => openUtmForSource(focusedMetric.source)}
                   >
                     <LinkSimple size={15} weight="bold" />
                     Tạo link UTM cho kênh này
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-traffic-btn-reset-filter"
+                    onClick={() => setSelectedPlatform('ALL')}
+                  >
+                    Đóng chi tiết
                   </button>
                 </div>
               </div>
@@ -512,7 +457,9 @@ export function AdminTrafficAnalytics() {
                 <div className="admin-focus-funnel-arrow">
                   <CaretRight size={22} weight="bold" />
                   <span className="funnel-cr-badge">
-                    {focusedMetric.signups > 0 ? ((focusedMetric.purchases / focusedMetric.signups) * 100).toFixed(1) : 0}%
+                    {focusedMetric.signups > 0
+                      ? ((focusedMetric.purchases / focusedMetric.signups) * 100).toFixed(1)
+                      : 0}%
                   </span>
                 </div>
 
@@ -592,157 +539,56 @@ export function AdminTrafficAnalytics() {
             </div>
           </div>
         ) : (
-          /* ALL PLATFORMS VIEW (Lưới thẻ chỉ số riêng từng nền tảng + Biểu đồ so sánh) */
+          /* ALL PLATFORMS VIEW (Biểu đồ so sánh + Bảng tổng hợp chi tiết) */
           <>
-            {/* DEDICATED CARDS FOR EACH PLATFORM */}
-            <div className="admin-platform-cards-title">
-              <h3>
-                <ChartBar size={18} weight="bold" color="#7264ad" />
-                Chỉ số và hiệu quả chuyển đổi riêng từng nền tảng
-              </h3>
-              <p>Bấm vào từng thẻ nền tảng để xem biểu đồ phân tích chuyên sâu.</p>
-            </div>
-
-            <div className="admin-platform-cards-grid">
-              {summary?.metrics?.map((m) => {
-                const conf = PLATFORM_CONFIG[m.source] || PLATFORM_CONFIG.OTHER
-                const isTikTok = m.source === 'TIKTOK'
-                return (
-                  <div
-                    key={m.source}
-                    className={`admin-platform-card ${isTikTok ? 'platform-card-tiktok' : ''}`}
-                    onClick={() => setSelectedPlatform(m.source)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') setSelectedPlatform(m.source)
-                    }}
-                  >
-                    <div className="admin-platform-card-header">
-                      <div className="admin-platform-brand">
-                        <span className="admin-platform-icon-wrap" style={{ backgroundColor: `${conf.color}18`, color: conf.color }}>
-                          <ChannelIcon source={m.source} size={20} />
-                        </span>
-                        <div>
-                          <h4 className="admin-platform-name">{m.display_name}</h4>
-                          <span className={`admin-platform-badge ${conf.badgeClass}`}>{conf.badge}</span>
-                        </div>
-                      </div>
-                      <div className="admin-platform-cr-badge" style={{ backgroundColor: `${conf.color}15`, color: conf.color }}>
-                        CR: {m.conversion_rate.toFixed(1)}%
-                      </div>
-                    </div>
-
-                    <div className="admin-platform-stat-quad">
-                      <div className="admin-quad-item">
-                        <span className="admin-quad-label">👁️ Lượt xem</span>
-                        <strong className="admin-quad-val">{formatNumber(m.visits)}</strong>
-                        <span className="admin-quad-sub">{m.traffic_share}% thị phần</span>
-                      </div>
-                      <div className="admin-quad-item">
-                        <span className="admin-quad-label">👤 Đăng ký</span>
-                        <strong className="admin-quad-val">{formatNumber(m.signups)}</strong>
-                        <span className="admin-quad-sub">Mẹ bầu mới</span>
-                      </div>
-                      <div className="admin-quad-item">
-                        <span className="admin-quad-label">💳 Mua gói</span>
-                        <strong className="admin-quad-val">{formatNumber(m.purchases)}</strong>
-                        <span className="admin-quad-sub">Đơn trả phí</span>
-                      </div>
-                      <div className="admin-quad-item">
-                        <span className="admin-quad-label">💰 Doanh thu</span>
-                        <strong className="admin-quad-val" style={{ color: '#059669' }}>{formatMoney(m.revenue)}</strong>
-                        <span className="admin-quad-sub">Ghi nhận</span>
-                      </div>
-                    </div>
-
-                    {/* Mini Funnel Bar */}
-                    <div className="admin-platform-mini-funnel">
-                      <div className="admin-mini-funnel-label">
-                        <span>Phễu: Xem ({m.visits}) ➔ ĐK ({m.signups}) ➔ Mua ({m.purchases})</span>
-                      </div>
-                      <div className="admin-mini-funnel-track">
-                        <div
-                          className="admin-mini-funnel-fill"
-                          style={{
-                            width: `${Math.min(Math.max(m.conversion_rate, m.visits > 0 ? 10 : 0), 100)}%`,
-                            backgroundColor: conf.color,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="admin-platform-card-footer">
-                      <span className="admin-platform-view-link">
-                        Xem biểu đồ chi tiết <CaretRight size={13} weight="bold" />
-                      </span>
-                      <button
-                        type="button"
-                        className="admin-platform-btn-utm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSelectPlatformForUtm(m.source)
-                        }}
-                        title={`Tạo link UTM cho ${m.display_name}`}
-                      >
-                        <LinkSimple size={13} weight="bold" /> Link UTM
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
             {/* COMPARATIVE CHARTS ROW */}
             <div className="admin-traffic-charts-row">
               {/* Grouped Bar Chart: Comparison across platforms */}
               <div className="admin-traffic-chart-box admin-traffic-barchart-box">
                 <div className="admin-traffic-chart-title">
                   <span>Biểu đồ so sánh lưu lượng & chuyển đổi giữa các nền tảng</span>
-                  <small style={{ color: '#6b7280', fontWeight: 'normal' }}>TikTok · Facebook · Instagram · Google · Direct</small>
+                  <small style={{ color: '#6b7280' }}>Lượt xem · Đăng ký · Đơn mua</small>
                 </div>
 
-                <div style={{ width: '100%', height: 260 }}>
+                <div style={{ width: '100%', height: 270 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={barChartData}
-                      margin={{ top: 10, right: 10, left: -15, bottom: 5 }}
-                    >
+                    <BarChart data={barChartData} margin={{ top: 10, right: 15, left: -10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                       <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#4b5563' }} />
-                      <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+                      <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} allowDecimals={false} />
                       <Tooltip
-                        formatter={(value: any, name: any) => [formatNumber(Number(value)), name]}
+                        formatter={(val: any, name: any) => [
+                          formatNumber(Number(val)),
+                          name === 'visits' ? 'Lượt xem' : name === 'signups' ? 'Đăng ký' : 'Mua gói',
+                        ]}
                       />
                       <Legend wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
-                      <Bar dataKey="Lượt truy cập" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                      <Bar dataKey="Đăng ký mới" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                      <Bar dataKey="Mua gói" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="Lượt truy cập" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                      <Bar dataKey="Đăng ký mới" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                      <Bar dataKey="Mua gói" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={30} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
               {/* Donut Chart: Traffic Share */}
-              <div className="admin-traffic-chart-box">
+              <div className="admin-traffic-chart-box admin-traffic-donutchart-box">
                 <div className="admin-traffic-chart-title">
                   <span>Thị phần truy cập theo kênh</span>
-                  <small style={{ color: '#6b7280', fontWeight: 'normal' }}>
-                    {donutChartData.filter((d) => d.value > 0).length} kênh có lưu lượng
+                  <small style={{ color: '#6b7280' }}>
+                    {donutChartData.length} kênh có lưu lượng
                   </small>
                 </div>
 
                 <div className="admin-traffic-donut-wrap">
-                  {donutChartData.some((d) => d.value > 0) ? (
+                  {donutChartData.length > 0 ? (
                     <>
-                      <div style={{ width: 170, height: 170 }}>
+                      <div style={{ width: '100%', height: 180 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Tooltip
                               formatter={(value: any, name: any) => [
-                                `${formatNumber(Number(value))} lượt (${
-                                  donutChartData.find((c) => c.name === name)?.share || 0
-                                }%)`,
+                                `${formatNumber(Number(value))} lượt (${donutChartData.find((d) => d.name === name)?.share ?? 0}%)`,
                                 name,
                               ]}
                             />
@@ -779,153 +625,71 @@ export function AdminTrafficAnalytics() {
                       </div>
                     </>
                   ) : (
-                    <div style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+                    <div style={{ color: '#9ca3af', fontSize: '0.875rem', padding: '2rem 0', textAlign: 'center' }}>
                       Chưa có lượt truy cập ghi nhận theo kênh
                     </div>
                   )}
                 </div>
               </div>
             </div>
+
+            {/* Detailed Comparison Table */}
+            <div className="admin-traffic-table-section">
+              <div className="admin-traffic-table-header">
+                <h4>Bảng tổng hợp chi tiết chỉ số từng kênh tiếp thị</h4>
+                <span className="table-header-sub">Bấm vào dòng bất kỳ để xem phân tích chuyên sâu của kênh đó</span>
+              </div>
+
+              <div className="admin-traffic-table-wrap">
+                <table className="admin-traffic-table">
+                  <thead>
+                    <tr>
+                      <th>Kênh tiếp thị</th>
+                      <th>Lượt truy cập</th>
+                      <th>Thị phần</th>
+                      <th>Đăng ký mới</th>
+                      <th>Giao dịch mua gói</th>
+                      <th>Tỷ lệ chuyển đổi (CR)</th>
+                      <th>Doanh thu mang lại</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary?.metrics?.map((row) => (
+                      <tr
+                        key={row.source}
+                        className={selectedPlatform === row.source ? 'row-selected' : ''}
+                        onClick={() => setSelectedPlatform(row.source)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <td>
+                          <span className={`admin-traffic-channel-badge badge-${row.source}`}>
+                            <ChannelIcon source={row.source} size={16} />
+                            {row.display_name}
+                          </span>
+                        </td>
+                        <td><strong>{formatNumber(row.visits)}</strong></td>
+                        <td>{row.traffic_share}%</td>
+                        <td>{formatNumber(row.signups)}</td>
+                        <td>{formatNumber(row.purchases)}</td>
+                        <td>
+                          <span className="admin-traffic-cr-pill">{row.conversion_rate.toFixed(1)}%</span>
+                        </td>
+                        <td><strong>{formatMoney(row.revenue)}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </>
         )}
-
-        {/* Detailed Comparison Table */}
-        <div className="admin-traffic-table-section">
-          <div className="admin-traffic-table-header">
-            <h4>Bảng tổng hợp chi tiết chỉ số từng kênh tiếp thị</h4>
-            <span className="table-header-sub">Bấm vào dòng bất kỳ để xem biểu đồ chi tiết của kênh đó</span>
-          </div>
-
-          <div className="admin-traffic-table-wrap">
-            <table className="admin-traffic-table">
-              <thead>
-                <tr>
-                  <th>Kênh tiếp thị</th>
-                  <th>Lượt truy cập</th>
-                  <th>Thị phần</th>
-                  <th>Đăng ký mới</th>
-                  <th>Mua gói</th>
-                  <th>Tỷ lệ CR</th>
-                  <th>Doanh thu</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary?.metrics?.map((row) => (
-                  <tr
-                    key={row.source}
-                    className={selectedPlatform === row.source ? 'row-selected' : ''}
-                    onClick={() => setSelectedPlatform(row.source)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td>
-                      <span className={`admin-traffic-channel-badge badge-${row.source}`}>
-                        <ChannelIcon source={row.source} size={16} />
-                        {row.display_name}
-                      </span>
-                    </td>
-                    <td><strong>{formatNumber(row.visits)}</strong></td>
-                    <td>{row.traffic_share}%</td>
-                    <td>{formatNumber(row.signups)}</td>
-                    <td>{formatNumber(row.purchases)}</td>
-                    <td>
-                      <span className="admin-traffic-cr-pill">{row.conversion_rate.toFixed(1)}%</span>
-                    </td>
-                    <td><strong>{formatMoney(row.revenue)}</strong></td>
-                    <td>
-                      <button
-                        type="button"
-                        className="admin-traffic-table-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSelectPlatformForUtm(row.source)
-                        }}
-                      >
-                        Lấy link UTM
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Marketing UTM Link Builder */}
-        <div id="utm-creator-section" className="admin-utm-creator">
-          <div className="admin-utm-creator-title">
-            <TikTokIcon size={20} />
-            Công cụ tạo link UTM cho bài đăng TikTok & Mạng xã hội
-          </div>
-          <p className="admin-utm-creator-desc">
-            Khi đăng video TikTok (@nutrimom202) hoặc bài viết FB/Instagram, dùng link này gắn vào Bio hoặc comment để hệ thống tự động ghi nhận lượt xem, đăng ký và đơn hàng về đúng kênh!
-          </p>
-
-          <div className="admin-utm-form">
-            <div className="admin-utm-field">
-              <label>Kênh đăng bài (Source)</label>
-              <select value={utmSource} onChange={(e) => setUtmSource(e.target.value)}>
-                <option value="tiktok">TikTok (@nutrimom202)</option>
-                <option value="facebook">Facebook</option>
-                <option value="instagram">Instagram</option>
-                <option value="google">Google Ads</option>
-                <option value="direct">Direct (Trực tiếp)</option>
-              </select>
-            </div>
-
-            <div className="admin-utm-field">
-              <label>Trang đích (Landing)</label>
-              <select value={utmPage} onChange={(e) => setUtmPage(e.target.value)}>
-                <option value="/">Trang chủ (/)</option>
-                <option value="/entitlements">Bảng giá gói (/entitlements)</option>
-                <option value="/register">Trang đăng ký (/register)</option>
-                <option value="/recipes">Thực đơn dinh dưỡng (/recipes)</option>
-              </select>
-            </div>
-
-            <div className="admin-utm-field">
-              <label>Vị trí đặt link (Medium)</label>
-              <select value={utmMedium} onChange={(e) => setUtmMedium(e.target.value)}>
-                <option value="bio">Link tiểu sử (Bio link)</option>
-                <option value="video">Mô tả video / Ghim comment</option>
-                <option value="reels">Reels / Shorts</option>
-                <option value="post">Bài viết tin tức</option>
-              </select>
-            </div>
-
-            <div className="admin-utm-field">
-              <label>Tên chiến dịch (Campaign)</label>
-              <input
-                type="text"
-                value={utmCampaign}
-                onChange={(e) => setUtmCampaign(e.target.value)}
-                placeholder="VD: launch_2026, khuyenmai_tet"
-              />
-            </div>
-          </div>
-
-          <div className="admin-utm-result">
-            <code>{generatedUtmUrl}</code>
-            <button
-              type="button"
-              className="admin-utm-copy-btn"
-              onClick={handleCopyLink}
-            >
-              {copied ? (
-                <>
-                  <Check size={14} weight="bold" style={{ display: 'inline', marginRight: 4 }} />
-                  Đã sao chép!
-                </>
-              ) : (
-                <>
-                  <Copy size={14} weight="bold" style={{ display: 'inline', marginRight: 4 }} />
-                  Sao chép link
-                </>
-              )}
-            </button>
-          </div>
-        </div>
       </div>
+
+      <AdminUtmModal
+        open={utmModalOpen}
+        onClose={() => setUtmModalOpen(false)}
+        initialSource={targetUtmSource}
+      />
     </section>
   )
 }
