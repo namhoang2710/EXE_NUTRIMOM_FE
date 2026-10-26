@@ -286,8 +286,9 @@ try {
       await dialog.getByRole('button',{name:'Lưu quyền',exact:true}).click();await dialog.waitFor({state:'hidden'});assert.equal(writes[1].version,2);assert(!writes[1].scopes.includes('FAMILY_TASKS'))
     } finally {await f.context.close()}
   })
-  await check('lifecycle: offscreen motion pauses and reduced-motion video waits for user control', async () => {
+  await check('lifecycle: offscreen motion pauses and reduced-motion video keeps the poster without controls', async () => {
     const f=await session('guest',false,{reducedMotion:'no-preference'})
+    await f.context.route('**/api/v1/analytics/traffic/visit',route=>ok(route,{recorded:true,source:'DIRECT'}))
     try {
       await goto(f,'/');const marquee=f.page.locator('.testimonial-marquee-track')
       await f.page.waitForTimeout(100);assert.equal(await marquee.evaluate(e=>getComputedStyle(e).animationPlayState),'paused')
@@ -295,11 +296,12 @@ try {
       await f.page.evaluate(()=>window.scrollTo(0,0));await f.page.waitForTimeout(200);assert.equal(await marquee.evaluate(e=>getComputedStyle(e).animationPlayState),'paused')
     } finally {await f.context.close()}
     const user=await session('USER')
+    await user.context.route('**/api/v1/analytics/traffic/visit',route=>ok(route,{recorded:true,source:'DIRECT'}))
     try {
       await user.page.setViewportSize({width:390,height:844});await goto(user,'/app');const video=user.page.locator('.nm-overview-hero__video')
       assert.equal(await video.getAttribute('src'),null)
-      await user.page.getByRole('button',{name:'Phát video nền',exact:true}).click();await user.page.getByRole('button',{name:'Tạm dừng video nền',exact:true}).waitFor()
-      await user.page.getByRole('button',{name:'Tạm dừng video nền',exact:true}).click();assert.equal(await video.evaluate(e=>e.paused),true)
+      assert.equal(await user.page.locator('.nm-overview-hero__playback').count(),0)
+      assert.equal(await video.evaluate(e=>e.paused),true)
     } finally {await user.context.close()}
   })
 

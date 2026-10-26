@@ -50,6 +50,7 @@
 .nm-admin-review-row p { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .nm-admin-review-row small { color: var(--muted); }
 .nm-footer-reviews { --muted: #ded1ed; --text: #fff9ff; --surface: #39294d; --surface-muted: #453355; --border: #6a547c; --accent-strong: #eee3fb; min-width: 0; }
+.nm-footer-review-stats, .nm-footer-review-latest { display: contents; }
 .nm-footer-reviews .nm-review-summary { max-width: 100%; gap: 12px; }
 .nm-footer-reviews .nm-review-score > strong { font-size: 32px; }
 .nm-footer-review-excerpts .nm-web-review-card { gap: 6px; padding: 12px 0; }

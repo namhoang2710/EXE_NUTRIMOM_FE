@@ -52,7 +52,7 @@ export function AdminDashboardPage() {
   const bookingComparison=metricComparison(comparisons?.appointments)
   const planShare=currentPlanShare(customers)
   const metrics=[
-    {id:'lifetime',title:'Total revenue',value:overview?.lifetime_real_collected_amount,path:'/admin/revenue?source=ALL&range=ALL_TIME&status=PAID&dateBasis=PAID',formatter:money,
+    {id:'lifetime',title:'Tổng doanh thu',value:overview?.lifetime_real_collected_amount,path:'/admin/revenue?source=ALL&range=ALL_TIME&status=PAID&dateBasis=PAID',formatter:money,
       subtitle:`Lũy kế đến T${Number(today.slice(5,7))}/${today.slice(0,4)}`,comparison:revenueComparison,
       difference:revenueComparison.difference==null?null:signedMetric(revenueComparison.difference,money),caption:revenueComparison.known?`so với cuối ${previousLabel}`:'Chưa có dữ liệu so sánh',detail:'Doanh thu gói dịch vụ lũy kế'},
     {id:'customers',title:'Khách hàng',value:customers?.total_customers,path:'/admin/users',formatter:integer,
@@ -81,7 +81,7 @@ export function AdminDashboardPage() {
     </div>
     <div key={`sections-${entranceKey}`} className={`admin-dashboard-sections ${timeline.login&&!timeline.reduced?'admin-dashboard-sections-enter':''}`} data-dashboard-phase="sections" data-content-ready={timeline.charts&&(!loading||!!resource.error)} inert={!timeline.charts||loading} style={{'--dashboard-section-delay':`${timeline.sectionDelay}s`} as CSSProperties}>
       <div className="admin-primary-charts">
-        <Card className="admin-card admin-overview-card"><CardHeader><CardTitle>Revenue Overview</CardTitle><CardDescription>Doanh thu gói dịch vụ theo tháng · năm {data?.monthly_revenue?.year??today.slice(0,4)}</CardDescription></CardHeader><CardContent>
+        <Card className="admin-card admin-overview-card"><CardHeader><CardTitle>Tổng quan doanh thu</CardTitle><CardDescription>Doanh thu gói dịch vụ theo tháng · năm {data?.monthly_revenue?.year??today.slice(0,4)}</CardDescription></CardHeader><CardContent>
           {data?.monthly_revenue&&!moduleError?<AdminChartSlot id="monthly" duration={900} begin={180} height={236} ready={moduleReady} {...slotProps}>{props=><Suspense fallback={<Skeleton chart/>}><MonthlyChart data={data.monthly_revenue!} {...props}/></Suspense>}</AdminChartSlot>:<div className="admin-monthly-placeholder">{resource.loading?<Skeleton chart/>:<Missing/>}</div>}
         </CardContent></Card>
         <Card className="admin-card admin-overview-card admin-plan-card"><CardHeader><CardTitle>Cơ cấu gói</CardTitle><CardDescription>Gói hiện tại của khách hàng</CardDescription></CardHeader><CardContent>
@@ -101,7 +101,7 @@ export function AdminDashboardPage() {
       <section className="admin-card admin-live-section admin-period-card"><header><div><h2>Kỳ thống kê</h2><p>Bộ lọc chỉ áp dụng cho tiền thu/ngày và người dùng mới/ngày</p></div><AdminDashboardActions busy={resource.loading} valid={filters.valid} retry={resource.retry}/></header>
         <PeriodFilter from={filters.query.get('fromDate')||''} to={filters.query.get('toDate')||''} presets onChange={(fromDate,toDate)=>filters.commit({fromDate,toDate})}/>
         <QueryErrors errors={filterErrors} onReset={()=>{filters.commit({fromDate:null,toDate:null});resource.retry()}}/>
-        <div className="admin-period-charts"><div><h3>Tiền thu / ngày</h3><p>Total revenue · {periodData?comparison(periodData.kpis.real_collected_amount,periodData.kpis.previous_real_collected_amount):'Theo kỳ đã chọn'}</p>
+        <div className="admin-period-charts"><div><h3>Tiền thu / ngày</h3><p>Tổng doanh thu · {periodData?comparison(periodData.kpis.real_collected_amount,periodData.kpis.previous_real_collected_amount):'Theo kỳ đã chọn'}</p>
           {periodData&&!moduleError?<AdminChartSlot id="collections" height={260} ready={moduleReady} {...dailySlotProps}>{props=><Suspense fallback={<Skeleton chart/>}><CollectionChart items={periodData!.series.collections} previous {...props}/></Suspense>}</AdminChartSlot>:resource.loading?<Skeleton chart/>:<Missing/>}</div>
           <div><h3>Người dùng mới / ngày</h3><p>Tài khoản người dùng, loại nhân sự quản trị và chuyên gia</p>{periodData&&!moduleError?<AdminChartSlot id="registrations" height={260} ready={moduleReady} {...dailySlotProps}>{props=><Suspense fallback={<Skeleton chart/>}><RegistrationChart items={periodData!.series.registrations} {...props}/></Suspense>}</AdminChartSlot>:resource.loading?<Skeleton chart/>:<Missing/>}</div>
         </div>
