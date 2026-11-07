@@ -1,13 +1,17 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+import { Dialog } from '@base-ui/react/dialog'
+import { X } from '@phosphor-icons/react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { ApiClientError } from '@/core/api/api-error'
+import { reviewsApi } from '@/features/reviews/api/reviews-api'
+import { useReviewData } from '@/features/reviews/hooks/useReviewData'
 import { useAdminResource } from '../hooks/useAdminResource'
 import { useAdminFilters } from '../hooks/useAdminFilters'
 import { useDashboardTimeline } from '../hooks/useDashboardTimeline'
 import { invalidateAdmin } from '../api/admin-read'
-import { mapDashboardRedesign } from '../model/admin-dashboard-overview'
+import { mapDashboardRedesign, type CustomerSnapshot } from '../model/admin-dashboard-overview'
 import { metricComparison, signedMetric, currentPlanShare } from '../model/admin-metric-comparison'
 import { dashboardKpiFrameMs } from '../model/admin-dashboard-timeline'
 import { attentionPath, activityPath } from '../model/admin-dashboard-links'
@@ -26,10 +30,65 @@ const MonthlyChart=lazy(()=>preloadDashboardCharts().then(m=>({default:m.Revenue
 const PlanRing=lazy(()=>preloadDashboardCharts().then(m=>({default:m.PlanRing})))
 const CollectionChart=lazy(()=>preloadDashboardCharts().then(m=>({default:m.CollectionChart})))
 const RegistrationChart=lazy(()=>preloadDashboardCharts().then(m=>({default:m.RegistrationChart})))
-const integer=(value:number)=>new Intl.NumberFormat('vi-VN').format(value)
-const percent=(value:number)=>`${new Intl.NumberFormat('vi-VN',{minimumFractionDigits:1,maximumFractionDigits:1}).format(value)}%`
+const integer = new Intl.NumberFormat('vi-VN').format
+const percentNumber = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const percent = (value: number) => `${percentNumber.format(value)}%`
+const people = (value: number) => `${integer(value)} người`
 function Missing() { return <span className="admin-metric-unavailable">Dữ liệu chưa khả dụng</span> }
 function Skeleton({ chart=false }: { chart?:boolean }) { return <span role="status" className={chart?'admin-chart-skeleton':'admin-metric-skeleton'} aria-label="Đang tải dữ liệu"/> }
+
+function DashboardReviewCard({ start, login }: { start: boolean; login: boolean }) {
+  const reviews = useReviewData('admin:public-summary', reviewsApi.summary, start)
+  const total = reviews.data?.total
+  const rate = reviews.data && reviews.data.total > 0
+    ? (reviews.data.by_rating['4'] + reviews.data.by_rating['5']) / reviews.data.total * 100
+    : null
+  const loading = !start || (!reviews.data && !reviews.error)
+
+  return <AdminStatsCard id="reviews" title="Đánh giá ứng dụng" path="/admin/reviews" actionLabel="Xem đánh giá"
+    subtitle="Tỷ lệ đánh giá công khai từ 4–5 sao" detail="Số lượt 4–5 sao trên tổng số lượt đánh giá công khai"
+    caption={total != null ? `${integer(total)} lượt đánh giá` : ''}
+    value={loading ? <Skeleton /> : rate != null
+      ? <AdminDashboardNumber id="reviews" value={rate} formatter={percent} decimals={1} start={start} login={login} />
+      : total === 0 ? <span className="admin-no-customers">Chưa có đánh giá</span> : <Missing />}
+  />
+}
+
+function PaidPlansDialog({ children, customers, total, loading }: {
+  children: ReactNode; customers: CustomerSnapshot | null | undefined; total: number | undefined; loading: boolean
+}) {
+  return <Dialog.Root>
+    {children}
+    <Dialog.Portal>
+      <Dialog.Backdrop className="admin-kpi-details-backdrop" />
+      <Dialog.Popup className="admin-kpi-details admin-paid-plans-dialog">
+        <header className="admin-kpi-details-header">
+          <div>
+            <Dialog.Title>Phân bổ gói trả phí</Dialog.Title>
+            <Dialog.Description>Số người đang sử dụng gói 399K và 99K còn hiệu lực.</Dialog.Description>
+          </div>
+          <Dialog.Close className="admin-editor-close" aria-label="Đóng chi tiết gói"><X size={18} aria-hidden /></Dialog.Close>
+        </header>
+        <div className="admin-kpi-details-body">
+          {customers ? <ul className="admin-paid-plans-list">
+            {[
+              { name: 'Gói 399K', count: customers.plan_399k_users },
+              { name: 'Gói 99K', count: customers.plan_99k_users },
+            ].map(({ name, count }) => <li key={name}>
+              <div><span>{name}</span><strong>{people(count)}</strong></div>
+              <span className="admin-paid-plan-track" aria-hidden="true">
+                <span style={{ width: total ? `${count / total * 100}%` : '0%' }} />
+              </span>
+            </li>)}
+          </ul> : loading ? <Skeleton /> : <Missing />}
+        </div>
+        <footer className="admin-kpi-details-footer">
+          <Link className="admin-button primary" to="/admin/revenue?tab=subscriptions&effectiveStatus=ACTIVE">Xem chi tiết</Link>
+        </footer>
+      </Dialog.Popup>
+    </Dialog.Portal>
+  </Dialog.Root>
+}
 
 export function AdminDashboardPage() {
   const filters=useAdminFilters('dashboard'), resource=useAdminResource(filters.valid?`/admin/dashboard?${filters.queryString}`:null,mapDashboardRedesign)
@@ -42,29 +101,18 @@ export function AdminDashboardPage() {
   useEffect(()=>{let alive=true;void preloadDashboardCharts().then(()=>{if(alive)setModuleReady(true)}).catch(()=>{if(alive)setModuleError(true)});return()=>{alive=false}},[])
   useEffect(()=>{const midnight=()=>invalidateAdmin('/admin/dashboard');window.addEventListener('nutrimom:admin-vietnam-day',midnight);return()=>window.removeEventListener('nutrimom:admin-vietnam-day',midnight)},[])
   const today=vietnamToday(new Date(data?.snapshot_at||Date.now())), overview=data?.overview, customers=data?.customer_snapshot
+  const paidUsers = customers ? customers.plan_399k_users + customers.plan_99k_users : undefined
   const todayLink=`/admin/appointments?view=calendar&dateBasis=SCHEDULED&fromDate=${today}&toDate=${today}`
   const comparisons=data?.metric_comparisons
   const previousMonth=comparisons?.previous_month??new Date(Date.UTC(Number(today.slice(0,4)),Number(today.slice(5,7))-1,0)).toISOString().slice(0,7)
   const previousLabel=`T${Number(previousMonth.slice(5))}/${previousMonth.slice(0,4)}`
   const currentMonthAmount=data?.monthly_revenue?.items.at(-1)?.amount
   const revenueValues=comparisons?.revenue??(overview&&currentMonthAmount!=null?{current_value:overview.lifetime_real_collected_amount,previous_value:overview.lifetime_real_collected_amount-currentMonthAmount}:null)
-  const revenueComparison=metricComparison(revenueValues),customerComparison=metricComparison(comparisons?.customers)
-  const bookingComparison=metricComparison(comparisons?.appointments)
+  const revenueComparison=metricComparison(revenueValues)
   const planShare=currentPlanShare(customers)
-  const metrics=[
-    {id:'lifetime',title:'Tổng doanh thu',value:overview?.lifetime_real_collected_amount,path:'/admin/revenue?source=ALL&range=ALL_TIME&status=PAID&dateBasis=PAID',formatter:money,
-      subtitle:`Lũy kế đến T${Number(today.slice(5,7))}/${today.slice(0,4)}`,comparison:revenueComparison,
-      difference:revenueComparison.difference==null?null:signedMetric(revenueComparison.difference,money),caption:revenueComparison.known?`so với cuối ${previousLabel}`:'Chưa có dữ liệu so sánh',detail:'Doanh thu gói dịch vụ lũy kế'},
-    {id:'customers',title:'Khách hàng',value:customers?.total_customers,path:'/admin/users',formatter:integer,
-      subtitle:'Tổng tài khoản đã đăng ký',comparison:customerComparison,
-      difference:customerComparison.difference==null?null:signedMetric(customerComparison.difference,integer),caption:customerComparison.known?`đăng ký mới so với ${previousLabel}`:'Chưa có dữ liệu tháng trước',detail:comparisons?`Tháng này ${comparisons.customers.current_value} đăng ký mới, tháng trước ${comparisons.customers.previous_value}`:'Tổng khách hàng đã đăng ký'},
-    {id:'today',title:'Lịch hôm nay',value:overview?.today_booked_appointments,path:todayLink,formatter:integer,
-      subtitle:overview?`${integer(overview.today_booking_users)} khách đặt chuyên gia`:'Lịch tư vấn trong ngày',comparison:bookingComparison,
-      difference:bookingComparison.difference==null?null:signedMetric(bookingComparison.difference,n=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:1}).format(n)),caption:bookingComparison.known?'lịch so với TB 30 ngày':'Chưa có dữ liệu so sánh',detail:comparisons?`Hôm nay ${comparisons.appointments.current_value} lịch; trung bình ${comparisons.appointments.previous_value} lịch/ngày trong 30 ngày trước`:'Lịch đặt hôm nay'},
-    {id:'adoption',title:'Tỷ lệ gói 399K',value:planShare.value,path:'/admin/revenue?tab=subscriptions&planTier=PLAN_399K&effectiveStatus=ACTIVE',formatter:percent,
-      subtitle:customers?`${customers.plan_399k_users}/${customers.total_customers} khách đang dùng`:'Gói hiện tại của khách hàng',comparison:planShare.indicator,
-      difference:null,caption:customers?.total_customers?'Trên tổng khách hàng hiện tại':customers?'Chưa có khách hàng':'Dữ liệu chưa khả dụng',detail:'Khách dùng gói 399K còn hiệu lực / tổng khách hàng × 100'},
-  ]
+  const loadingKpis = loading || !timeline.numbers
+  const revenue = overview?.lifetime_real_collected_amount
+  const numberMotion = { start: timeline.numbers, login: timeline.login }
   const slotProps={allowed:timeline.charts,login:timeline.login,reduced:timeline.reduced}
   const filterFailure=resource.errorDetail instanceof ApiClientError && [400,422].includes(resource.errorDetail.status)?resource.errorDetail:null
   const filterErrors={...filters.errors,...(filterFailure?Object.keys(filterFailure.fields).length?filterFailure.fields:{filters:filterFailure.message}:{})}
@@ -74,10 +122,31 @@ export function AdminDashboardPage() {
     <h1 className="sr-only">Dashboard quản trị NutriMom</h1>
     {resource.error&&<div className="admin-dashboard-error" role="alert"><strong>Chưa thể tải Dashboard</strong><p>{resource.error}</p><AdminDashboardActions busy={resource.loading} valid={filters.valid} retry={resource.retry}/></div>}
     <div key={`kpi-${entranceKey}`} className={`admin-workspace-kpis admin-kpi-strip ${timeline.login&&!timeline.reduced?'admin-dashboard-kpi-enter':''}`} data-dashboard-phase="kpi" style={{'--dashboard-frame-delay':`${timeline.frameDelay}s`,'--dashboard-kpi-frame-duration':`${dashboardKpiFrameMs}ms`} as CSSProperties}>
-      {metrics.map(({id,title,value,path,formatter,subtitle,comparison,difference,caption,detail})=><AdminStatsCard key={id} id={id} title={title} path={path} subtitle={subtitle} detail={detail}
-        comparison={timeline.numbers&&!loading?comparison:null} difference={timeline.numbers&&!loading?difference:null} caption={!timeline.numbers||loading?'Đang tải thống kê…':caption} longValue={value!=null&&formatter(value).length>14}
-        value={loading||!timeline.numbers?<Skeleton/>:id==='adoption'&&customers?.total_customers===0?<span className="admin-no-customers">Chưa có khách hàng</span>:value==null?<Missing/>:<AdminDashboardNumber id={id} value={value} formatter={formatter} decimals={id==='adoption'?1:0} start={timeline.numbers} login={timeline.login}/>}/>)}
-
+      <AdminStatsCard id="lifetime" title="Tổng doanh thu" path="/admin/revenue?source=ALL&range=ALL_TIME&status=PAID&dateBasis=PAID"
+        subtitle={`Lũy kế đến T${Number(today.slice(5,7))}/${today.slice(0,4)}`} detail="Doanh thu gói dịch vụ lũy kế"
+        comparison={loadingKpis ? null : revenueComparison}
+        difference={loadingKpis || revenueComparison.difference == null ? null : signedMetric(revenueComparison.difference,money)}
+        caption={loadingKpis ? 'Đang tải thống kê…' : revenueComparison.known ? `so với cuối ${previousLabel}` : 'Chưa có dữ liệu so sánh'}
+        longValue={revenue != null && money(revenue).length > 14}
+        value={loadingKpis ? <Skeleton /> : revenue == null ? <Missing /> : <AdminDashboardNumber id="lifetime" value={revenue} formatter={money} decimals={0} {...numberMotion} />}
+      />
+      <DashboardReviewCard {...numberMotion} />
+      <PaidPlansDialog customers={customers} total={paidUsers} loading={loading}>
+        <AdminStatsCard id="paid-plans" title="Người dùng gói trả phí" actionLabel="Xem theo gói"
+          subtitle="Gói 99K và 399K còn hiệu lực" detail="Tổng người dùng đang sử dụng gói trả phí"
+          caption=""
+          longValue={paidUsers != null && people(paidUsers).length > 14}
+          value={loadingKpis ? <Skeleton /> : paidUsers == null ? <Missing />
+            : <AdminDashboardNumber id="paid-plans" value={paidUsers} formatter={people} decimals={0} {...numberMotion} />}
+        />
+      </PaidPlansDialog>
+      <AdminStatsCard id="adoption" title="Tỷ lệ gói 399K" path="/admin/revenue?tab=subscriptions&planTier=PLAN_399K&effectiveStatus=ACTIVE"
+        subtitle={customers ? `${customers.plan_399k_users}/${customers.total_customers} khách đang dùng` : 'Gói hiện tại của khách hàng'}
+        detail="Khách dùng gói 399K còn hiệu lực / tổng khách hàng × 100" comparison={loadingKpis ? null : planShare.indicator}
+        caption={loadingKpis ? 'Đang tải thống kê…' : customers?.total_customers ? 'Trên tổng khách hàng hiện tại' : customers ? 'Chưa có khách hàng' : 'Dữ liệu chưa khả dụng'}
+        value={loadingKpis ? <Skeleton /> : customers?.total_customers === 0 ? <span className="admin-no-customers">Chưa có khách hàng</span>
+          : planShare.value == null ? <Missing /> : <AdminDashboardNumber id="adoption" value={planShare.value} formatter={percent} decimals={1} {...numberMotion} />}
+      />
     </div>
     <div key={`sections-${entranceKey}`} className={`admin-dashboard-sections ${timeline.login&&!timeline.reduced?'admin-dashboard-sections-enter':''}`} data-dashboard-phase="sections" data-content-ready={timeline.charts&&(!loading||!!resource.error)} inert={!timeline.charts||loading} style={{'--dashboard-section-delay':`${timeline.sectionDelay}s`} as CSSProperties}>
       <div className="admin-primary-charts">
