@@ -12,7 +12,9 @@ import {
 } from '../src/features/admin/model/admin-users.ts'
 import type { AdminUsersMonthlyProgress } from '../src/features/admin/model/admin-users.ts'
 import { mapAdminUserDetail, mapAdminUserListItem, mapAdminUsersPage, mapAdminUsersSummary } from '../src/features/admin/model/admin-users-mappers.ts'
-import type { AdminUserListItemDto } from '../src/features/admin/model/admin-users-mappers.ts'
+import type { AdminUserDetailDto, AdminUserListItemDto } from '../src/features/admin/model/admin-users-mappers.ts'
+import { parseWorkspaceQuery } from '../src/features/admin/model/admin-workspace-query.ts'
+import { user } from './admin-workspace-fixtures.mjs'
 
 const months: AdminUsersMonthlyProgress[] = Array.from({ length: 12 }, (_, index) => ({
   month: index + 1,
@@ -56,7 +58,7 @@ test('omits empty filters and safely falls back for invalid URL state', () => {
   const query = readAdminUsersQuery('?page=0&pageSize=999&q=%20%20&status=PENDING&role=DOCTOR&onboardingStatus=UNKNOWN&sortBy=lastActiveAt&sortDirection=sideways')
   assert.deepEqual(query, { page: 1, pageSize: 20, sortBy: 'createdAt', sortDirection: 'desc', q: undefined, status: undefined, role: undefined, onboardingStatus: undefined })
   assert.equal(buildAdminUsersQueryString(query), '?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc')
-  assert.deepEqual(adminUserStatuses, ['ACTIVE', 'LOCKED', 'DISABLED'])
+  assert.deepEqual(adminUserStatuses, ['ACTIVE', 'LOCKED', 'DISABLED', 'PENDING_ACTIVATION'])
   assert.deepEqual(adminOnboardingStatuses, ['PROFILE_REQUIRED', 'CONTEXT_REQUIRED', 'COMPLETED'])
   assert.deepEqual(adminUserRoles, ['USER', 'EXPERT', 'CONTENT_EDITOR', 'CONTENT_REVIEWER', 'CONTENT_PUBLISHER', 'ADMIN'])
 })
@@ -64,6 +66,19 @@ test('omits empty filters and safely falls back for invalid URL state', () => {
 test('formats backend enum labels without changing their API values', () => {
   assert.equal(formatAdminUserEnum('CONTENT_PUBLISHER'), 'Người xuất bản')
   assert.equal(formatAdminUserEnum('IN_PROGRESS'), 'Đang xử lý')
+})
+
+test('lists, opens and filters accounts waiting for activation', () => {
+  const active: AdminUserDetailDto = { ...user, roles: ['USER'], status: 'ACTIVE', onboarding_status: 'COMPLETED' }
+  const pending: AdminUserDetailDto = { ...active, id: 'pending-user', status: 'PENDING_ACTIVATION' }
+  const page = mapAdminUsersPage({ items: [active, pending], page: 1, page_size: 20, total_items: 2, total_pages: 1 })
+  assert.deepEqual(page.items.map((item) => item.status), ['ACTIVE', 'PENDING_ACTIVATION'])
+  assert.equal(mapAdminUserDetail(pending).status, 'PENDING_ACTIVATION')
+  assert.equal(formatAdminUserEnum(pending.status), 'Chờ kích hoạt')
+
+  const filter = parseWorkspaceQuery('status=PENDING_ACTIVATION', 'users')
+  assert.equal(filter.valid, true)
+  assert.equal(readAdminUsersQuery(filter.query).status, 'PENDING_ACTIVATION')
 })
 
 test('maps the backend snake_case envelope data while preserving role arrays', () => {

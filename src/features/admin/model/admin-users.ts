@@ -1,4 +1,6 @@
-import { adminLabel } from './admin-workspace-query.ts'
+import { adminLabel, adminUserStatuses } from './admin-workspace-query.ts'
+
+export { adminUserStatuses }
 export const adminUserRoles = [
   'USER',
   'EXPERT',
@@ -8,7 +10,6 @@ export const adminUserRoles = [
   'ADMIN',
 ] as const
 
-export const adminUserStatuses = ['ACTIVE', 'LOCKED', 'DISABLED'] as const
 export const adminOnboardingStatuses = ['PROFILE_REQUIRED', 'CONTEXT_REQUIRED', 'COMPLETED'] as const
 export const adminUserSortFields = ['displayName', 'status', 'createdAt', 'updatedAt'] as const
 export const adminUserPageSizes = [10, 20, 50, 100] as const
