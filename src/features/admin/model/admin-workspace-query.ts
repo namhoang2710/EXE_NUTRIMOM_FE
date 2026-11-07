@@ -4,6 +4,7 @@ export const paymentStatuses = ['PENDING', 'PAID', 'CANCELLED', 'EXPIRED'] as co
 export const paymentSources = ['REAL', 'DEMO', 'LEGACY_UNKNOWN', 'ALL'] as const
 export const plans = ['FREE', 'PLAN_99K', 'PLAN_399K'] as const
 export const reportTypes = ['OPERATIONS','USERS_SUBSCRIPTIONS','REVENUE','EXPERT_PERFORMANCE'] as const
+export const adminUserStatuses = ['ACTIVE', 'LOCKED', 'DISABLED', 'PENDING_ACTIVATION'] as const
 export type WorkspaceKind = 'dashboard' | 'appointments' | 'consultations' | 'experts' | 'payments' | 'subscriptions' | 'reports' | 'users' | 'support'
 export const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export function validOrderCode(value: string) { return /^[1-9]\d{0,18}$/.test(value) && BigInt(value) <= 9223372036854775807n }
@@ -46,6 +47,7 @@ const labels: Record<string, string> = {
   PENDING: 'Chờ thanh toán', PAID: 'Đã thanh toán', REAL: 'Thực', DEMO: 'Thử nghiệm', LEGACY_UNKNOWN: 'Chưa xác định', ALL: 'Tất cả',
   FREE: 'Miễn phí', PLAN_99K: 'Gói 99K', PLAN_399K: 'Gói 399K', SCHEDULED: 'Ngày có lịch', CREATED: 'Ngày tạo',
   true: 'Có', false: 'Không', USER: 'Người dùng', EXPERT: 'Chuyên gia', ADMIN: 'Quản trị viên', LOCKED: 'Đã khóa', DISABLED: 'Vô hiệu hóa',
+  PENDING_ACTIVATION: 'Chờ kích hoạt',
   PROFILE_REQUIRED: 'Cần hồ sơ', CONTEXT_REQUIRED: 'Cần thông tin', CONTENT_EDITOR: 'Biên tập viên', CONTENT_REVIEWER: 'Người duyệt', CONTENT_PUBLISHER: 'Người xuất bản',
   OPERATIONS: 'Vận hành tư vấn', USERS_SUBSCRIPTIONS: 'Người dùng & Gói', REVENUE: 'Tiền thu', EXPERT_PERFORMANCE:'Hiệu suất chuyên gia', asc: 'Tăng dần', desc: 'Giảm dần',
   displayName: 'Tên', status: 'Trạng thái', createdAt: 'Ngày tạo', updatedAt: 'Ngày cập nhật', DIRECT: 'Chọn trực tiếp', RANDOM: 'Phân công tự động',
@@ -82,7 +84,7 @@ export function parseWorkspaceQuery(search: URLSearchParams | string, kind: Work
   if ((query.get('q')?.length ?? 0) > 100) errors.q = 'Tìm kiếm tối đa 100 ký tự.'
   const enums = { ...commonEnums } as Record<string, readonly string[]>
   enums.range = ['PERIOD', 'ALL_TIME']
-  enums.status = kind === 'appointments' ? consultationStatuses : kind === 'experts' ? ['ACTIVE', 'INACTIVE'] : kind === 'users' ? ['ACTIVE', 'LOCKED', 'DISABLED'] : kind === 'support' ? ['PENDING', 'COMPLETED', 'CANCELLED'] : paymentStatuses
+  enums.status = kind === 'appointments' ? consultationStatuses : kind === 'experts' ? ['ACTIVE', 'INACTIVE'] : kind === 'users' ? adminUserStatuses : kind === 'support' ? ['PENDING', 'COMPLETED', 'CANCELLED'] : paymentStatuses
   enums.topic = ['POLICY', 'APP_USAGE', 'ACCOUNT', 'OTHER']
   enums.dateBasis = kind === 'payments' ? ['CREATED', 'PAID'] : ['SCHEDULED', 'CREATED']
   enums.effectiveStatus = ['ACTIVE', 'EXPIRED', 'CANCELLED', 'NOT_STARTED']
